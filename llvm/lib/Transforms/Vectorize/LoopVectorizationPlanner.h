@@ -517,6 +517,12 @@ public:
   /// for each VF.
   VPlan &getPlanFor(ElementCount VF) const;
 
+  unsigned getNumPlans() const { return VPlans.size(); }
+
+  VPlan &getPlanByIndex(unsigned Index) const;
+
+  std::optional<unsigned> getPlanIndexForVF(ElementCount VF) const;
+
   /// Compute and return the most profitable vectorization factor. Also collect
   /// all profitable VFs in ProfitableVFs.
   VectorizationFactor computeBestVF();

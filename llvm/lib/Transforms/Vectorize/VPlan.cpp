@@ -1594,6 +1594,19 @@ VPlan &LoopVectorizationPlanner::getPlanFor(ElementCount VF) const {
   llvm_unreachable("No plan found!");
 }
 
+VPlan &LoopVectorizationPlanner::getPlanByIndex(unsigned Index) const {
+  assert(Index < VPlans.size() && "Invalid VPlan index");
+  return *VPlans[Index];
+}
+
+std::optional<unsigned>
+LoopVectorizationPlanner::getPlanIndexForVF(ElementCount VF) const {
+  for (auto [Index, Plan] : enumerate(VPlans))
+    if (Plan->hasVF(VF))
+      return Index;
+  return std::nullopt;
+}
+
 static void addRuntimeUnrollDisableMetaData(Loop *L) {
   SmallVector<Metadata *, 4> MDs;
   // Reserve first location for self reference to the LoopID metadata node.

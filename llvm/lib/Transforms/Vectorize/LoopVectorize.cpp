@@ -366,6 +366,11 @@ cl::opt<bool>
                           cl::Hidden,
                           cl::desc("Verfiy VPlans after VPlan transforms."));
 
+static cl::opt<bool> VPlanExplain(
+    "vplan-explain", cl::init(false), cl::Hidden,
+    cl::desc("Explain per-loop VPlan candidates and selected vectorization "
+             "factor without changing the normal vectorizer decision."));
+
 // This flag enables the stress testing of the VPlan H-CFG construction in the
 // VPlan-native vectorization path. It must be used in conjuction with
 // -enable-vplan-native-path. -vplan-verify-hcfg can also be used to enable the
@@ -829,6 +834,45 @@ static void reportVectorization(OptimizationRemarkEmitter *ORE, Loop *TheLoop,
            << ", interleaved count: " << ore::NV("InterleaveCount", IC) << ")";
   });
 }
+
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+static std::string formatVPlanExplainVFs(const VPlan &Plan) {
+  std::string VFText;
+  raw_string_ostream OS(VFText);
+  OS << "{";
+  bool First = true;
+  for (ElementCount VF : Plan.vectorFactors()) {
+    if (!First)
+      OS << ",";
+    OS << VF;
+    First = false;
+  }
+  OS << "}";
+  return VFText;
+}
+
+static void emitVPlanExplain(const LoopVectorizationPlanner &LVP,
+                             unsigned LoopIndex, StringRef PathKind,
+                             std::optional<ElementCount> SelectedVF) {
+  dbgs() << "LV: Loop[" << LoopIndex << "] path=" << PathKind
+         << " plans=" << LVP.getNumPlans() << "\n";
+  for (unsigned PlanIndex = 0, End = LVP.getNumPlans(); PlanIndex != End;
+       ++PlanIndex) {
+    const VPlan &Plan = LVP.getPlanByIndex(PlanIndex);
+    dbgs() << "LV:   VPlan[" << PlanIndex
+           << "] VFs=" << formatVPlanExplainVFs(Plan) << "\n";
+  }
+  if (!SelectedVF)
+    return;
+
+  std::optional<unsigned> SelectedPlanIndex = LVP.getPlanIndexForVF(*SelectedVF);
+  if (!SelectedPlanIndex)
+    return;
+
+  dbgs() << "LV:   selected VF=" << *SelectedVF
+         << " plan=" << *SelectedPlanIndex << "\n";
+}
+#endif
 
 } // end namespace llvm
 
@@ -9002,7 +9046,8 @@ static bool processLoopInVPlanNativePath(
     TargetLibraryInfo *TLI, DemandedBits *DB, AssumptionCache *AC,
     OptimizationRemarkEmitter *ORE,
     std::function<BlockFrequencyInfo &()> GetBFI, bool OptForSize,
-    LoopVectorizeHints &Hints, LoopVectorizationRequirements &Requirements) {
+    LoopVectorizeHints &Hints, LoopVectorizationRequirements &Requirements,
+    unsigned &VPlanExplainLoopIndex) {
 
   if (isa<SCEVCouldNotCompute>(PSE.getBackedgeTakenCount())) {
     LLVM_DEBUG(dbgs() << "LV: cannot compute the outer-loop trip count\n");
@@ -9029,7 +9074,20 @@ static bool processLoopInVPlanNativePath(
   CM.collectElementTypesForWidening();
 
   // Plan how to best vectorize, return the best VF and its cost.
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+  unsigned ExplainLoopIndex = 0;
+  if (VPlanExplain)
+    ExplainLoopIndex = VPlanExplainLoopIndex++;
+#endif
   const VectorizationFactor VF = LVP.planInVPlanNativePath(UserVF);
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+  if (VPlanExplain) {
+    std::optional<ElementCount> SelectedVF;
+    if (LVP.hasPlanWithVF(VF.Width))
+      SelectedVF = VF.Width;
+    emitVPlanExplain(LVP, ExplainLoopIndex, "outer-native", SelectedVF);
+  }
+#endif
 
   // If we are stress testing VPlan builds, do not attempt to generate vector
   // code. Masked vector code generation support will follow soon.
@@ -9761,7 +9819,7 @@ bool LoopVectorizePass::processLoop(Loop *L) {
   if (!L->isInnermost())
     return processLoopInVPlanNativePath(L, PSE, LI, DT, &LVL, TTI, TLI, DB, AC,
                                         ORE, GetBFI, OptForSize, Hints,
-                                        Requirements);
+                                        Requirements, VPlanExplainLoopIndex);
 
   assert(L->isInnermost() && "Inner loop expected.");
 
@@ -9876,8 +9934,21 @@ bool LoopVectorizePass::processLoop(Loop *L) {
     UserIC = 1;
 
   // Plan how to best vectorize.
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+  unsigned ExplainLoopIndex = 0;
+  if (VPlanExplain)
+    ExplainLoopIndex = VPlanExplainLoopIndex++;
+#endif
   LVP.plan(UserVF, UserIC);
   VectorizationFactor VF = LVP.computeBestVF();
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+  if (VPlanExplain) {
+    std::optional<ElementCount> SelectedVF;
+    if (LVP.hasPlanWithVF(VF.Width))
+      SelectedVF = VF.Width;
+    emitVPlanExplain(LVP, ExplainLoopIndex, "inner", SelectedVF);
+  }
+#endif
   unsigned IC = 1;
 
   if (ORE->allowExtraAnalysis(LV_NAME))
@@ -10107,6 +10178,7 @@ bool LoopVectorizePass::processLoop(Loop *L) {
 }
 
 LoopVectorizeResult LoopVectorizePass::runImpl(Function &F) {
+  VPlanExplainLoopIndex = 0;
 
   // Don't attempt if
   // 1. the target claims to have no vector registers, and

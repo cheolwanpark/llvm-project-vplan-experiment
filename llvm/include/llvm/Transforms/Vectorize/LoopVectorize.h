@@ -138,6 +138,8 @@ private:
   /// If true, only loops that explicitly request vectorization are considered.
   bool VectorizeOnlyWhenForced;
 
+  unsigned VPlanExplainLoopIndex = 0;
+
 public:
   LLVM_ABI LoopVectorizePass(LoopVectorizeOptions Opts = {});
 
