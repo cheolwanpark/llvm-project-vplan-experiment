@@ -861,6 +861,16 @@ static void emitVPlanExplain(const LoopVectorizationPlanner &LVP,
     const VPlan &Plan = LVP.getPlanByIndex(PlanIndex);
     dbgs() << "LV:   VPlan[" << PlanIndex
            << "] VFs=" << formatVPlanExplainVFs(Plan) << "\n";
+    for (const auto &Info : LVP.getVPlanExplainInfo(PlanIndex)) {
+      dbgs() << "LV:     VF=" << Info.VF << " cost=";
+      if (Info.SkipReason)
+        dbgs() << "skipped(" << Info.SkipReason << ")";
+      else if (Info.Cost)
+        dbgs() << *Info.Cost;
+      else
+        dbgs() << "n/a";
+      dbgs() << "\n";
+    }
   }
   if (!SelectedVF)
     return;
@@ -7191,12 +7201,26 @@ static bool planContainsAdditionalSimplifications(VPlan &Plan,
 #endif
 
 VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+  if (VPlanExplain && OrigLoop->isInnermost())
+    clearVPlanExplainInfo();
+#endif
   if (VPlans.empty())
     return VectorizationFactor::Disabled();
   // If there is a single VPlan with a single VF, return it directly.
   VPlan &FirstPlan = *VPlans[0];
-  if (VPlans.size() == 1 && size(FirstPlan.vectorFactors()) == 1)
-    return {*FirstPlan.vectorFactors().begin(), 0, 0};
+  if (VPlans.size() == 1 && size(FirstPlan.vectorFactors()) == 1) {
+    ElementCount VF = *FirstPlan.vectorFactors().begin();
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+    if (VPlanExplain && OrigLoop->isInnermost()) {
+      if (VF.isScalar())
+        setVPlanExplainCost(0, VF, CM.expectedCost(VF));
+      else
+        setVPlanExplainCost(0, VF, cost(FirstPlan, VF));
+    }
+#endif
+    return {VF, 0, 0};
+  }
 
   LLVM_DEBUG(dbgs() << "LV: Computing best VF using cost kind: "
                     << (CM.CostKind == TTI::TCK_RecipThroughput
@@ -7215,6 +7239,11 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
   // TODO: Compute scalar cost using VPlan-based cost model.
   InstructionCost ScalarCost = CM.expectedCost(ScalarVF);
   LLVM_DEBUG(dbgs() << "LV: Scalar loop costs: " << ScalarCost << ".\n");
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+  if (VPlanExplain && OrigLoop->isInnermost())
+    if (std::optional<unsigned> ScalarPlanIndex = getPlanIndexForVF(ScalarVF))
+      setVPlanExplainCost(*ScalarPlanIndex, ScalarVF, ScalarCost);
+#endif
   VectorizationFactor ScalarFactor(ScalarVF, ScalarCost, ScalarCost);
   VectorizationFactor BestFactor = ScalarFactor;
 
@@ -7226,7 +7255,7 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
     BestFactor.Cost = InstructionCost::getMax();
   }
 
-  for (auto &P : VPlans) {
+  for (auto [PlanIndex, P] : enumerate(VPlans)) {
     ArrayRef<ElementCount> VFs(P->vectorFactors().begin(),
                                P->vectorFactors().end());
 
@@ -7241,6 +7270,10 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
       if (VF.isScalar())
         continue;
       if (!ForceVectorization && !willGenerateVectors(*P, VF, TTI)) {
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+        if (VPlanExplain && OrigLoop->isInnermost())
+          setVPlanExplainSkipReason(PlanIndex, VF, "no-vector-insts");
+#endif
         LLVM_DEBUG(
             dbgs()
             << "LV: Not considering vector loop of width " << VF
@@ -7248,6 +7281,10 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
         continue;
       }
       if (CM.OptForSize && !ForceVectorization && hasReplicatorRegion(*P)) {
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+        if (VPlanExplain && OrigLoop->isInnermost())
+          setVPlanExplainSkipReason(PlanIndex, VF, "size-opt-replicator");
+#endif
         LLVM_DEBUG(
             dbgs()
             << "LV: Not considering vector loop of width " << VF
@@ -7257,10 +7294,18 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
       }
 
       InstructionCost Cost = cost(*P, VF);
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+      if (VPlanExplain && OrigLoop->isInnermost())
+        setVPlanExplainCost(PlanIndex, VF, Cost);
+#endif
       VectorizationFactor CurrentFactor(VF, Cost, ScalarCost);
 
       if (CM.shouldConsiderRegPressureForVF(VF) &&
           RUs[I].exceedsMaxNumRegs(TTI, ForceTargetNumVectorRegs)) {
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+        if (VPlanExplain && OrigLoop->isInnermost())
+          setVPlanExplainSkipReason(PlanIndex, VF, "register-pressure");
+#endif
         LLVM_DEBUG(dbgs() << "LV(REG): Not considering vector loop of width "
                           << VF << " because it uses too many registers\n");
         continue;

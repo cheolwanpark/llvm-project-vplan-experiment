@@ -1,15 +1,25 @@
 ; REQUIRES: asserts
 
 ; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -debug-only=loop-vectorize -vplan-explain -disable-output < %s 2>&1 | FileCheck %s --check-prefix=DBG
+; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -force-vector-width=2 -vplan-explain -disable-output < %s 2>&1 | FileCheck %s --check-prefix=FORCED
 ; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -S < %s | FileCheck %s --check-prefix=IR
 ; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -vplan-explain -S < %s | FileCheck %s --check-prefix=IR
 
 target triple = "aarch64-unknown-linux-gnu"
 
 ; DBG:      LV: Loop[0] path=inner plans={{[0-9]+}}
+; DBG-DAG:  LV:   VPlan[{{[0-9]+}}] VFs={1}
+; DBG-DAG:  LV:     VF=1 cost={{.+}}
 ; DBG-DAG:  LV:   VPlan[{{[0-9]+}}] VFs={2}
+; DBG-DAG:  LV:     VF=2 cost={{.+}}
 ; DBG-DAG:  LV:   VPlan[{{[0-9]+}}] VFs={4}
+; DBG-DAG:  LV:     VF=4 cost={{.+}}
 ; DBG:      LV:   selected VF=4 plan={{[0-9]+}}
+
+; FORCED:      LV: Loop[0] path=inner plans=1
+; FORCED-NEXT: LV:   VPlan[0] VFs={2}
+; FORCED-NEXT: LV:     VF=2 cost={{.+}}
+; FORCED-NEXT: LV:   selected VF=2 plan=0
 
 define void @test_v2_v4(ptr noalias %a, ptr readonly %b) #0 {
 ; IR-LABEL: @test_v2_v4(

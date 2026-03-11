@@ -475,6 +475,16 @@ class LoopVectorizationPlanner {
   /// Profitable vector factors.
   SmallVector<VectorizationFactor, 8> ProfitableVFs;
 
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+  struct VPlanExplainVFInfo {
+    ElementCount VF;
+    std::optional<InstructionCost> Cost;
+    const char *SkipReason = nullptr;
+  };
+
+  SmallVector<SmallVector<VPlanExplainVFInfo, 4>, 4> VPlanExplainInfo;
+#endif
+
   /// A builder used to construct the current plan.
   VPBuilder Builder;
 
@@ -522,6 +532,47 @@ public:
   VPlan &getPlanByIndex(unsigned Index) const;
 
   std::optional<unsigned> getPlanIndexForVF(ElementCount VF) const;
+
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+  void clearVPlanExplainInfo() {
+    VPlanExplainInfo.clear();
+    VPlanExplainInfo.resize(VPlans.size());
+    for (auto [PlanIndex, Plan] : enumerate(VPlans))
+      for (ElementCount VF : Plan->vectorFactors())
+        VPlanExplainInfo[PlanIndex].push_back({VF, std::nullopt, nullptr});
+  }
+
+  void setVPlanExplainCost(unsigned PlanIndex, ElementCount VF,
+                           InstructionCost Cost) {
+    assert(PlanIndex < VPlanExplainInfo.size() && "Invalid VPlan index");
+    for (VPlanExplainVFInfo &Info : VPlanExplainInfo[PlanIndex]) {
+      if (Info.VF != VF)
+        continue;
+      Info.Cost = Cost;
+      Info.SkipReason = nullptr;
+      return;
+    }
+    llvm_unreachable("Missing VPlan explain VF entry");
+  }
+
+  void setVPlanExplainSkipReason(unsigned PlanIndex, ElementCount VF,
+                                 const char *Reason) {
+    assert(PlanIndex < VPlanExplainInfo.size() && "Invalid VPlan index");
+    for (VPlanExplainVFInfo &Info : VPlanExplainInfo[PlanIndex]) {
+      if (Info.VF != VF)
+        continue;
+      Info.SkipReason = Reason;
+      return;
+    }
+    llvm_unreachable("Missing VPlan explain VF entry");
+  }
+
+  ArrayRef<VPlanExplainVFInfo> getVPlanExplainInfo(unsigned PlanIndex) const {
+    if (PlanIndex >= VPlanExplainInfo.size())
+      return {};
+    return VPlanExplainInfo[PlanIndex];
+  }
+#endif
 
   /// Compute and return the most profitable vectorization factor. Also collect
   /// all profitable VFs in ProfitableVFs.
