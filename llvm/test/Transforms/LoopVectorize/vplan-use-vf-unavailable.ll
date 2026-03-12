@@ -7,6 +7,7 @@ target triple = "x86_64-unknown-linux-gnu"
 
 ; UNAVAILABLE: LV: Loop[0] forcing VF vscale x 4
 ; UNAVAILABLE: LV: Not vectorizing: requested -vplan-use-vf is not available 'scalable:4' for loop index 0.
+; UNAVAILABLE-NOT: selected VPlan dump follows
 
 define void @test_unavailable(ptr noalias %a, ptr readonly %b) {
 ; SCALAR-LABEL: @test_unavailable(

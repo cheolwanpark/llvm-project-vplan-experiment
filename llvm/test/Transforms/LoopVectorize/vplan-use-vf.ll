@@ -1,15 +1,32 @@
 ; REQUIRES: asserts
 
+; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -debug-only=loop-vectorize-vplan-use-vf -vplan-use-vf=fixed:2 -disable-output < %s 2>&1 | FileCheck %s --check-prefix=DUMP
 ; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -debug-only=loop-vectorize-vplan-use-vf -vplan-explain -vplan-use-vf=fixed:2 -disable-output < %s 2>&1 | FileCheck %s --check-prefix=FORCED
 ; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -S -vplan-use-vf=fixed:2 < %s | FileCheck %s --check-prefix=IR
 ; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -debug-only=loop-vectorize-vplan-use-vf -vplan-use-vf=fixed:3 -disable-output < %s 2>&1 | FileCheck %s --check-prefix=INVALID
 
 target triple = "aarch64-unknown-linux-gnu"
 
+; DUMP:      LV: Loop[0] forcing VF 2
+; DUMP:      LV: Loop[0] selected VF=2 plan=0
+; DUMP-NEXT: LV: Loop[0] selected VPlan dump follows
+; DUMP-NEXT: VPlan 'Initial VPlan for VF={2},UF>=1' {
+; DUMP-NEXT: Live-in vp<[[VF:%.+]]> = VF
+; DUMP-NEXT: Live-in vp<[[VFxUF:%.+]]> = VF * UF
+; DUMP-NEXT: Live-in vp<[[VEC_TC:%.+]]> = vector-trip-count
+; DUMP-NEXT: Live-in ir<1024> = original trip-count
+; DUMP:      vector.ph:
+; DUMP:      LV: Loop[0] bypassing interleave selection for forced VF
+; DUMP:      LV: Loop[0] bypassing outside-loop work profitability for forced VF
+; DUMP:      LV: Loop[0] disabling epilogue vectorization for forced VF
+
 ; FORCED:      LV: Loop[0] forcing VF 2
 ; FORCED:      LV: Loop[0] path=inner plans=1
 ; FORCED-NEXT: LV:   VPlan[0] VFs={2}
 ; FORCED-NEXT: LV:   selected VF=2 plan=0
+; FORCED:      LV: Loop[0] selected VF=2 plan=0
+; FORCED-NEXT: LV: Loop[0] selected VPlan dump follows
+; FORCED-NEXT: VPlan 'Initial VPlan for VF={2},UF>=1' {
 ; FORCED:      LV: Loop[0] bypassing interleave selection for forced VF
 ; FORCED:      LV: Loop[0] bypassing outside-loop work profitability for forced VF
 ; FORCED:      LV: Loop[0] disabling epilogue vectorization for forced VF

@@ -892,6 +892,21 @@ static void emitVPlanExplain(const LoopVectorizationPlanner &LVP,
   dbgs() << "LV:   selected VF=" << *SelectedVF
          << " plan=" << *SelectedPlanIndex << "\n";
 }
+
+static void emitSelectedVPlanUseVFDebugDump(
+    const LoopVectorizationPlanner &LVP, unsigned LoopIndex,
+    ElementCount SelectedVF) {
+  std::optional<unsigned> SelectedPlanIndex = LVP.getPlanIndexForVF(SelectedVF);
+  if (!SelectedPlanIndex)
+    return;
+
+  DEBUG_WITH_TYPE(VPlanUseVFDebug, {
+    dbgs() << "LV: Loop[" << LoopIndex << "] selected VF=" << SelectedVF
+           << " plan=" << *SelectedPlanIndex << "\n";
+    dbgs() << "LV: Loop[" << LoopIndex << "] selected VPlan dump follows\n";
+    LVP.getPlanByIndex(*SelectedPlanIndex).print(dbgs());
+  });
+}
 #endif
 
 static VPlanUseVFOverride parseVPlanUseVFOverride(StringRef Entry) {
@@ -10152,6 +10167,8 @@ bool LoopVectorizePass::processLoop(Loop *L) {
   if (VPlanExplain) {
     emitVPlanExplain(LVP, LoopIndex, "inner", SelectedVF);
   }
+  if (ForcedVF && SelectedVF)
+    emitSelectedVPlanUseVFDebugDump(LVP, LoopIndex, *SelectedVF);
 #endif
   if (ForcedVF && !SelectedVF) {
     std::string Msg = formatVPlanUseVFMessage(
