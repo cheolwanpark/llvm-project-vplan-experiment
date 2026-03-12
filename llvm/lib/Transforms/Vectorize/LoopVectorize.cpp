@@ -164,6 +164,7 @@ using namespace SCEVPatternMatch;
 
 #ifndef NDEBUG
 const char VerboseDebug[] = DEBUG_TYPE "-verbose";
+const char VPlanUseVFDebug[] = DEBUG_TYPE "-vplan-use-vf";
 #endif
 
 STATISTIC(LoopsVectorized, "Number of loops vectorized");
@@ -370,6 +371,11 @@ static cl::opt<bool> VPlanExplain(
     "vplan-explain", cl::init(false), cl::Hidden,
     cl::desc("Explain per-loop VPlan candidates and selected vectorization "
              "factor without changing the normal vectorizer decision."));
+
+static cl::opt<std::string> VPlanUseVF(
+    "vplan-use-vf", cl::init(""), cl::Hidden,
+    cl::desc("Comma-separated per-loop VFs to force, in loop explanation "
+             "order. Example: fixed:4,-,scalable:4"));
 
 // This flag enables the stress testing of the VPlan H-CFG construction in the
 // VPlan-native vectorization path. It must be used in conjuction with
@@ -748,6 +754,10 @@ static void debugVectorizationMessage(const StringRef Prefix,
     dbgs() << '.';
   dbgs() << '\n';
 }
+
+static void debugVPlanUseVFLine(StringRef Msg) {
+  DEBUG_WITH_TYPE(VPlanUseVFDebug, dbgs() << "LV: " << Msg << '\n');
+}
 #endif
 
 /// Create an analysis remark that explains why vectorization failed
@@ -883,6 +893,103 @@ static void emitVPlanExplain(const LoopVectorizationPlanner &LVP,
          << " plan=" << *SelectedPlanIndex << "\n";
 }
 #endif
+
+static VPlanUseVFOverride parseVPlanUseVFOverride(StringRef Entry) {
+  VPlanUseVFOverride Override;
+  Override.Text = Entry.str();
+  if (Entry == "-")
+    return Override;
+
+  auto [Kind, WidthText] = Entry.split(':');
+  unsigned Width = 0;
+  if (WidthText.empty() || WidthText.contains(':') ||
+      WidthText.getAsInteger(10, Width) || Width == 0 ||
+      !isPowerOf2_32(Width)) {
+    Override.OverrideKind = VPlanUseVFOverride::Kind::Invalid;
+    return Override;
+  }
+
+  if (Kind == "fixed")
+    Override.IsScalable = false;
+  else if (Kind == "scalable")
+    Override.IsScalable = true;
+  else {
+    Override.OverrideKind = VPlanUseVFOverride::Kind::Invalid;
+    return Override;
+  }
+
+  Override.OverrideKind = VPlanUseVFOverride::Kind::Parsed;
+  Override.Width = Width;
+  return Override;
+}
+
+static void parseVPlanUseVFOverrides(
+    StringRef OverrideText, SmallVectorImpl<VPlanUseVFOverride> &Overrides) {
+  Overrides.clear();
+  if (OverrideText.empty())
+    return;
+
+  SmallVector<StringRef, 4> Entries;
+  OverrideText.split(Entries, ',', /*MaxSplit=*/-1, /*KeepEmpty=*/true);
+  for (StringRef Entry : Entries)
+    Overrides.push_back(parseVPlanUseVFOverride(Entry));
+}
+
+static const VPlanUseVFOverride *
+getVPlanUseVFOverride(ArrayRef<VPlanUseVFOverride> Overrides,
+                      unsigned LoopIndex) {
+  if (LoopIndex >= Overrides.size())
+    return nullptr;
+  return &Overrides[LoopIndex];
+}
+
+static ElementCount getElementCountForOverride(const VPlanUseVFOverride &Override) {
+  assert(Override.OverrideKind == VPlanUseVFOverride::Kind::Parsed &&
+         "Expected parsed VPlan VF override");
+  if (Override.IsScalable)
+    return ElementCount::getScalable(Override.Width);
+  return ElementCount::getFixed(Override.Width);
+}
+
+static std::string formatVPlanUseVFMessage(unsigned LoopIndex, StringRef Message,
+                                           StringRef Entry = {}) {
+  std::string Buffer;
+  raw_string_ostream OS(Buffer);
+  OS << Message;
+  if (!Entry.empty())
+    OS << " '" << Entry << "'";
+  OS << " for loop index " << LoopIndex;
+  return Buffer;
+}
+
+static std::string formatVPlanUseVFDebugLoopMessage(unsigned LoopIndex,
+                                                    StringRef Message) {
+  std::string Buffer;
+  raw_string_ostream OS(Buffer);
+  OS << "Loop[" << LoopIndex << "] " << Message;
+  return Buffer;
+}
+
+static void debugVPlanUseVFLoopMessage(unsigned LoopIndex, StringRef Message) {
+#ifndef NDEBUG
+  debugVPlanUseVFLine(formatVPlanUseVFDebugLoopMessage(LoopIndex, Message));
+#endif
+}
+
+static void debugVPlanUseVFFailureMessage(unsigned LoopIndex, StringRef Message,
+                                          StringRef Entry = {}) {
+#ifndef NDEBUG
+  debugVPlanUseVFLine((Twine("Not vectorizing: ") +
+                       formatVPlanUseVFMessage(LoopIndex, Message, Entry) + ".")
+                          .str());
+#endif
+}
+
+static void debugVPlanUseVFMessage(StringRef Message) {
+#ifndef NDEBUG
+  debugVPlanUseVFLine(Message);
+#endif
+}
 
 } // end namespace llvm
 
@@ -9092,7 +9199,7 @@ static bool processLoopInVPlanNativePath(
     OptimizationRemarkEmitter *ORE,
     std::function<BlockFrequencyInfo &()> GetBFI, bool OptForSize,
     LoopVectorizeHints &Hints, LoopVectorizationRequirements &Requirements,
-    unsigned &VPlanExplainLoopIndex) {
+    unsigned &VPlanLoopIndex, ArrayRef<VPlanUseVFOverride> VPlanUseVFOverrides) {
 
   if (isa<SCEVCouldNotCompute>(PSE.getBackedgeTakenCount())) {
     LLVM_DEBUG(dbgs() << "LV: cannot compute the outer-loop trip count\n");
@@ -9118,19 +9225,41 @@ static bool processLoopInVPlanNativePath(
 
   CM.collectElementTypesForWidening();
 
+  unsigned LoopIndex = VPlanLoopIndex++;
+  if (const VPlanUseVFOverride *ForcedOverride =
+          getVPlanUseVFOverride(VPlanUseVFOverrides, LoopIndex)) {
+    if (ForcedOverride->OverrideKind == VPlanUseVFOverride::Kind::Invalid) {
+      std::string Msg = formatVPlanUseVFMessage(
+          LoopIndex, "invalid -vplan-use-vf entry", ForcedOverride->Text);
+      debugVPlanUseVFFailureMessage(LoopIndex, "invalid -vplan-use-vf entry",
+                                    ForcedOverride->Text);
+      reportVectorizationFailure(Msg, "VPlanUseVFInvalid", ORE, L);
+      return false;
+    }
+    if (ForcedOverride->OverrideKind == VPlanUseVFOverride::Kind::Parsed) {
+      std::string Msg = formatVPlanUseVFMessage(
+          LoopIndex,
+          "forced -vplan-use-vf is unsupported for outer loops in the "
+          "VPlan-native path",
+          ForcedOverride->Text);
+      debugVPlanUseVFFailureMessage(
+          LoopIndex,
+          "forced -vplan-use-vf is unsupported for outer loops in the "
+          "VPlan-native path",
+          ForcedOverride->Text);
+      reportVectorizationFailure(Msg, "VPlanUseVFUnsupported", ORE, L);
+      return false;
+    }
+  }
+
   // Plan how to best vectorize, return the best VF and its cost.
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  unsigned ExplainLoopIndex = 0;
-  if (VPlanExplain)
-    ExplainLoopIndex = VPlanExplainLoopIndex++;
-#endif
   const VectorizationFactor VF = LVP.planInVPlanNativePath(UserVF);
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   if (VPlanExplain) {
     std::optional<ElementCount> SelectedVF;
     if (LVP.hasPlanWithVF(VF.Width))
       SelectedVF = VF.Width;
-    emitVPlanExplain(LVP, ExplainLoopIndex, "outer-native", SelectedVF);
+    emitVPlanExplain(LVP, LoopIndex, "outer-native", SelectedVF);
   }
 #endif
 
@@ -9864,7 +9993,8 @@ bool LoopVectorizePass::processLoop(Loop *L) {
   if (!L->isInnermost())
     return processLoopInVPlanNativePath(L, PSE, LI, DT, &LVL, TTI, TLI, DB, AC,
                                         ORE, GetBFI, OptForSize, Hints,
-                                        Requirements, VPlanExplainLoopIndex);
+                                        Requirements, VPlanLoopIndex,
+                                        VPlanUseVFOverrides);
 
   assert(L->isInnermost() && "Inner loop expected.");
 
@@ -9979,21 +10109,60 @@ bool LoopVectorizePass::processLoop(Loop *L) {
     UserIC = 1;
 
   // Plan how to best vectorize.
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  unsigned ExplainLoopIndex = 0;
-  if (VPlanExplain)
-    ExplainLoopIndex = VPlanExplainLoopIndex++;
-#endif
+  unsigned LoopIndex = VPlanLoopIndex++;
+  std::optional<ElementCount> ForcedVF;
+  const VPlanUseVFOverride *ForcedOverride =
+      getVPlanUseVFOverride(VPlanUseVFOverrides, LoopIndex);
+  if (ForcedOverride) {
+    if (ForcedOverride->OverrideKind == VPlanUseVFOverride::Kind::Invalid) {
+      std::string Msg = formatVPlanUseVFMessage(
+          LoopIndex, "invalid -vplan-use-vf entry", ForcedOverride->Text);
+      debugVPlanUseVFFailureMessage(LoopIndex, "invalid -vplan-use-vf entry",
+                                    ForcedOverride->Text);
+      reportVectorizationFailure(Msg, "VPlanUseVFInvalid", ORE, L);
+      return false;
+    }
+    if (ForcedOverride->OverrideKind == VPlanUseVFOverride::Kind::Parsed) {
+      ForcedVF = getElementCountForOverride(*ForcedOverride);
+      std::string ForcedVFText;
+      raw_string_ostream OS(ForcedVFText);
+      OS << *ForcedVF;
+      debugVPlanUseVFLoopMessage(LoopIndex, ("forcing VF " + OS.str()));
+      LLVM_DEBUG(dbgs() << "LV: Loop[" << LoopIndex << "] forcing VF "
+                        << *ForcedVF << "\n");
+      UserVF = *ForcedVF;
+    }
+  }
+
   LVP.plan(UserVF, UserIC);
-  VectorizationFactor VF = LVP.computeBestVF();
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  if (VPlanExplain) {
-    std::optional<ElementCount> SelectedVF;
+  VectorizationFactor VF = VectorizationFactor::Disabled();
+  std::optional<ElementCount> SelectedVF;
+  if (ForcedVF) {
+    if (LVP.hasPlanWithVF(*ForcedVF)) {
+      VF = VectorizationFactor(*ForcedVF, 0, 0);
+      VF.MinProfitableTripCount = ElementCount::getFixed(0);
+      SelectedVF = *ForcedVF;
+    }
+  } else {
+    VF = LVP.computeBestVF();
     if (LVP.hasPlanWithVF(VF.Width))
       SelectedVF = VF.Width;
-    emitVPlanExplain(LVP, ExplainLoopIndex, "inner", SelectedVF);
+  }
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+  if (VPlanExplain) {
+    emitVPlanExplain(LVP, LoopIndex, "inner", SelectedVF);
   }
 #endif
+  if (ForcedVF && !SelectedVF) {
+    std::string Msg = formatVPlanUseVFMessage(
+        LoopIndex, "requested -vplan-use-vf is not available",
+        ForcedOverride ? StringRef(ForcedOverride->Text) : StringRef());
+    debugVPlanUseVFFailureMessage(
+        LoopIndex, "requested -vplan-use-vf is not available",
+        ForcedOverride ? StringRef(ForcedOverride->Text) : StringRef());
+    reportVectorizationFailure(Msg, "VPlanUseVFUnavailable", ORE, L);
+    return false;
+  }
   unsigned IC = 1;
 
   if (ORE->allowExtraAnalysis(LV_NAME))
@@ -10002,7 +10171,16 @@ bool LoopVectorizePass::processLoop(Loop *L) {
   GeneratedRTChecks Checks(PSE, DT, LI, TTI, CM.CostKind);
   if (LVP.hasPlanWithVF(VF.Width)) {
     // Select the interleave count.
-    IC = LVP.selectInterleaveCount(LVP.getPlanFor(VF.Width), VF.Width, VF.Cost);
+    if (ForcedVF) {
+      IC = UserIC > 0 ? UserIC : 1;
+      debugVPlanUseVFLoopMessage(
+          LoopIndex, "bypassing interleave selection for forced VF");
+      LLVM_DEBUG(dbgs() << "LV: Loop[" << LoopIndex
+                        << "] bypassing interleave selection for forced VF\n");
+    } else {
+      IC = LVP.selectInterleaveCount(LVP.getPlanFor(VF.Width), VF.Width,
+                                     VF.Cost);
+    }
 
     unsigned SelectedIC = std::max(IC, UserIC);
     //  Optimistically generate runtime checks if they are needed. Drop them if
@@ -10023,24 +10201,32 @@ bool LoopVectorizePass::processLoop(Loop *L) {
     }
 
     // Check if it is profitable to vectorize with runtime checks.
-    bool ForceVectorization =
-        Hints.getForce() == LoopVectorizeHints::FK_Enabled;
-    VPCostContext CostCtx(CM.TTI, *CM.TLI, LVP.getPlanFor(VF.Width), CM,
-                          CM.CostKind, CM.PSE, L);
-    if (!ForceVectorization &&
-        !isOutsideLoopWorkProfitable(Checks, VF, L, PSE, CostCtx,
-                                     LVP.getPlanFor(VF.Width), SEL,
-                                     CM.getVScaleForTuning())) {
-      ORE->emit([&]() {
-        return OptimizationRemarkAnalysisAliasing(
-                   DEBUG_TYPE, "CantReorderMemOps", L->getStartLoc(),
-                   L->getHeader())
-               << "loop not vectorized: cannot prove it is safe to reorder "
-                  "memory operations";
-      });
-      LLVM_DEBUG(dbgs() << "LV: Too many memory checks needed.\n");
-      Hints.emitRemarkWithHints();
-      return false;
+    if (!ForcedVF) {
+      bool ForceVectorization =
+          Hints.getForce() == LoopVectorizeHints::FK_Enabled;
+      VPCostContext CostCtx(CM.TTI, *CM.TLI, LVP.getPlanFor(VF.Width), CM,
+                            CM.CostKind, CM.PSE, L);
+      if (!ForceVectorization &&
+          !isOutsideLoopWorkProfitable(Checks, VF, L, PSE, CostCtx,
+                                       LVP.getPlanFor(VF.Width), SEL,
+                                       CM.getVScaleForTuning())) {
+        ORE->emit([&]() {
+          return OptimizationRemarkAnalysisAliasing(
+                     DEBUG_TYPE, "CantReorderMemOps", L->getStartLoc(),
+                     L->getHeader())
+                 << "loop not vectorized: cannot prove it is safe to reorder "
+                    "memory operations";
+        });
+        LLVM_DEBUG(dbgs() << "LV: Too many memory checks needed.\n");
+        Hints.emitRemarkWithHints();
+        return false;
+      }
+    } else {
+      debugVPlanUseVFLoopMessage(
+          LoopIndex, "bypassing outside-loop work profitability for forced VF");
+      LLVM_DEBUG(dbgs() << "LV: Loop[" << LoopIndex
+                        << "] bypassing outside-loop work profitability for "
+                           "forced VF\n");
     }
   }
 
@@ -10169,8 +10355,15 @@ bool LoopVectorizePass::processLoop(Loop *L) {
 
   VPlan &BestPlan = LVP.getPlanFor(VF.Width);
   // Consider vectorizing the epilogue too if it's profitable.
-  VectorizationFactor EpilogueVF =
-      LVP.selectEpilogueVectorizationFactor(VF.Width, IC);
+  VectorizationFactor EpilogueVF = VectorizationFactor::Disabled();
+  if (!ForcedVF)
+    EpilogueVF = LVP.selectEpilogueVectorizationFactor(VF.Width, IC);
+  else {
+    debugVPlanUseVFLoopMessage(LoopIndex,
+                               "disabling epilogue vectorization for forced VF");
+    LLVM_DEBUG(dbgs() << "LV: Loop[" << LoopIndex
+                      << "] disabling epilogue vectorization for forced VF\n");
+  }
   if (EpilogueVF.Width.isVector()) {
     std::unique_ptr<VPlan> BestMainPlan(BestPlan.duplicate());
 
@@ -10223,7 +10416,8 @@ bool LoopVectorizePass::processLoop(Loop *L) {
 }
 
 LoopVectorizeResult LoopVectorizePass::runImpl(Function &F) {
-  VPlanExplainLoopIndex = 0;
+  VPlanLoopIndex = 0;
+  parseVPlanUseVFOverrides(VPlanUseVF, VPlanUseVFOverrides);
 
   // Don't attempt if
   // 1. the target claims to have no vector registers, and
@@ -10275,6 +10469,22 @@ LoopVectorizeResult LoopVectorizePass::runImpl(Function &F) {
         SE->verify();
 #endif
     }
+  }
+
+  if (VPlanUseVFOverrides.size() > VPlanLoopIndex) {
+    debugVPlanUseVFMessage((Twine("ignoring ") +
+                            Twine(VPlanUseVFOverrides.size() - VPlanLoopIndex) +
+                            " extra -vplan-use-vf " +
+                            ((VPlanUseVFOverrides.size() - VPlanLoopIndex) == 1
+                                 ? "entry"
+                                 : "entries"))
+                               .str());
+    LLVM_DEBUG(dbgs() << "LV: ignoring "
+                      << (VPlanUseVFOverrides.size() - VPlanLoopIndex)
+                      << " extra -vplan-use-vf entr"
+                      << ((VPlanUseVFOverrides.size() - VPlanLoopIndex) == 1
+                              ? "y\n"
+                              : "ies\n"));
   }
 
   // Process each loop nest in the function.

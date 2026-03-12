@@ -57,10 +57,12 @@
 #define LLVM_TRANSFORMS_VECTORIZE_LOOPVECTORIZE_H
 
 #include "llvm/IR/PassManager.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Transforms/Utils/ExtraPassManager.h"
 #include <functional>
+#include <string>
 
 namespace llvm {
 
@@ -127,6 +129,19 @@ struct LoopVectorizeResult {
       : MadeAnyChange(MadeAnyChange), MadeCFGChange(MadeCFGChange) {}
 };
 
+struct VPlanUseVFOverride {
+  enum class Kind {
+    None,
+    Parsed,
+    Invalid,
+  };
+
+  Kind OverrideKind = Kind::None;
+  bool IsScalable = false;
+  unsigned Width = 0;
+  std::string Text;
+};
+
 /// The LoopVectorize Pass.
 struct LoopVectorizePass : public PassInfoMixin<LoopVectorizePass> {
 private:
@@ -138,7 +153,8 @@ private:
   /// If true, only loops that explicitly request vectorization are considered.
   bool VectorizeOnlyWhenForced;
 
-  unsigned VPlanExplainLoopIndex = 0;
+  unsigned VPlanLoopIndex = 0;
+  SmallVector<VPlanUseVFOverride, 4> VPlanUseVFOverrides;
 
 public:
   LLVM_ABI LoopVectorizePass(LoopVectorizeOptions Opts = {});
