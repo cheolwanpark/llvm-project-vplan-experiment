@@ -9,16 +9,16 @@ target triple = "aarch64-unknown-linux-gnu"
 
 ; DBG:      LV: Loop[0] path=inner plans={{[0-9]+}}
 ; DBG-DAG:  LV:   VPlan[{{[0-9]+}}] VFs={1}
-; DBG-DAG:  LV:     VF=1 cost={{.+}}
+; DBG-DAG:  LV:     VF=1 cost={{.+}} compare={{.+}}
 ; DBG-DAG:  LV:   VPlan[{{[0-9]+}}] VFs={2}
-; DBG-DAG:  LV:     VF=2 cost={{.+}}
+; DBG-DAG:  LV:     VF=2 cost={{.+}} compare={{.+}}
 ; DBG-DAG:  LV:   VPlan[{{[0-9]+}}] VFs={4}
-; DBG-DAG:  LV:     VF=4 cost={{.+}}
+; DBG-DAG:  LV:     VF=4 cost={{.+}} compare={{.+}}
 ; DBG:      LV:   selected VF=4 plan={{[0-9]+}}
 
 ; FORCED:      LV: Loop[0] path=inner plans=1
 ; FORCED-NEXT: LV:   VPlan[0] VFs={2}
-; FORCED-NEXT: LV:     VF=2 cost={{.+}}
+; FORCED-NEXT: LV:     VF=2 cost={{.+}} compare={{.+}}
 ; FORCED-NEXT: LV:   selected VF=2 plan=0
 
 define void @test_v2_v4(ptr noalias %a, ptr readonly %b) #0 {

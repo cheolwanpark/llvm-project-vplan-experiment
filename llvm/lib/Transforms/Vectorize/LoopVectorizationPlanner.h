@@ -27,6 +27,7 @@
 #include "VPlan.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Support/InstructionCost.h"
+#include <string>
 
 namespace {
 class GeneratedRTChecks;
@@ -572,6 +573,9 @@ public:
       return {};
     return VPlanExplainInfo[PlanIndex];
   }
+
+  std::string formatVPlanExplainComparison(unsigned PlanIndex, ElementCount VF,
+                                           InstructionCost Cost) const;
 #endif
 
   /// Compute and return the most profitable vectorization factor. Also collect

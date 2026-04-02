@@ -875,9 +875,11 @@ static void emitVPlanExplain(const LoopVectorizationPlanner &LVP,
       dbgs() << "LV:     VF=" << Info.VF << " cost=";
       if (Info.SkipReason)
         dbgs() << "skipped(" << Info.SkipReason << ")";
-      else if (Info.Cost)
+      else if (Info.Cost) {
         dbgs() << *Info.Cost;
-      else
+        dbgs() << LVP.formatVPlanExplainComparison(PlanIndex, Info.VF,
+                                                  *Info.Cost);
+      } else
         dbgs() << "n/a";
       dbgs() << "\n";
     }
@@ -4085,15 +4087,29 @@ bool LoopVectorizationPlanner::isMoreProfitable(const VectorizationFactor &A,
   InstructionCost CostA = A.Cost;
   InstructionCost CostB = B.Cost;
 
+  auto GetEstimatedWidth = [this](ElementCount VF) {
+    return estimateElementCount(VF, CM.getVScaleForTuning());
+  };
+  auto GetCostForTC = [MaxTripCount, HasTail](unsigned VF,
+                                              InstructionCost VectorCost,
+                                              InstructionCost ScalarCost) {
+    // If the trip count is a known (possibly small) constant, the trip count
+    // will be rounded up to an integer number of iterations under
+    // FoldTailByMasking. The total cost in that case will be
+    // VecCost*ceil(TripCount/VF). When not folding the tail, the total
+    // cost will be VecCost*floor(TC/VF) + ScalarCost*(TC%VF). There will be
+    // some extra overheads, but for the purpose of comparing the costs of
+    // different VFs we can use this to compare the total loop-body cost
+    // expected after vectorization.
+    if (HasTail)
+      return VectorCost * (MaxTripCount / VF) +
+             ScalarCost * (MaxTripCount % VF);
+    return VectorCost * divideCeil(MaxTripCount, VF);
+  };
+
   // Improve estimate for the vector width if it is scalable.
-  unsigned EstimatedWidthA = A.Width.getKnownMinValue();
-  unsigned EstimatedWidthB = B.Width.getKnownMinValue();
-  if (std::optional<unsigned> VScale = CM.getVScaleForTuning()) {
-    if (A.Width.isScalable())
-      EstimatedWidthA *= *VScale;
-    if (B.Width.isScalable())
-      EstimatedWidthB *= *VScale;
-  }
+  unsigned EstimatedWidthA = GetEstimatedWidth(A.Width);
+  unsigned EstimatedWidthB = GetEstimatedWidth(B.Width);
 
   // When optimizing for size choose whichever is smallest, which will be the
   // one with the smallest cost for the whole loop. On a tie pick the larger
@@ -4119,23 +4135,6 @@ bool LoopVectorizationPlanner::isMoreProfitable(const VectorizationFactor &A,
   if (!MaxTripCount)
     return CmpFn(CostA * EstimatedWidthB, CostB * EstimatedWidthA);
 
-  auto GetCostForTC = [MaxTripCount, HasTail](unsigned VF,
-                                              InstructionCost VectorCost,
-                                              InstructionCost ScalarCost) {
-    // If the trip count is a known (possibly small) constant, the trip count
-    // will be rounded up to an integer number of iterations under
-    // FoldTailByMasking. The total cost in that case will be
-    // VecCost*ceil(TripCount/VF). When not folding the tail, the total
-    // cost will be VecCost*floor(TC/VF) + ScalarCost*(TC%VF). There will be
-    // some extra overheads, but for the purpose of comparing the costs of
-    // different VFs we can use this to compare the total loop-body cost
-    // expected after vectorization.
-    if (HasTail)
-      return VectorCost * (MaxTripCount / VF) +
-             ScalarCost * (MaxTripCount % VF);
-    return VectorCost * divideCeil(MaxTripCount, VF);
-  };
-
   auto RTCostA = GetCostForTC(EstimatedWidthA, CostA, A.ScalarCost);
   auto RTCostB = GetCostForTC(EstimatedWidthB, CostB, B.ScalarCost);
   return CmpFn(RTCostA, RTCostB);
@@ -4149,6 +4148,57 @@ bool LoopVectorizationPlanner::isMoreProfitable(const VectorizationFactor &A,
   return LoopVectorizationPlanner::isMoreProfitable(A, B, MaxTripCount, HasTail,
                                                     IsEpilogue);
 }
+
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+std::string
+LoopVectorizationPlanner::formatVPlanExplainComparison(unsigned PlanIndex,
+                                                       ElementCount VF,
+                                                       InstructionCost Cost) const {
+  std::string Text;
+  raw_string_ostream OS(Text);
+  OS << " compare=";
+
+  if (CM.CostKind == TTI::TCK_CodeSize) {
+    OS << Cost;
+    return Text;
+  }
+
+  unsigned EstimatedWidth = estimateElementCount(VF, CM.getVScaleForTuning());
+  const unsigned MaxTripCount = PSE.getSmallConstantMaxTripCount();
+  if (!MaxTripCount) {
+    OS << format("%.4f", double(Cost.getValue()) / EstimatedWidth);
+    return Text;
+  }
+
+  auto GetCostForTC = [MaxTripCount](unsigned Width, InstructionCost VectorCost,
+                                     InstructionCost ScalarCost,
+                                     bool HasTail) {
+    if (HasTail)
+      return VectorCost * (MaxTripCount / Width) +
+             ScalarCost * (MaxTripCount % Width);
+    return VectorCost * divideCeil(MaxTripCount, Width);
+  };
+
+  InstructionCost ScalarCost = VF.isScalar() ? Cost : InstructionCost::getInvalid();
+  if (!VF.isScalar())
+    if (std::optional<unsigned> ScalarPlanIndex =
+            getPlanIndexForVF(ElementCount::getFixed(1)))
+      for (const auto &Info : getVPlanExplainInfo(*ScalarPlanIndex))
+        if (Info.VF.isScalar() && Info.Cost) {
+          ScalarCost = *Info.Cost;
+          break;
+        }
+
+  if (!ScalarCost.isValid()) {
+    OS << "n/a";
+    return Text;
+  }
+
+  OS << GetCostForTC(EstimatedWidth, Cost, ScalarCost,
+                     getPlanByIndex(PlanIndex).hasScalarTail());
+  return Text;
+}
+#endif
 
 void LoopVectorizationPlanner::emitInvalidCostRemarks(
     OptimizationRemarkEmitter *ORE) {
