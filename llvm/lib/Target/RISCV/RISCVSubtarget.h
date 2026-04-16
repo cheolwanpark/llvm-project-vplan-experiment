@@ -108,6 +108,8 @@ private:
   unsigned RVVVectorBitsMin;
   unsigned RVVVectorBitsMax;
   uint8_t MaxInterleaveFactor = 2;
+  unsigned GatherScatterOverhead = 2;
+  unsigned StridedMemoryOverhead = 1;
   RISCVABI::ABI TargetABI = RISCVABI::ABI_Unknown;
   std::bitset<RISCV::NUM_TARGET_REGS> UserReservedRegister;
   const RISCVTuneInfoTable::RISCVTuneInfo *TuneInfo;
@@ -309,6 +311,8 @@ public:
   unsigned getMaxInterleaveFactor() const {
     return hasVInstructions() ? MaxInterleaveFactor : 1;
   }
+  unsigned getGatherScatterOverhead() const { return GatherScatterOverhead; }
+  unsigned getStridedMemoryOverhead() const { return StridedMemoryOverhead; }
 
   bool hasOptimizedSegmentLoadStore(unsigned NF) const {
     switch (NF) {
