@@ -56,6 +56,18 @@ static cl::opt<unsigned> RVVGatherScatterOverhead(
 static cl::opt<unsigned> RVVStridedMemOverhead(
     "strided-mem-overhead", cl::Hidden);
 
+static cl::opt<unsigned> RVVGatherScatterSetupCost(
+    "gather-scatter-setup-cost",
+    cl::desc("Constant setup cost added to the precise gather/scatter "
+             "memory cost model."),
+    cl::init(0), cl::Hidden);
+
+static cl::opt<unsigned> RVVStridedMemSetupCost(
+    "strided-mem-setup-cost",
+    cl::desc("Constant setup cost added to the precise strided memory "
+             "cost model."),
+    cl::init(0), cl::Hidden);
+
 static unsigned getRVVGatherScatterOverhead(const RISCVSubtarget *ST) {
   if (RVVGatherScatterOverhead.getNumOccurrences() > 0)
     return RVVGatherScatterOverhead;
@@ -1226,41 +1238,17 @@ RISCVTTIImpl::getGatherScatterOpCost(const MemIntrinsicCostAttributes &MICA,
   if (!RVVPreciseMemCost)
     return NumLoads * TTI::TCC_Basic;
 
-  // Detailed cost model following the pattern from getExpandCompressMemoryOpCost.
-  //
-  // Gather/scatter instruction sequence (vloxei/vsoxei):
-  //   vsetvli   zero, <vl>, <sew>, <lmul>   (VL setup, 1 per legalized part)
-  //   vid.v     v_idx                         (index vector generation)
-  //   vsll.vi   v_idx, v_idx, <shift>        (scale index by element size)
-  //   vloxei<eew>.v  v_data, (base), v_idx   (the actual gather)
-  //   [vmerge.vvm for masked gather with variable mask]
-  auto LT = getTypeLegalizationCost(DataTy);
-
-  // Per-element memory cost scaled by overhead multiplier.
+  // Detailed cost model: per-element memory cost scaled by a configurable
+  // overhead multiplier, plus a configurable constant setup cost (vsetvli,
+  // index vector generation, mask merge, ...).
   InstructionCost LaneMemCost =
       getMemoryOpCost(Opcode, VTy.getElementType(), Alignment, 0, CostKind);
   InstructionCost MemCost =
       NumLoads * LaneMemCost * getRVVGatherScatterOverhead(ST);
 
-  // Setup instructions per legalized part: VSETVLI + VID_V + VSLL_VI.
-  SmallVector<unsigned, 4> SetupOps = {RISCV::VSETVLI, RISCV::VID_V,
-                                       RISCV::VSLL_VI};
+  InstructionCost SetupCost = RVVGatherScatterSetupCost;
 
-  // Masked gather with variable mask needs VMERGE_VVM for passthrough merge.
-  if (MICA.getVariableMask() && IsLoad)
-    SetupOps.push_back(RISCV::VMERGE_VVM);
-
-  InstructionCost SetupCost =
-      LT.first * getRISCVInstructionCost(SetupOps, LT.second, CostKind);
-
-  // On RV32, 64-bit pointer indices need truncation via VNSRL_WI.
-  InstructionCost TruncCost = 0;
-  if (!ST->is64Bit() && DL.getPointerSizeInBits() > 32)
-    TruncCost =
-        LT.first * getRISCVInstructionCost(RISCV::VNSRL_WI, LT.second,
-                                           CostKind);
-
-  return MemCost + SetupCost + TruncCost;
+  return MemCost + SetupCost;
 }
 
 InstructionCost RISCVTTIImpl::getExpandCompressMemoryOpCost(
@@ -1337,22 +1325,13 @@ RISCVTTIImpl::getStridedMemoryOpCost(const MemIntrinsicCostAttributes &MICA,
   if (!RVVPreciseMemCost)
     return NumLoads * MemOpCost;
 
-  // Detailed cost model for strided load/store (vlse/vsse).
-  // Unlike gather/scatter, no index vector generation is needed since
-  // the stride is supplied as a scalar register operand.
-  //
-  // Strided instruction sequence:
-  //   vsetvli      zero, <vl>, <sew>, <lmul>   (VL setup)
-  //   vlse<eew>.v  v_data, (base), stride       (strided load)
-  auto LT = getTypeLegalizationCost(DataTy);
-
+  // Detailed cost model for strided load/store (vlse/vsse): per-element
+  // memory cost scaled by a configurable overhead multiplier, plus a
+  // configurable constant setup cost (vsetvli, ...).
   InstructionCost TotalMemCost =
       NumLoads * MemOpCost * getRVVStridedMemOverhead(ST);
 
-  // VSETVLI per legalized part.
-  InstructionCost SetupCost =
-      LT.first *
-      getRISCVInstructionCost(RISCV::VSETVLI, LT.second, CostKind);
+  InstructionCost SetupCost = RVVStridedMemSetupCost;
 
   return TotalMemCost + SetupCost;
 }
