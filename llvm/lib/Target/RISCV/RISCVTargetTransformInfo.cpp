@@ -1246,7 +1246,7 @@ RISCVTTIImpl::getGatherScatterOpCost(const MemIntrinsicCostAttributes &MICA,
   InstructionCost MemCost =
       NumLoads * LaneMemCost * getRVVGatherScatterOverhead(ST);
 
-  InstructionCost SetupCost = RVVGatherScatterSetupCost;
+  InstructionCost SetupCost = (unsigned)RVVGatherScatterSetupCost;
 
   return MemCost + SetupCost;
 }
@@ -1331,7 +1331,7 @@ RISCVTTIImpl::getStridedMemoryOpCost(const MemIntrinsicCostAttributes &MICA,
   InstructionCost TotalMemCost =
       NumLoads * MemOpCost * getRVVStridedMemOverhead(ST);
 
-  InstructionCost SetupCost = RVVStridedMemSetupCost;
+  InstructionCost SetupCost = (unsigned)RVVStridedMemSetupCost;
 
   return TotalMemCost + SetupCost;
 }
