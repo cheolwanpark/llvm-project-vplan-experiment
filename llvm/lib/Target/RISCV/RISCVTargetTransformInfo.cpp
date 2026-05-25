@@ -9,6 +9,8 @@
 #include "RISCVTargetTransformInfo.h"
 #include "MCTargetDesc/RISCVMatInt.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/StringSet.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/CodeGen/BasicTTIImpl.h"
 #include "llvm/CodeGen/CostTable.h"
@@ -17,8 +19,12 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicsRISCV.h"
 #include "llvm/IR/PatternMatch.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/LineIterator.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Transforms/InstCombine/InstCombiner.h"
 #include <cmath>
+#include <mutex>
 #include <optional>
 using namespace llvm;
 using namespace llvm::PatternMatch;
@@ -48,6 +54,137 @@ static cl::opt<unsigned>
 static cl::opt<bool> EnableOrLikeSelectOpt("enable-riscv-or-like-select",
                                            cl::init(true), cl::Hidden);
 
+// -----------------------------------------------------------------------------
+// RISC-V TTI cost-model knob overrides.
+//
+// Two ways to inject knobs, both parsed once on first use:
+//   -riscv-tti-overrides=key=val,key=val,...
+//   -riscv-tti-config=/path/to/file        # one "key=value" per line, '#' comments
+// File is applied first, then -riscv-tti-overrides on top.
+// Unknown keys or non-integer values are fatal so sweep scripts fail loudly.
+// -----------------------------------------------------------------------------
+
+static cl::opt<std::string> RVVTTIOverrides(
+    "riscv-tti-overrides", cl::Hidden,
+    cl::desc("Comma-separated key=value list of RISC-V TTI cost-model knobs "
+             "(e.g. gather.setup=2,gather.overhead=3)."));
+
+static cl::opt<std::string> RVVTTIConfigFile(
+    "riscv-tti-config", cl::Hidden,
+    cl::desc("Path to file with one key=value RISC-V TTI knob per line."));
+
+namespace {
+struct KnobSpec {
+  StringLiteral Name;
+  unsigned Default;
+};
+} // namespace
+
+static constexpr KnobSpec KnownKnobs[] = {
+    {StringLiteral("gather.setup"), 0},
+    {StringLiteral("gather.overhead"), 1},
+    {StringLiteral("strided.setup"), 0},
+    {StringLiteral("strided.overhead"), 1},
+    {StringLiteral("interleave.seg.setup"), 0},
+    {StringLiteral("interleave.seg.mem_overhead"), 1},
+    {StringLiteral("interleave.seg.factor_overhead"), 1},
+    {StringLiteral("interleave.vlseg.setup"), 0},
+    {StringLiteral("interleave.vlseg.overhead"), 1},
+    {StringLiteral("interleave.shuf.setup"), 0},
+    {StringLiteral("interleave.shuf.mem_overhead"), 1},
+    {StringLiteral("interleave.shuf.shuf_overhead"), 1},
+    {StringLiteral("shuffle.setup"), 0},
+    {StringLiteral("shuffle.overhead"), 1},
+    {StringLiteral("vrgather.vv.setup"), 0},
+    {StringLiteral("vrgather.vv.overhead"), 1},
+    {StringLiteral("reduction.arith.setup"), 0},
+    {StringLiteral("reduction.arith.split_overhead"), 1},
+    {StringLiteral("reduction.arith.core_overhead"), 1},
+    {StringLiteral("reduction.minmax.setup"), 0},
+    {StringLiteral("reduction.minmax.split_overhead"), 1},
+    {StringLiteral("reduction.minmax.extra_overhead"), 1},
+    {StringLiteral("reduction.minmax.core_overhead"), 1},
+};
+
+static StringMap<unsigned> &knobValues() {
+  static StringMap<unsigned> Values;
+  return Values;
+}
+
+static StringSet<> &knobOverridden() {
+  static StringSet<> Overridden;
+  return Overridden;
+}
+
+static void applyKVPair(StringRef Token) {
+  Token = Token.trim();
+  if (Token.empty())
+    return;
+  auto [Key, ValStr] = Token.split('=');
+  Key = Key.trim();
+  ValStr = ValStr.trim();
+  if (Key.empty() || ValStr.empty() || !Token.contains('='))
+    report_fatal_error(Twine("RISC-V TTI knob: malformed entry '") + Token +
+                       "', expected key=value");
+  if (!knobValues().contains(Key))
+    report_fatal_error(Twine("RISC-V TTI knob: unknown key '") + Key + "'");
+  unsigned V;
+  if (ValStr.getAsInteger(0, V))
+    report_fatal_error(Twine("RISC-V TTI knob: non-integer value '") + ValStr +
+                       "' for key '" + Key + "'");
+  knobValues()[Key] = V;
+  knobOverridden().insert(Key);
+}
+
+static void initRVVTTIKnobs() {
+  // Seed defaults.
+  for (const KnobSpec &K : KnownKnobs)
+    knobValues()[K.Name] = K.Default;
+
+  // File first.
+  if (!RVVTTIConfigFile.empty()) {
+    auto MBOrErr = MemoryBuffer::getFile(RVVTTIConfigFile);
+    if (!MBOrErr)
+      report_fatal_error(Twine("RISC-V TTI knob: cannot open config file '") +
+                         RVVTTIConfigFile + "': " +
+                         MBOrErr.getError().message());
+    for (line_iterator LineIt(**MBOrErr, /*SkipBlanks=*/true,
+                              /*CommentMarker=*/'#');
+         !LineIt.is_at_eof(); ++LineIt)
+      applyKVPair(*LineIt);
+  }
+
+  // Then command-line overrides win.
+  if (!RVVTTIOverrides.empty()) {
+    StringRef Rest = RVVTTIOverrides;
+    while (!Rest.empty()) {
+      auto [Tok, Tail] = Rest.split(',');
+      applyKVPair(Tok);
+      Rest = Tail;
+    }
+  }
+}
+
+static void ensureKnobsInitialized() {
+  static std::once_flag Once;
+  std::call_once(Once, initRVVTTIKnobs);
+}
+
+static unsigned getKnob(StringRef Name) {
+  ensureKnobsInitialized();
+  auto It = knobValues().find(Name);
+  assert(It != knobValues().end() && "queried unknown TTI knob");
+  return It->second;
+}
+
+static bool anyOverride(StringRef Prefix) {
+  ensureKnobsInitialized();
+  for (const auto &Entry : knobOverridden())
+    if (Entry.getKey().starts_with(Prefix))
+      return true;
+  return false;
+}
+
 InstructionCost
 RISCVTTIImpl::getRISCVInstructionCost(ArrayRef<unsigned> OpCodes, MVT VT,
                                       TTI::TargetCostKind CostKind) const {
@@ -66,9 +203,15 @@ RISCVTTIImpl::getRISCVInstructionCost(ArrayRef<unsigned> OpCodes, MVT VT,
     case RISCV::VRGATHER_VI:
       Cost += TLI->getVRGatherVICost(VT);
       break;
-    case RISCV::VRGATHER_VV:
-      Cost += TLI->getVRGatherVVCost(VT);
+    case RISCV::VRGATHER_VV: {
+      InstructionCost Base = TLI->getVRGatherVVCost(VT);
+      if (anyOverride("vrgather.vv."))
+        Cost += getKnob("vrgather.vv.setup") +
+                Base * getKnob("vrgather.vv.overhead");
+      else
+        Cost += Base;
       break;
+    }
     case RISCV::VSLIDEUP_VI:
     case RISCV::VSLIDEDOWN_VI:
       Cost += TLI->getVSlideVICost(VT);
@@ -685,6 +828,7 @@ RISCVTTIImpl::getShuffleCost(TTI::ShuffleKind Kind, VectorType *DstTy,
   assert(SrcTy->getScalarType() == DstTy->getScalarType() &&
          "Expected the same scalar types");
 
+  InstructionCost BaseCost = [&]() -> InstructionCost {
   Kind = improveShuffleKindFromMask(Kind, Mask, SrcTy, Index, SubTp);
 
   // TODO: Add proper cost model for P extension fixed vectors (e.g., v4i16)
@@ -989,6 +1133,12 @@ RISCVTTIImpl::getShuffleCost(TTI::ShuffleKind Kind, VectorType *DstTy,
   }
   return BaseT::getShuffleCost(Kind, DstTy, SrcTy, Mask, CostKind, Index,
                                SubTp);
+  }();
+
+  if (anyOverride("shuffle."))
+    return getKnob("shuffle.setup") +
+           BaseCost * getKnob("shuffle.overhead");
+  return BaseCost;
 }
 
 static unsigned isM1OrSmaller(MVT VT) {
@@ -1119,11 +1269,17 @@ InstructionCost RISCVTTIImpl::getInterleavedMemoryOpCost(
         // Some processors optimize segment loads/stores as one wide memory op +
         // Factor * LMUL shuffle ops.
         if (ST->hasOptimizedSegmentLoadStore(Factor)) {
-          InstructionCost Cost =
+          InstructionCost MemOpCost =
               getMemoryOpCost(Opcode, VTy, Alignment, AddressSpace, CostKind);
           MVT SubVecVT = getTLI()->getValueType(DL, SubVecTy).getSimpleVT();
-          Cost += Factor * TLI->getLMULCost(SubVecVT);
-          return LT.first * Cost;
+          InstructionCost LMULCost = TLI->getLMULCost(SubVecVT);
+          if (anyOverride("interleave.seg."))
+            return getKnob("interleave.seg.setup") +
+                   LT.first *
+                       (MemOpCost * getKnob("interleave.seg.mem_overhead") +
+                        Factor * LMULCost *
+                            getKnob("interleave.seg.factor_overhead"));
+          return LT.first * (MemOpCost + Factor * LMULCost);
         }
 
         // Otherwise, the cost is proportional to the number of elements (VL *
@@ -1132,6 +1288,10 @@ InstructionCost RISCVTTIImpl::getInterleavedMemoryOpCost(
             getMemoryOpCost(Opcode, VTy->getElementType(), Alignment, 0,
                             CostKind, {TTI::OK_AnyValue, TTI::OP_None});
         unsigned NumLoads = getEstimatedVLFor(VTy);
+        if (anyOverride("interleave.vlseg."))
+          return getKnob("interleave.vlseg.setup") +
+                 NumLoads * MemOpCost *
+                     getKnob("interleave.vlseg.overhead");
         return NumLoads * MemOpCost;
       }
     }
@@ -1153,18 +1313,21 @@ InstructionCost RISCVTTIImpl::getInterleavedMemoryOpCost(
   // %strided.vec1 = shufflevector %wide.vec, poison, <4 x i32> <stride mask>
   // %strided.vec2 = shufflevector %wide.vec, poison, <4 x i32> <stride mask>
   if (Opcode == Instruction::Load) {
-    InstructionCost Cost = MemCost;
+    InstructionCost ShufAcc = 0;
     for (unsigned Index : Indices) {
       FixedVectorType *VecTy =
           FixedVectorType::get(FVTy->getElementType(), VF * Factor);
       auto Mask = createStrideMask(Index, Factor, VF);
       Mask.resize(VF * Factor, -1);
-      InstructionCost ShuffleCost =
+      ShufAcc +=
           getShuffleCost(TTI::ShuffleKind::SK_PermuteSingleSrc, VecTy, VecTy,
                          Mask, CostKind, 0, nullptr, {});
-      Cost += ShuffleCost;
     }
-    return Cost;
+    if (anyOverride("interleave.shuf."))
+      return getKnob("interleave.shuf.setup") +
+             MemCost * getKnob("interleave.shuf.mem_overhead") +
+             ShufAcc * getKnob("interleave.shuf.shuf_overhead");
+    return MemCost + ShufAcc;
   }
 
   // TODO: Model for NF > 2
@@ -1189,6 +1352,10 @@ InstructionCost RISCVTTIImpl::getInterleavedMemoryOpCost(
   InstructionCost ShuffleCost =
       getShuffleCost(TTI::ShuffleKind::SK_PermuteSingleSrc, FVTy, FVTy, Mask,
                      CostKind, 0, nullptr, {});
+  if (anyOverride("interleave.shuf."))
+    return getKnob("interleave.shuf.setup") +
+           MemCost * getKnob("interleave.shuf.mem_overhead") +
+           ShuffleCost * getKnob("interleave.shuf.shuf_overhead");
   return MemCost + ShuffleCost;
 }
 
@@ -1215,6 +1382,14 @@ RISCVTTIImpl::getGatherScatterOpCost(const MemIntrinsicCostAttributes &MICA,
   // know exactly what VL will be.
   auto &VTy = *cast<VectorType>(DataTy);
   unsigned NumLoads = getEstimatedVLFor(&VTy);
+
+  if (anyOverride("gather.")) {
+    InstructionCost LaneMemCost = getMemoryOpCost(
+        Opcode, VTy.getElementType(), Alignment, /*AddressSpace=*/0, CostKind);
+    return getKnob("gather.setup") +
+           NumLoads * LaneMemCost * getKnob("gather.overhead");
+  }
+
   return NumLoads * TTI::TCC_Basic;
 }
 
@@ -1288,6 +1463,11 @@ RISCVTTIImpl::getStridedMemoryOpCost(const MemIntrinsicCostAttributes &MICA,
       getMemoryOpCost(Opcode, VTy.getElementType(), Alignment, 0, CostKind,
                       {TTI::OK_AnyValue, TTI::OP_None}, I);
   unsigned NumLoads = getEstimatedVLFor(&VTy);
+
+  if (anyOverride("strided."))
+    return getKnob("strided.setup") +
+           NumLoads * MemOpCost * getKnob("strided.overhead");
+
   return NumLoads * MemOpCost;
 }
 
@@ -2061,7 +2241,13 @@ RISCVTTIImpl::getMinMaxReductionCost(Intrinsic::ID IID, VectorType *Ty,
       }
       break;
     }
-    return ExtraCost + getRISCVInstructionCost(Opcodes, LT.second, CostKind);
+    InstructionCost CoreCost =
+        getRISCVInstructionCost(Opcodes, LT.second, CostKind);
+    if (anyOverride("reduction.minmax."))
+      return getKnob("reduction.minmax.setup") +
+             ExtraCost * getKnob("reduction.minmax.extra_overhead") +
+             CoreCost * getKnob("reduction.minmax.core_overhead");
+    return ExtraCost + CoreCost;
   }
 
   // IR Reduction is composed by one rvv reduction instruction and vmv
@@ -2100,7 +2286,13 @@ RISCVTTIImpl::getMinMaxReductionCost(Intrinsic::ID IID, VectorType *Ty,
       (LT.first > 1) ? (LT.first - 1) *
                            getRISCVInstructionCost(SplitOp, LT.second, CostKind)
                      : 0;
-  return SplitCost + getRISCVInstructionCost(Opcodes, LT.second, CostKind);
+  InstructionCost CoreCost =
+      getRISCVInstructionCost(Opcodes, LT.second, CostKind);
+  if (anyOverride("reduction.minmax."))
+    return getKnob("reduction.minmax.setup") +
+           SplitCost * getKnob("reduction.minmax.split_overhead") +
+           CoreCost * getKnob("reduction.minmax.core_overhead");
+  return SplitCost + CoreCost;
 }
 
 InstructionCost
@@ -2219,7 +2411,13 @@ RISCVTTIImpl::getArithmeticReductionCost(unsigned Opcode, VectorType *Ty,
       (LT.first > 1) ? (LT.first - 1) *
                            getRISCVInstructionCost(SplitOp, LT.second, CostKind)
                      : 0;
-  return SplitCost + getRISCVInstructionCost(Opcodes, LT.second, CostKind);
+  InstructionCost CoreCost =
+      getRISCVInstructionCost(Opcodes, LT.second, CostKind);
+  if (anyOverride("reduction.arith."))
+    return getKnob("reduction.arith.setup") +
+           SplitCost * getKnob("reduction.arith.split_overhead") +
+           CoreCost * getKnob("reduction.arith.core_overhead");
+  return SplitCost + CoreCost;
 }
 
 InstructionCost RISCVTTIImpl::getExtendedReductionCost(
