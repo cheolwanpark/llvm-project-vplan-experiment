@@ -164,9 +164,13 @@ struct DLMULCandidate {
   unsigned BankedCapacity = 0;
   int TargetLMUL = 0;
   unsigned SplitFactor = 1;
-  int OriginalPeakEstimate = 0;
-  int SplitPeakEstimate = 0;
-  int PressureSaving = 0;
+  int OriginalPeakLiveUnits = 0;
+  int SplitPeakLiveUnits = 0;
+  int LiveUnitSaving = 0;
+  unsigned VectorUnitCapacity = 32;
+  bool SpillRiskBefore = false;
+  bool SpillRiskAfter = false;
+  bool SpillRiskReduced = false;
 };
 
 struct DLMULSummary {
@@ -243,6 +247,7 @@ class DLMULFunctionScanner {
   const TargetInstrInfo &TII;
   MachineLoopInfo *MLI;
   DenseMap<const MachineInstr *, unsigned> Ordinals;
+  DenseMap<const MachineInstr *, unsigned> FunctionOrdinals;
   DenseMap<const MachineInstr *, DLMULInstrInfo> InstrInfoCache;
   DenseSet<Register> SeenSeeds;
   DLMULSummary Summary;
@@ -264,6 +269,9 @@ private:
                                 ArrayRef<MachineInstr *> Island,
                                 uint64_t ExtraHardBlockers,
                                 uint64_t ExtraRepairBlockers);
+  void computeLivePressure(DLMULCandidate &C, ArrayRef<MachineInstr *> Island,
+                           const DenseSet<Register> &IslandDefs,
+                           bool HasMaskInIsland);
   bool isRVVReg(Register Reg) const;
   bool isVRM8Reg(Register Reg) const;
   bool isDLMULSeedReg(Register Reg) const;
@@ -594,10 +602,13 @@ static bool hasV0Use(const MachineInstr &MI) {
 }
 
 void DLMULFunctionScanner::collectOrdinals() {
+  unsigned FunctionOrdinal = 0;
   for (MachineBasicBlock &MBB : MF) {
     unsigned Ordinal = 0;
-    for (MachineInstr &MI : MBB)
+    for (MachineInstr &MI : MBB) {
       Ordinals[&MI] = Ordinal++;
+      FunctionOrdinals[&MI] = FunctionOrdinal++;
+    }
   }
 }
 
@@ -655,6 +666,119 @@ void DLMULFunctionScanner::recordSeedLMUL(int LMUL) {
   default:
     break;
   }
+}
+
+namespace {
+struct DLMULLiveInterval {
+  unsigned First = ~0U;
+  unsigned Last = 0;
+  bool Seen = false;
+
+  void note(unsigned Index) {
+    if (!Seen) {
+      First = Index;
+      Last = Index;
+      Seen = true;
+      return;
+    }
+    First = std::min(First, Index);
+    Last = std::max(Last, Index);
+  }
+};
+} // end anonymous namespace
+
+void DLMULFunctionScanner::computeLivePressure(
+    DLMULCandidate &C, ArrayRef<MachineInstr *> Island,
+    const DenseSet<Register> &IslandDefs, bool HasMaskInIsland) {
+  SmallVector<MachineInstr *, 32> OrderedIsland;
+  DenseSet<const MachineInstr *> IslandSet;
+  for (MachineInstr *MI : Island) {
+    if (!MI || !IslandSet.insert(MI).second)
+      continue;
+    OrderedIsland.push_back(MI);
+  }
+
+  std::sort(OrderedIsland.begin(), OrderedIsland.end(),
+            [this](const MachineInstr *L, const MachineInstr *R) {
+              return FunctionOrdinals.lookup(L) < FunctionOrdinals.lookup(R);
+            });
+
+  C.VectorUnitCapacity = HasMaskInIsland ? 31 : 32;
+  if (OrderedIsland.empty())
+    return;
+
+  DenseMap<Register, DLMULLiveInterval> Intervals;
+  DenseSet<Register> IslandRegs;
+
+  auto NoteReg = [&](Register Reg, unsigned Index) {
+    if (!isRVVReg(Reg))
+      return;
+    IslandRegs.insert(Reg);
+    Intervals[Reg].note(Index);
+  };
+
+  for (unsigned Index = 0; Index != OrderedIsland.size(); ++Index) {
+    MachineInstr *MI = OrderedIsland[Index];
+    for (const MachineOperand &MO : MI->uses()) {
+      if (!MO.isReg() || !MO.getReg().isVirtual())
+        continue;
+      NoteReg(MO.getReg(), Index);
+    }
+    for (const MachineOperand &MO : MI->defs()) {
+      if (!MO.isReg() || !MO.getReg().isVirtual())
+        continue;
+      NoteReg(MO.getReg(), Index);
+    }
+  }
+
+  unsigned LastIndex = OrderedIsland.size() - 1;
+  for (Register Reg : IslandRegs) {
+    DLMULLiveInterval &Interval = Intervals[Reg];
+    if (!Interval.Seen)
+      continue;
+
+    if (!IslandDefs.contains(Reg))
+      Interval.First = 0;
+
+    if (!IslandDefs.contains(Reg))
+      continue;
+
+    for (MachineOperand &Use : MRI.use_nodbg_operands(Reg)) {
+      MachineInstr *User = Use.getParent();
+      if (!User || IslandSet.contains(User))
+        continue;
+      Interval.Last = LastIndex;
+      break;
+    }
+  }
+
+  int OriginalPeak = 0;
+  int SplitPeak = 0;
+  for (unsigned Index = 0; Index != OrderedIsland.size(); ++Index) {
+    int OriginalUnits = 0;
+    int SplitUnits = 0;
+    for (Register Reg : IslandRegs) {
+      const DLMULLiveInterval &Interval = Intervals[Reg];
+      if (!Interval.Seen || Index < Interval.First || Index > Interval.Last)
+        continue;
+
+      int RegLMUL = std::max(getRegLMUL(Reg), 1);
+      OriginalUnits += RegLMUL;
+      if (C.IsDownsplitCandidate && getRegLMUL(Reg) == C.LMUL)
+        SplitUnits += std::max(C.TargetLMUL, 1);
+      else
+        SplitUnits += RegLMUL;
+    }
+    OriginalPeak = std::max(OriginalPeak, OriginalUnits);
+    SplitPeak = std::max(SplitPeak, SplitUnits);
+  }
+
+  C.OriginalPeakLiveUnits = OriginalPeak;
+  C.SplitPeakLiveUnits = SplitPeak;
+  C.LiveUnitSaving = std::max(0, OriginalPeak - SplitPeak);
+  C.SpillRiskBefore = OriginalPeak > static_cast<int>(C.VectorUnitCapacity);
+  C.SpillRiskAfter = SplitPeak > static_cast<int>(C.VectorUnitCapacity);
+  C.SpillRiskReduced = C.SpillRiskBefore && !C.SpillRiskAfter;
 }
 
 DLMULInstrInfo DLMULFunctionScanner::classifyInstr(const MachineInstr &MI) {
@@ -872,6 +996,7 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
   unsigned FreeNodes = 0;
   unsigned Loads = 0;
   unsigned Stores = 0;
+  bool HasMaskInIsland = false;
 
   C.HardBlockers = ExtraHardBlockers;
   C.RepairBlockers = ExtraRepairBlockers;
@@ -893,8 +1018,10 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
       ++C.NumExits;
     }
 
-    if (Info.HasMask)
+    if (Info.HasMask) {
+      HasMaskInIsland = true;
       C.HardBlockers |= MaskInsideLIsland;
+    }
 
     for (const MachineOperand &MO : MI->defs()) {
       if (MO.isReg() && MO.getReg().isVirtual() && isRVVReg(MO.getReg())) {
@@ -934,9 +1061,7 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
   C.HInputFrontier = HInputs.size();
   C.HAnchorCount = HInputs.empty() ? 0 : HInputs.size();
   C.StoreClosed = Stores > 0 && C.NumExternalUses == 0;
-  C.OriginalPeakEstimate = C.NumVectorDefs * std::max(C.LMUL, 1);
-  C.SplitPeakEstimate = C.NumVectorDefs * std::max(C.TargetLMUL, 1);
-  C.PressureSaving = std::max(0, C.OriginalPeakEstimate - C.SplitPeakEstimate);
+  computeLivePressure(C, Island, IslandDefs, HasMaskInIsland);
   C.BankedCapacity = 8;
   C.BankedRequired =
       C.HInputFrontier * C.SplitFactor + std::max(1U, C.NumVectorDefs);
@@ -955,7 +1080,7 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
   C.Level = Elementwise ? 1 : 0;
   if (Elementwise && !HasRepairBlockers)
     C.Level = 2;
-  if (C.Level >= 2 && C.NumVectorDefs > 1 && C.PressureSaving > 0)
+  if (C.Level >= 2 && C.NumVectorDefs > 1 && C.LiveUnitSaving > 0)
     C.Level = 3;
   if (C.Level >= 3 && Loads > 0 && Stores > 0 && C.StoreClosed)
     C.Level = 4;
@@ -987,7 +1112,7 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
   }
 
   C.Score = 10 * static_cast<int>(C.LoopDepth) +
-            5 * static_cast<int>(C.NumInstrs) + 5 * C.PressureSaving -
+            5 * static_cast<int>(C.NumInstrs) + 5 * C.LiveUnitSaving -
             20 * static_cast<int>(countBlockers(C.RepairBlockers)) -
             80 * static_cast<int>(countBlockers(C.HardBlockers));
   if (C.Level >= 3)
@@ -1087,10 +1212,15 @@ static void printCandidateJSON(raw_ostream &OS, const DLMULCandidate &C) {
      << ", \"num_vector_defs\": " << C.NumVectorDefs
      << ", \"num_exits\": " << C.NumExits
      << ", \"num_external_uses\": " << C.NumExternalUses << " }";
-  OS << ",\n  \"pressure\": { \"original_peak_estimate\": "
-     << C.OriginalPeakEstimate
-     << ", \"split_peak_estimate\": " << C.SplitPeakEstimate
-     << ", \"saving_estimate\": " << C.PressureSaving << " }";
+  OS << ",\n  \"pressure\": { \"original_peak_live_units\": "
+     << C.OriginalPeakLiveUnits
+     << ", \"split_peak_live_units\": " << C.SplitPeakLiveUnits
+     << ", \"live_unit_saving\": " << C.LiveUnitSaving
+     << ", \"vector_unit_capacity\": " << C.VectorUnitCapacity
+     << ", \"spill_risk_before\": " << (C.SpillRiskBefore ? "true" : "false")
+     << ", \"spill_risk_after\": " << (C.SpillRiskAfter ? "true" : "false")
+     << ", \"spill_risk_reduced\": " << (C.SpillRiskReduced ? "true" : "false")
+     << " }";
   OS << ",\n  \"blockers\": { \"hard\": ";
   printBlockerArray(OS, C.HardBlockers);
   OS << ", \"repair\": ";

@@ -17,14 +17,27 @@
 ; M8: "function": "add_m8"
 ; M8: "stage":
 ; M8: "shape": { "from_lmul": "m8", "to_lmul": "m4", "split_factor": 2, "is_downsplit_candidate": true
+; M8: "pressure": { "original_peak_live_units":
+; M8-SAME: "split_peak_live_units":
+; M8-SAME: "live_unit_saving":
+; M8-SAME: "vector_unit_capacity":
+; M8-SAME: "spill_risk_before":
+; M8-SAME: "spill_risk_after":
+; M8-SAME: "spill_risk_reduced":
 
 ; M4: "function": "add_m4"
 ; M4: "stage":
 ; M4: "shape": { "from_lmul": "m4", "to_lmul": "m2", "split_factor": 2, "is_downsplit_candidate": true
+; M4: "pressure": { "original_peak_live_units":
+; M4-SAME: "split_peak_live_units":
+; M4-SAME: "spill_risk_reduced":
 
 ; M2: "function": "add_m2"
 ; M2: "stage":
 ; M2: "shape": { "from_lmul": "m2", "to_lmul": "m1", "split_factor": 2, "is_downsplit_candidate": true
+; M2: "pressure": { "original_peak_live_units":
+; M2-SAME: "split_peak_live_units":
+; M2-SAME: "spill_risk_reduced":
 
 define <vscale x 16 x i32> @add_m8(<vscale x 16 x i32> %a,
                                    <vscale x 16 x i32> %b) {
