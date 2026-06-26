@@ -159,8 +159,11 @@ struct DLMULCandidate {
   bool HasLaterHUse = false;
   bool StoreClosed = false;
   bool PartitionFeasible = false;
+  bool IsDownsplitCandidate = false;
   unsigned BankedRequired = 0;
   unsigned BankedCapacity = 0;
+  int TargetLMUL = 0;
+  unsigned SplitFactor = 1;
   int OriginalPeakEstimate = 0;
   int SplitPeakEstimate = 0;
   int PressureSaving = 0;
@@ -168,7 +171,12 @@ struct DLMULCandidate {
 
 struct DLMULSummary {
   unsigned FunctionsScanned = 0;
+  unsigned RVVSeeds = 0;
   unsigned VRM8Seeds = 0;
+  unsigned LMUL1Seeds = 0;
+  unsigned LMUL2Seeds = 0;
+  unsigned LMUL4Seeds = 0;
+  unsigned LMUL8Seeds = 0;
   unsigned Level1 = 0;
   unsigned Level2 = 0;
   unsigned Level3 = 0;
@@ -195,7 +203,12 @@ public:
     sys::SmartScopedLock<true> Lock(Mutex);
     DLMULModuleData &Data = Modules[Module];
     Data.Summary.FunctionsScanned += Summary.FunctionsScanned;
+    Data.Summary.RVVSeeds += Summary.RVVSeeds;
     Data.Summary.VRM8Seeds += Summary.VRM8Seeds;
+    Data.Summary.LMUL1Seeds += Summary.LMUL1Seeds;
+    Data.Summary.LMUL2Seeds += Summary.LMUL2Seeds;
+    Data.Summary.LMUL4Seeds += Summary.LMUL4Seeds;
+    Data.Summary.LMUL8Seeds += Summary.LMUL8Seeds;
     Data.Summary.Level1 += Summary.Level1;
     Data.Summary.Level2 += Summary.Level2;
     Data.Summary.Level3 += Summary.Level3;
@@ -253,9 +266,11 @@ private:
                                 uint64_t ExtraRepairBlockers);
   bool isRVVReg(Register Reg) const;
   bool isVRM8Reg(Register Reg) const;
-  bool isHighLMULReg(Register Reg) const;
+  bool isDLMULSeedReg(Register Reg) const;
+  bool isSourceLMULReg(Register Reg, int SourceLMUL) const;
   int getRegLMUL(Register Reg) const;
   std::string getRegLMULString(Register Reg) const;
+  void recordSeedLMUL(int LMUL);
 };
 
 class RISCVDLMULCollector : public MachineFunctionPass {
@@ -415,6 +430,24 @@ static std::string lmulName(int LMUL) {
   if (LMUL < 0)
     return ("mf" + Twine(-LMUL)).str();
   return ("m" + Twine(LMUL)).str();
+}
+
+static bool isAnalyzableIntegerLMUL(int LMUL) {
+  return LMUL == 1 || LMUL == 2 || LMUL == 4 || LMUL == 8;
+}
+
+static int targetLMULForSplit(int LMUL) {
+  if (LMUL > 1)
+    return LMUL / 2;
+  if (LMUL == 1)
+    return 1;
+  return 0;
+}
+
+static unsigned splitFactorForLMULs(int FromLMUL, int ToLMUL) {
+  if (FromLMUL > ToLMUL && ToLMUL > 0)
+    return FromLMUL / ToLMUL;
+  return 1;
 }
 
 static std::string opcodeName(const TargetInstrInfo &TII, unsigned Opcode) {
@@ -596,8 +629,32 @@ bool DLMULFunctionScanner::isVRM8Reg(Register Reg) const {
          RISCVRI::getLMul(RC->TSFlags) == RISCVVType::LMUL_8;
 }
 
-bool DLMULFunctionScanner::isHighLMULReg(Register Reg) const {
-  return getRegLMUL(Reg) >= 8;
+bool DLMULFunctionScanner::isDLMULSeedReg(Register Reg) const {
+  return isAnalyzableIntegerLMUL(getRegLMUL(Reg));
+}
+
+bool DLMULFunctionScanner::isSourceLMULReg(Register Reg, int SourceLMUL) const {
+  return getRegLMUL(Reg) == SourceLMUL;
+}
+
+void DLMULFunctionScanner::recordSeedLMUL(int LMUL) {
+  ++Summary.RVVSeeds;
+  switch (LMUL) {
+  case 1:
+    ++Summary.LMUL1Seeds;
+    break;
+  case 2:
+    ++Summary.LMUL2Seeds;
+    break;
+  case 4:
+    ++Summary.LMUL4Seeds;
+    break;
+  case 8:
+    ++Summary.LMUL8Seeds;
+    break;
+  default:
+    break;
+  }
 }
 
 DLMULInstrInfo DLMULFunctionScanner::classifyInstr(const MachineInstr &MI) {
@@ -675,7 +732,7 @@ DLMULInstrInfo DLMULFunctionScanner::classifyInstr(const MachineInstr &MI) {
 
   Info.IsFreeModeForHL = Info.IsRVV && !Info.HasMask && !Info.HardBlockers &&
                          !Info.RepairBlockers &&
-                         (MI.mayLoadOrStore() || Info.LMUL == 8);
+                         (MI.mayLoadOrStore() || Info.LMUL > 1);
 
   DLMULInstrInfo Inserted = Info;
   InstrInfoCache.insert({&MI, Inserted});
@@ -690,11 +747,13 @@ DLMULFunctionScanner::scan() {
   for (MachineBasicBlock &MBB : MF) {
     for (MachineInstr &MI : MBB) {
       for (MachineOperand &MO : MI.defs()) {
-        if (!MO.isReg() || !isVRM8Reg(MO.getReg()))
+        if (!MO.isReg() || !isDLMULSeedReg(MO.getReg()))
           continue;
         if (!SeenSeeds.insert(MO.getReg()).second)
           continue;
-        ++Summary.VRM8Seeds;
+        recordSeedLMUL(getRegLMUL(MO.getReg()));
+        if (isVRM8Reg(MO.getReg()))
+          ++Summary.VRM8Seeds;
         scanSeed(MO.getReg(), MI);
       }
     }
@@ -785,6 +844,9 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
   C.InstrOrdinal = Ordinals.lookup(&SeedMI);
   C.DebugLoc = debugLocString(SeedMI);
   C.LMUL = getRegLMUL(SeedReg);
+  C.TargetLMUL = targetLMULForSplit(C.LMUL);
+  C.SplitFactor = splitFactorForLMULs(C.LMUL, C.TargetLMUL);
+  C.IsDownsplitCandidate = C.TargetLMUL > 0 && C.TargetLMUL < C.LMUL;
 
   DLMULInstrInfo SeedInfo = classifyInstr(SeedMI);
   C.Opcode = SeedInfo.Opcode;
@@ -848,7 +910,8 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
     for (const MachineOperand &MO : MI->uses()) {
       if (!MO.isReg() || !MO.getReg().isVirtual() || !isRVVReg(MO.getReg()))
         continue;
-      if (!IslandDefs.contains(MO.getReg()) && isHighLMULReg(MO.getReg()))
+      if (!IslandDefs.contains(MO.getReg()) &&
+          isSourceLMULReg(MO.getReg(), C.LMUL))
         HInputs.insert(MO.getReg());
     }
   }
@@ -860,7 +923,7 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
         continue;
       ++C.NumExternalUses;
       C.RepairBlockers |= EscapesIsland;
-      if (isHighLMULReg(DefReg)) {
+      if (isSourceLMULReg(DefReg, C.LMUL)) {
         C.HasLaterHUse = true;
         C.HardBlockers |= LaterHUse;
       }
@@ -872,10 +935,11 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
   C.HAnchorCount = HInputs.empty() ? 0 : HInputs.size();
   C.StoreClosed = Stores > 0 && C.NumExternalUses == 0;
   C.OriginalPeakEstimate = C.NumVectorDefs * std::max(C.LMUL, 1);
-  C.SplitPeakEstimate = C.NumVectorDefs * 4;
+  C.SplitPeakEstimate = C.NumVectorDefs * std::max(C.TargetLMUL, 1);
   C.PressureSaving = std::max(0, C.OriginalPeakEstimate - C.SplitPeakEstimate);
   C.BankedCapacity = 8;
-  C.BankedRequired = C.HInputFrontier * 2 + std::max(1U, C.NumVectorDefs);
+  C.BankedRequired =
+      C.HInputFrontier * C.SplitFactor + std::max(1U, C.NumVectorDefs);
   C.PartitionFeasible = C.BankedRequired <= C.BankedCapacity;
 
   if (C.HInputFrontier >= 4) {
@@ -896,7 +960,8 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
   if (C.Level >= 3 && Loads > 0 && Stores > 0 && C.StoreClosed)
     C.Level = 4;
 
-  bool LooksHighToLow = C.StoreClosed && FreeNodes > 0 && C.PartitionFeasible;
+  bool LooksHighToLow = C.IsDownsplitCandidate && C.StoreClosed &&
+                        FreeNodes > 0 && C.PartitionFeasible;
   if (LooksHighToLow) {
     C.Direction = DLMULDirection::HighToLow;
     C.Kind = C.HInputFrontier > 1 ? DLMULKind::HFanoutToLStores
@@ -905,6 +970,11 @@ DLMULCandidate DLMULFunctionScanner::buildCandidate(
       C.Grade = HasRepairBlockers ? DLMULGrade::Yellow : DLMULGrade::Green;
     else
       C.Grade = DLMULGrade::Red;
+  } else if (!C.IsDownsplitCandidate && RVVNodes != 0) {
+    C.Direction = DLMULDirection::GenericSplit;
+    C.Kind = DLMULKind::StaticLMULRegion;
+    C.Grade = DLMULGrade::Info;
+    C.RepairBlockers |= StaticLMULRegion;
   } else if (!C.StoreClosed && FreeNodes == RVVNodes && RVVNodes != 0) {
     C.Direction = DLMULDirection::GenericSplit;
     C.Kind = DLMULKind::StaticLMULRegion;
@@ -998,7 +1068,11 @@ static void printCandidateJSON(raw_ostream &OS, const DLMULCandidate &C) {
   OS << " }";
   OS << ",\n  \"shape\": { \"from_lmul\": ";
   printJSONString(OS, lmulName(C.LMUL));
-  OS << ", \"to_lmul\": \"m4\", \"split_factor\": 2, \"sew\": " << C.SEW
+  OS << ", \"to_lmul\": ";
+  printJSONString(OS, lmulName(C.TargetLMUL));
+  OS << ", \"split_factor\": " << C.SplitFactor
+     << ", \"is_downsplit_candidate\": "
+     << (C.IsDownsplitCandidate ? "true" : "false") << ", \"sew\": " << C.SEW
      << ", \"vl_kind\": ";
   printJSONString(OS, C.VLKind);
   OS << " }";
@@ -1062,7 +1136,12 @@ static void printReport(raw_ostream &OS, StringRef Module,
   OS << "# DLMUL analysis summary\n\n";
   OS << "- module: `" << Module << "`\n";
   OS << "- functions scanned: " << Data.Summary.FunctionsScanned << "\n";
+  OS << "- RVV seeds: " << Data.Summary.RVVSeeds << "\n";
   OS << "- VRM8 seeds: " << Data.Summary.VRM8Seeds << "\n";
+  OS << "- LMUL m1 seeds: " << Data.Summary.LMUL1Seeds << "\n";
+  OS << "- LMUL m2 seeds: " << Data.Summary.LMUL2Seeds << "\n";
+  OS << "- LMUL m4 seeds: " << Data.Summary.LMUL4Seeds << "\n";
+  OS << "- LMUL m8 seeds: " << Data.Summary.LMUL8Seeds << "\n";
   OS << "- Level 1 elementwise candidates: " << Data.Summary.Level1 << "\n";
   OS << "- Level 2 local split candidates: " << Data.Summary.Level2 << "\n";
   OS << "- Level 3 chain split candidates: " << Data.Summary.Level3 << "\n";
