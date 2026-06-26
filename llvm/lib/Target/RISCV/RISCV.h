@@ -15,6 +15,7 @@
 #define LLVM_LIB_TARGET_RISCV_RISCV_H
 
 #include "MCTargetDesc/RISCVBaseInfo.h"
+#include "RISCVDLMULAnalysis.h"
 #include "llvm/Target/TargetMachine.h"
 
 namespace llvm {

@@ -130,6 +130,8 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
   initializeRISCVMakeCompressibleOptPass(*PR);
   initializeRISCVGatherScatterLoweringPass(*PR);
   initializeRISCVCodeGenPrepareLegacyPassPass(*PR);
+  initializeRISCVDLMULCollectorPass(*PR);
+  initializeRISCVDLMULReportPass(*PR);
   initializeRISCVPostRAExpandPseudoPass(*PR);
   initializeRISCVMergeBaseOffsetOptPass(*PR);
   initializeRISCVOptWInstrsPass(*PR);
@@ -606,9 +608,15 @@ void RISCVPassConfig::addPreEmitPass2() {
 
   if (EnableCFIInstrInserter)
     addPass(createCFIInstrInserter());
+
+  if (isRISCVDLMULAnalysisEnabled())
+    addPass(createRISCVDLMULReportPass());
 }
 
 void RISCVPassConfig::addMachineSSAOptimization() {
+  if (isRISCVDLMULAnalysisEnabled())
+    addPass(createRISCVDLMULCollectorPass(RISCVDLMULStage::PostISelRaw));
+
   // It's beneficial to reduce the VL to enable more
   // Machine SSA optimizations.
   if (TM->getOptLevel() != CodeGenOptLevel::None)
@@ -616,6 +624,9 @@ void RISCVPassConfig::addMachineSSAOptimization() {
 
   addPass(createRISCVVectorPeepholePass());
   addPass(createRISCVFoldMemOffsetPass());
+
+  if (isRISCVDLMULAnalysisEnabled())
+    addPass(createRISCVDLMULCollectorPass(RISCVDLMULStage::PostRVVOpt));
 
   TargetPassConfig::addMachineSSAOptimization();
 
@@ -640,13 +651,15 @@ void RISCVPassConfig::addPreRegAlloc() {
     addPass(&MachinePipelinerID);
 
   addPass(createRISCVVMV0EliminationPass());
+
+  if (isRISCVDLMULAnalysisEnabled())
+    addPass(createRISCVDLMULCollectorPass(RISCVDLMULStage::PreRAInput));
 }
 
 void RISCVPassConfig::addFastRegAlloc() {
   addPass(&InitUndefID);
   TargetPassConfig::addFastRegAlloc();
 }
-
 
 void RISCVPassConfig::addPostRegAlloc() {
   if (TM->getOptLevel() != CodeGenOptLevel::None &&
