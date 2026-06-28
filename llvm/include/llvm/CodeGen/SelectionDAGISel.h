@@ -38,6 +38,7 @@ class TargetTransformInfo;
 class FunctionLoweringInfo;
 class SwiftErrorValueTracking;
 class GCFunctionInfo;
+class LoopInfo;
 class ScheduleDAGSDNodes;
 
 /// SelectionDAGISel - This is the common base class used for SelectionDAG-based
@@ -60,6 +61,7 @@ public:
   GCFunctionInfo *GFI = nullptr;
   SSPLayoutInfo *SP = nullptr;
   const TargetTransformInfo *TTI = nullptr;
+  LoopInfo *LI = nullptr;
   CodeGenOptLevel OptLevel;
   const TargetInstrInfo *TII;
   const TargetLowering *TLI;

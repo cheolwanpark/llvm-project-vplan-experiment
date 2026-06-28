@@ -20,12 +20,14 @@
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/AssumptionCache.h"
 #include "llvm/Analysis/BranchProbabilityInfo.h"
 #include "llvm/Analysis/CFG.h"
 #include "llvm/Analysis/LazyBlockFrequencyInfo.h"
+#include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/OptimizationRemarkEmitter.h"
 #include "llvm/Analysis/ProfileSummaryInfo.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
@@ -95,12 +97,16 @@
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/KnownBits.h"
+#include "llvm/Support/ManagedStatic.h"
+#include "llvm/Support/Mutex.h"
 #include "llvm/Support/Timer.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <iterator>
@@ -108,6 +114,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -186,6 +193,600 @@ static const bool ViewDAGCombine1 = false, ViewLegalizeTypesDAGs = false,
                   ViewDAGCombine2 = false, ViewISelDAGs = false,
                   ViewSchedDAGs = false, ViewSUnitDAGs = false;
 #endif
+
+static cl::opt<std::string>
+    DAGAnalysisOutput("dag-analysis", cl::Hidden, cl::value_desc("filename"),
+                      cl::desc("Collect selected SelectionDAG computation "
+                               "graphs for vectorized loop bodies and write "
+                               "Mermaid graph file(s)"));
+
+static cl::opt<bool> DAGAnalysisAllBlocks(
+    "dag-analysis-all-blocks", cl::Hidden, cl::init(false),
+    cl::desc("Collect SelectionDAG computation graphs for all basic blocks "
+             "instead of only vectorized loop bodies"));
+
+static bool isDAGAnalysisEnabled() { return !DAGAnalysisOutput.empty(); }
+
+namespace {
+
+struct DAGAnalysisEdgeInfo {
+  unsigned From = 0;
+  unsigned To = 0;
+  unsigned OperandNo = 0;
+  unsigned ResNo = 0;
+  std::string Type;
+  std::string Kind;
+};
+
+struct DAGAnalysisNodeInfo {
+  unsigned Id = 0;
+  unsigned PersistentId = 0;
+  std::string OperationName;
+  std::string ResultTypes;
+  std::string DebugLoc;
+  std::vector<std::string> Details;
+};
+
+struct DAGAnalysisGraphInfo {
+  unsigned GraphId = 0;
+  std::string Module;
+  std::string Function;
+  std::string BasicBlock;
+  std::string MachineBasicBlock;
+  std::string LoopHeader;
+  unsigned LoopDepth = 0;
+  bool IsVectorEpilogue = false;
+  unsigned RootNode = 0;
+  unsigned RootResNo = 0;
+  bool HasRoot = false;
+  std::vector<DAGAnalysisNodeInfo> Nodes;
+  std::vector<DAGAnalysisEdgeInfo> Edges;
+};
+
+struct DAGAnalysisModuleData {
+  unsigned GraphsSeen = 0;
+  unsigned NextGraphId = 0;
+  std::vector<DAGAnalysisGraphInfo> Graphs;
+};
+
+static std::string escapeMermaidText(StringRef S) {
+  std::string Out;
+  Out.reserve(S.size());
+  for (char C : S) {
+    switch (C) {
+    case '"':
+      Out += '\'';
+      break;
+    case '\n':
+      Out += "<br/>";
+      break;
+    case '<':
+      Out += "&lt;";
+      break;
+    case '>':
+      Out += "&gt;";
+      break;
+    case '&':
+      Out += "&amp;";
+      break;
+    case '|':
+      Out += "/";
+      break;
+    default:
+      Out += C;
+      break;
+    }
+  }
+  return Out;
+}
+
+static std::string trimToString(const std::string &S) {
+  return StringRef(S).trim().str();
+}
+
+static std::string getDebugLocString(const SDNode &N) {
+  if (!N.getDebugLoc())
+    return "";
+  std::string S;
+  raw_string_ostream OS(S);
+  N.getDebugLoc().print(OS);
+  return OS.str();
+}
+
+static std::string getResultTypesString(const SDNode &N) {
+  std::string S;
+  raw_string_ostream OS(S);
+  for (unsigned I = 0, E = N.getNumValues(); I != E; ++I) {
+    if (I)
+      OS << ", ";
+    OS << N.getValueType(I).getEVTString();
+  }
+  return OS.str();
+}
+
+static std::string describeTypeSize(TypeSize Size) {
+  std::string S;
+  raw_string_ostream OS(S);
+  OS << Size.getKnownMinValue();
+  if (Size.isScalable())
+    OS << " scalable";
+  return OS.str();
+}
+
+static std::string describeMachineMemOperand(const MachineMemOperand &MMO) {
+  std::string S;
+  raw_string_ostream OS(S);
+  SmallVector<StringRef, 4> AccessKinds;
+  if (MMO.isLoad())
+    AccessKinds.push_back("load");
+  if (MMO.isStore())
+    AccessKinds.push_back("store");
+  if (AccessKinds.empty())
+    OS << "mem";
+  else
+    llvm::interleaveComma(AccessKinds, OS);
+
+  OS << " size=";
+  if (MMO.getSize().hasValue())
+    OS << describeTypeSize(MMO.getSize().getValue());
+  else
+    OS << "unknown";
+  OS << " align=" << MMO.getAlign().value();
+  OS << " as=" << MMO.getAddrSpace();
+  if (MMO.isVolatile())
+    OS << " volatile";
+  if (MMO.isAtomic())
+    OS << " atomic";
+  if (const Value *V = MMO.getValue()) {
+    OS << " value=";
+    V->printAsOperand(OS, false);
+  } else if (const PseudoSourceValue *PSV = MMO.getPseudoValue()) {
+    OS << " pseudo=" << PSV;
+  }
+  return OS.str();
+}
+
+static void addMemoryDetails(const MemSDNode &MemN,
+                             std::vector<std::string> &Details) {
+  {
+    std::string S;
+    raw_string_ostream OS(S);
+    OS << "memory_vt=" << MemN.getMemoryVT().getEVTString()
+       << " base_align=" << MemN.getBaseAlign().value()
+       << " align=" << MemN.getAlign().value();
+    if (MemN.readMem())
+      OS << " read";
+    if (MemN.writeMem())
+      OS << " write";
+    if (MemN.isVolatile())
+      OS << " volatile";
+    if (MemN.isAtomic())
+      OS << " atomic";
+    Details.push_back(OS.str());
+  }
+
+  unsigned Index = 0;
+  for (MachineMemOperand *MMO : MemN.memoperands()) {
+    std::string S;
+    raw_string_ostream OS(S);
+    OS << "mmo" << Index++ << ": " << describeMachineMemOperand(*MMO);
+    Details.push_back(OS.str());
+  }
+}
+
+static void addMachineMemDetails(const MachineSDNode &MN,
+                                 std::vector<std::string> &Details) {
+  unsigned Index = 0;
+  for (MachineMemOperand *MMO : MN.memoperands()) {
+    std::string S;
+    raw_string_ostream OS(S);
+    OS << "machine_mmo" << Index++ << ": " << describeMachineMemOperand(*MMO);
+    Details.push_back(OS.str());
+  }
+}
+
+static std::string describeRegister(Register Reg, const MachineFunction &MF) {
+  std::string S;
+  raw_string_ostream OS(S);
+  const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
+  OS << printReg(Reg, TRI);
+  if (Reg.isVirtual()) {
+    const MachineRegisterInfo &MRI = MF.getRegInfo();
+    if (const TargetRegisterClass *RC = MRI.getRegClassOrNull(Reg))
+      OS << ":" << TRI->getRegClassName(RC);
+  }
+  return OS.str();
+}
+
+static void addTypedNodeDetails(const SDNode &N, const SelectionDAG &DAG,
+                                const MachineFunction &MF,
+                                std::vector<std::string> &Details) {
+  if (const auto *C = dyn_cast<ConstantSDNode>(&N)) {
+    std::string S;
+    raw_string_ostream OS(S);
+    OS << "int_constant=" << C->getAPIntValue();
+    if (C->isOpaque())
+      OS << " opaque";
+    Details.push_back(OS.str());
+  }
+
+  if (const auto *C = dyn_cast<ConstantFPSDNode>(&N)) {
+    std::string S;
+    raw_string_ostream OS(S);
+    OS << "fp_constant=";
+    C->getValueAPF().print(OS);
+    Details.push_back(OS.str());
+  }
+
+  if (const auto *R = dyn_cast<RegisterSDNode>(&N))
+    Details.push_back("register=" + describeRegister(R->getReg(), MF));
+
+  if (const auto *GA = dyn_cast<GlobalAddressSDNode>(&N)) {
+    std::string S;
+    raw_string_ostream OS(S);
+    OS << "global=";
+    GA->getGlobal()->printAsOperand(OS, false);
+    OS << " offset=" << GA->getOffset()
+       << " target_flags=" << GA->getTargetFlags();
+    Details.push_back(OS.str());
+  }
+
+  if (const auto *FI = dyn_cast<FrameIndexSDNode>(&N))
+    Details.push_back("frame_index=" + std::to_string(FI->getIndex()));
+
+  if (const auto *JT = dyn_cast<JumpTableSDNode>(&N))
+    Details.push_back("jump_table=" + std::to_string(JT->getIndex()));
+
+  if (const auto *CP = dyn_cast<ConstantPoolSDNode>(&N)) {
+    std::string S;
+    raw_string_ostream OS(S);
+    OS << "constant_pool_offset=" << CP->getOffset()
+       << " align=" << CP->getAlign().value()
+       << " target_flags=" << CP->getTargetFlags();
+    Details.push_back(OS.str());
+  }
+
+  if (const auto *BB = dyn_cast<BasicBlockSDNode>(&N)) {
+    std::string S;
+    raw_string_ostream OS(S);
+    const MachineBasicBlock *MBB = BB->getBasicBlock();
+    OS << "target_mbb=bb." << MBB->getNumber();
+    if (const BasicBlock *LLVMBB = MBB->getBasicBlock())
+      OS << " llvm_bb=" << LLVMBB->getName();
+    Details.push_back(OS.str());
+  }
+
+  if (const auto *CC = dyn_cast<CondCodeSDNode>(&N)) {
+    std::string S;
+    raw_string_ostream OS(S);
+    OS << "condcode=" << static_cast<unsigned>(CC->get());
+    Details.push_back(OS.str());
+  }
+
+  if (const auto *VT = dyn_cast<VTSDNode>(&N))
+    Details.push_back("valuetype=" + VT->getVT().getEVTString());
+
+  if (const auto *MemN = dyn_cast<MemSDNode>(&N))
+    addMemoryDetails(*MemN, Details);
+
+  if (const auto *MN = dyn_cast<MachineSDNode>(&N))
+    addMachineMemDetails(*MN, Details);
+
+  std::string PrintedDetails;
+  raw_string_ostream OS(PrintedDetails);
+  N.print_details(OS, &DAG);
+  PrintedDetails = trimToString(OS.str());
+  if (!PrintedDetails.empty())
+    Details.push_back("print_details=" + PrintedDetails);
+}
+
+static bool isVectorBodyLoopHeaderName(StringRef Name) {
+  return Name.starts_with("vector.body") ||
+         Name.starts_with("vec.epilog.vector.body");
+}
+
+static const Loop *getVectorBodyLoopFor(const BasicBlock *BB,
+                                        const LoopInfo *LI) {
+  if (!BB || !LI)
+    return nullptr;
+  for (const Loop *L = LI->getLoopFor(BB); L; L = L->getParentLoop())
+    if (isVectorBodyLoopHeaderName(L->getHeader()->getName()))
+      return L;
+  return nullptr;
+}
+
+static bool shouldCollectDAGForBB(const BasicBlock *BB, const LoopInfo *LI,
+                                  const Loop *&VectorLoop) {
+  if (DAGAnalysisAllBlocks)
+    return true;
+
+  VectorLoop = getVectorBodyLoopFor(BB, LI);
+  if (VectorLoop)
+    return true;
+
+  if (!BB)
+    return false;
+
+  // Fallback for builds or pipelines where LoopInfo is not available.
+  StringRef Name = BB->getName();
+  return isVectorBodyLoopHeaderName(Name) || Name.starts_with("pred.store.") ||
+         Name.starts_with("vector.latch");
+}
+
+static DAGAnalysisGraphInfo buildDAGAnalysisGraph(SelectionDAG &DAG,
+                                                  MachineFunction &MF,
+                                                  MachineBasicBlock &MBB,
+                                                  const Loop *VectorLoop) {
+  DAGAnalysisGraphInfo G;
+  const Function &F = MF.getFunction();
+  const Module *M = F.getParent();
+  G.Module = M ? M->getModuleIdentifier() : "";
+  G.Function = F.getName().str();
+  if (const BasicBlock *BB = MBB.getBasicBlock())
+    G.BasicBlock = BB->getName().str();
+  G.MachineBasicBlock = ("bb." + Twine(MBB.getNumber())).str();
+  if (VectorLoop) {
+    G.LoopHeader = VectorLoop->getHeader()->getName().str();
+    G.LoopDepth = VectorLoop->getLoopDepth();
+    G.IsVectorEpilogue =
+        VectorLoop->getHeader()->getName().starts_with("vec.epilog.");
+  }
+
+  DenseMap<const SDNode *, unsigned> Ids;
+  for (const SDNode &N : DAG.allnodes()) {
+    unsigned Id = G.Nodes.size();
+    Ids[&N] = Id;
+
+    DAGAnalysisNodeInfo Info;
+    Info.Id = Id;
+    Info.PersistentId = N.PersistentId;
+    Info.OperationName = N.getOperationName(&DAG);
+    Info.ResultTypes = getResultTypesString(N);
+    Info.DebugLoc = getDebugLocString(N);
+    addTypedNodeDetails(N, DAG, MF, Info.Details);
+    G.Nodes.push_back(std::move(Info));
+  }
+
+  for (const SDNode &N : DAG.allnodes()) {
+    unsigned To = Ids.lookup(&N);
+    for (unsigned OpNo = 0, E = N.getNumOperands(); OpNo != E; ++OpNo) {
+      SDValue Op = N.getOperand(OpNo);
+      const SDNode *FromN = Op.getNode();
+      if (!FromN)
+        continue;
+      auto It = Ids.find(FromN);
+      if (It == Ids.end())
+        continue;
+
+      DAGAnalysisEdgeInfo Edge;
+      Edge.From = It->second;
+      Edge.To = To;
+      Edge.OperandNo = OpNo;
+      Edge.ResNo = Op.getResNo();
+      Edge.Type = Op.getValueType().getEVTString();
+      if (Op.getValueType() == MVT::Other)
+        Edge.Kind = "chain";
+      else if (Op.getValueType() == MVT::Glue)
+        Edge.Kind = "glue";
+      else
+        Edge.Kind = "data";
+      G.Edges.push_back(std::move(Edge));
+    }
+  }
+
+  if (DAG.getRoot().getNode()) {
+    auto It = Ids.find(DAG.getRoot().getNode());
+    if (It != Ids.end()) {
+      G.HasRoot = true;
+      G.RootNode = It->second;
+      G.RootResNo = DAG.getRoot().getResNo();
+    }
+  }
+
+  return G;
+}
+
+static std::string getNodeMermaidLabel(const DAGAnalysisNodeInfo &N) {
+  std::string S;
+  raw_string_ostream OS(S);
+  OS << "n" << N.Id << " / t" << N.PersistentId << "\n" << N.OperationName;
+  if (!N.ResultTypes.empty())
+    OS << "\nres: " << N.ResultTypes;
+  unsigned Printed = 0;
+  for (StringRef Detail : N.Details) {
+    if (Detail.starts_with("print_details="))
+      continue;
+    if (Printed++ == 3)
+      break;
+    OS << "\n" << Detail;
+  }
+  if (!N.DebugLoc.empty())
+    OS << "\nloc: " << N.DebugLoc;
+  return OS.str();
+}
+
+static void printGraphMermaid(raw_ostream &OS, const DAGAnalysisGraphInfo &G) {
+  OS << "%% SelectionDAG graph: " << G.Function << "::" << G.BasicBlock << "\n";
+  OS << "%% module: " << G.Module << "\n";
+  OS << "%% machine block: " << G.MachineBasicBlock << "\n";
+  if (!G.LoopHeader.empty()) {
+    OS << "%% vector loop header: " << G.LoopHeader << "\n";
+    OS << "%% loop depth: " << G.LoopDepth << "\n";
+    OS << "%% vector epilogue: " << (G.IsVectorEpilogue ? "yes" : "no") << "\n";
+  }
+  OS << "%% nodes: " << G.Nodes.size() << "\n";
+  OS << "%% edges: " << G.Edges.size() << "\n";
+  OS << "flowchart TD\n";
+  for (const DAGAnalysisNodeInfo &N : G.Nodes) {
+    OS << "  N" << N.Id << "[\"" << escapeMermaidText(getNodeMermaidLabel(N))
+       << "\"]\n";
+  }
+  unsigned EdgeNo = 0;
+  if (G.HasRoot) {
+    OS << "  ROOT((root))\n";
+    OS << "  N" << G.RootNode << " -. r" << G.RootResNo << " .-> ROOT\n";
+    ++EdgeNo;
+  }
+  for (const DAGAnalysisEdgeInfo &Edge : G.Edges) {
+    std::string Label;
+    raw_string_ostream LS(Label);
+    LS << "op" << Edge.OperandNo << ":r" << Edge.ResNo << " " << Edge.Type;
+    if (Edge.Kind != "data")
+      LS << " " << Edge.Kind;
+    OS << "  N" << Edge.From << " -->|" << escapeMermaidText(LS.str()) << "| N"
+       << Edge.To << "\n";
+    if (Edge.Kind == "chain")
+      OS << "  linkStyle " << EdgeNo
+         << " stroke:#2f6fed,stroke-dasharray: 4 3\n";
+    else if (Edge.Kind == "glue")
+      OS << "  linkStyle " << EdgeNo << " stroke:#d12f2f,stroke-width:3px\n";
+    ++EdgeNo;
+  }
+}
+
+static SmallVector<const DAGAnalysisGraphInfo *, 8>
+getSortedDAGAnalysisGraphs(const StringMap<DAGAnalysisModuleData> &Modules) {
+  SmallVector<const DAGAnalysisGraphInfo *, 8> Graphs;
+  SmallVector<StringRef, 8> ModuleNames;
+  for (const auto &Entry : Modules)
+    ModuleNames.push_back(Entry.first());
+  llvm::sort(ModuleNames);
+
+  for (StringRef ModuleName : ModuleNames) {
+    auto It = Modules.find(ModuleName);
+    assert(It != Modules.end() && "module disappeared while collecting graphs");
+    const DAGAnalysisModuleData &Data = It->second;
+    for (const DAGAnalysisGraphInfo &G : Data.Graphs)
+      Graphs.push_back(&G);
+  }
+  return Graphs;
+}
+
+static std::string getDAGAnalysisOutputName(StringRef Filename,
+                                            unsigned Index) {
+  size_t Slash = Filename.find_last_of("/\\");
+  StringRef Directory =
+      Slash == StringRef::npos ? "" : Filename.take_front(Slash + 1);
+  StringRef Basename =
+      Slash == StringRef::npos ? Filename : Filename.drop_front(Slash + 1);
+  size_t Dot = Basename.rfind('.');
+  bool HasExtension = Dot != StringRef::npos && Dot != 0;
+
+  std::string Result;
+  raw_string_ostream OS(Result);
+  OS << Directory;
+  if (HasExtension)
+    OS << Basename.take_front(Dot) << "." << Index << Basename.drop_front(Dot);
+  else
+    OS << Basename << "." << Index;
+  return OS.str();
+}
+
+static void printEmptyDAGAnalysis(raw_ostream &OS) {
+  OS << "%% no SelectionDAG graphs collected\n";
+  OS << "flowchart TD\n";
+  OS << "  Empty[\"no SelectionDAG graphs collected\"]\n";
+}
+
+static void
+printDAGAnalysisGraphsToStdout(ArrayRef<const DAGAnalysisGraphInfo *> Graphs) {
+  if (Graphs.empty()) {
+    printEmptyDAGAnalysis(outs());
+    return;
+  }
+
+  for (const DAGAnalysisGraphInfo *G : Graphs) {
+    printGraphMermaid(outs(), *G);
+    outs() << "\n";
+  }
+}
+
+static void writeDAGAnalysisGraphFile(StringRef Filename,
+                                      const DAGAnalysisGraphInfo *Graph) {
+  std::error_code EC;
+  raw_fd_ostream OS(Filename, EC, sys::fs::OF_Text);
+  if (EC) {
+    errs() << "error: unable to open DAG analysis output file '" << Filename
+           << "': " << EC.message() << "\n";
+    return;
+  }
+
+  if (Graph)
+    printGraphMermaid(OS, *Graph);
+  else
+    printEmptyDAGAnalysis(OS);
+}
+
+static void
+writeDAGAnalysisGraphFiles(ArrayRef<const DAGAnalysisGraphInfo *> Graphs) {
+  if (Graphs.empty()) {
+    writeDAGAnalysisGraphFile(DAGAnalysisOutput, nullptr);
+    return;
+  }
+
+  if (Graphs.size() == 1) {
+    writeDAGAnalysisGraphFile(DAGAnalysisOutput, Graphs.front());
+    return;
+  }
+
+  for (auto [Index, Graph] : llvm::enumerate(Graphs))
+    writeDAGAnalysisGraphFile(
+        getDAGAnalysisOutputName(DAGAnalysisOutput, Index), Graph);
+}
+
+class DAGAnalysisDB {
+  sys::SmartMutex<true> Mutex;
+  StringMap<DAGAnalysisModuleData> Modules;
+
+public:
+  ~DAGAnalysisDB() {
+    if (!isDAGAnalysisEnabled())
+      return;
+
+    sys::SmartScopedLock<true> Lock(Mutex);
+    SmallVector<const DAGAnalysisGraphInfo *, 8> Graphs =
+        getSortedDAGAnalysisGraphs(Modules);
+
+    if (DAGAnalysisOutput == "-") {
+      printDAGAnalysisGraphsToStdout(Graphs);
+      return;
+    }
+
+    writeDAGAnalysisGraphFiles(Graphs);
+  }
+
+  void noteFunction(StringRef Module, StringRef Function) {
+    (void)Function;
+    sys::SmartScopedLock<true> Lock(Mutex);
+    (void)Modules[Module];
+  }
+
+  void addGraph(DAGAnalysisGraphInfo Graph) {
+    sys::SmartScopedLock<true> Lock(Mutex);
+    DAGAnalysisModuleData &Data = Modules[Graph.Module];
+    Graph.GraphId = Data.NextGraphId++;
+    ++Data.GraphsSeen;
+    Data.Graphs.push_back(std::move(Graph));
+  }
+};
+
+ManagedStatic<DAGAnalysisDB> DAGAnalysis;
+
+static void collectDAGAnalysisGraph(SelectionDAG &DAG, MachineFunction &MF,
+                                    MachineBasicBlock &MBB,
+                                    const LoopInfo *LI) {
+  if (!isDAGAnalysisEnabled())
+    return;
+
+  const BasicBlock *BB = MBB.getBasicBlock();
+  const Loop *VectorLoop = nullptr;
+  if (!shouldCollectDAGForBB(BB, LI, VectorLoop))
+    return;
+
+  DAGAnalysis->addGraph(buildDAGAnalysisGraph(DAG, MF, MBB, VectorLoop));
+}
+
+} // end anonymous namespace
 
 #ifndef NDEBUG
 #define ISEL_DUMP(X)                                                           \
@@ -425,6 +1026,8 @@ void SelectionDAGISelLegacy::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addPreserved<GCModuleInfo>();
   AU.addRequired<TargetLibraryInfoWrapperPass>();
   AU.addRequired<TargetTransformInfoWrapperPass>();
+  if (isDAGAnalysisEnabled())
+    AU.addRequired<LoopInfoWrapperPass>();
   AU.addRequired<AssumptionCacheTracker>();
   if (UseMBPI && RegisterPGOPasses)
     AU.addRequired<BranchProbabilityInfoWrapperPass>();
@@ -543,6 +1146,7 @@ void SelectionDAGISel::initializeAnalysisResults(
   SP = &FAM.getResult<SSPLayoutAnalysis>(Fn);
 
   TTI = &FAM.getResult<TargetIRAnalysis>(Fn);
+  LI = isDAGAnalysisEnabled() ? &FAM.getResult<LoopAnalysis>(Fn) : nullptr;
 
   HwMode = Subtarget.getHwMode();
 }
@@ -610,6 +1214,9 @@ void SelectionDAGISel::initializeAnalysisResults(MachineFunctionPass &MFP) {
   SP = &MFP.getAnalysis<StackProtector>().getLayoutInfo();
 
   TTI = &MFP.getAnalysis<TargetTransformInfoWrapperPass>().getTTI(Fn);
+  LI = isDAGAnalysisEnabled()
+           ? &MFP.getAnalysis<LoopInfoWrapperPass>().getLoopInfo()
+           : nullptr;
 
   HwMode = Subtarget.getHwMode();
 }
@@ -617,6 +1224,10 @@ void SelectionDAGISel::initializeAnalysisResults(MachineFunctionPass &MFP) {
 bool SelectionDAGISel::runOnMachineFunction(MachineFunction &mf) {
   SwiftError->setFunction(mf);
   const Function &Fn = mf.getFunction();
+  if (isDAGAnalysisEnabled())
+    DAGAnalysis->noteFunction(
+        Fn.getParent() ? Fn.getParent()->getModuleIdentifier() : "",
+        Fn.getName());
 
   bool InstrRef = mf.useDebugInstrRef();
 
@@ -1169,6 +1780,8 @@ void SelectionDAGISel::CodeGenAndEmitDAG() {
                    << printMBBReference(*FuncInfo->MBB) << " '" << BlockName
                    << "'\n";
             CurDAG->dump(DumpSortedDAG));
+
+  collectDAGAnalysisGraph(*CurDAG, *MF, *FuncInfo->MBB, LI);
 
   if (ViewSchedDAGs && MatchFilterBB)
     CurDAG->viewGraph("scheduler input for " + BlockName);
