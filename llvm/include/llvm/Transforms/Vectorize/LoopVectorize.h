@@ -129,7 +129,7 @@ struct LoopVectorizeResult {
       : MadeAnyChange(MadeAnyChange), MadeCFGChange(MadeCFGChange) {}
 };
 
-struct VPlanUseVFOverride {
+struct UseVFOverride {
   enum class Kind {
     None,
     Parsed,
@@ -154,7 +154,7 @@ private:
   bool VectorizeOnlyWhenForced;
 
   unsigned VPlanLoopIndex = 0;
-  SmallVector<VPlanUseVFOverride, 4> VPlanUseVFOverrides;
+  SmallVector<UseVFOverride, 4> UseVFOverrides;
 
 public:
   LLVM_ABI LoopVectorizePass(LoopVectorizeOptions Opts = {});

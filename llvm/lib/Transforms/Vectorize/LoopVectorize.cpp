@@ -74,6 +74,7 @@
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -132,6 +133,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/InstructionCost.h"
+#include "llvm/Support/JSON.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/NativeFormatting.h"
 #include "llvm/Support/raw_ostream.h"
@@ -164,7 +166,6 @@ using namespace SCEVPatternMatch;
 
 #ifndef NDEBUG
 const char VerboseDebug[] = DEBUG_TYPE "-verbose";
-const char VPlanUseVFDebug[] = DEBUG_TYPE "-vplan-use-vf";
 #endif
 
 STATISTIC(LoopsVectorized, "Number of loops vectorized");
@@ -367,15 +368,23 @@ cl::opt<bool>
                           cl::Hidden,
                           cl::desc("Verfiy VPlans after VPlan transforms."));
 
-static cl::opt<bool> VPlanExplain(
-    "vplan-explain", cl::init(false), cl::Hidden,
-    cl::desc("Explain per-loop VPlan candidates and selected vectorization "
-             "factor without changing the normal vectorizer decision."));
+static cl::opt<bool>
+    VPlanList("vplan-list", cl::init(false), cl::Hidden,
+              cl::desc("List VPlan candidates and their comparison costs."));
 
-static cl::opt<std::string> VPlanUseVF(
-    "vplan-use-vf", cl::init(""), cl::Hidden,
-    cl::desc("Comma-separated per-loop VFs to force, in loop explanation "
-             "order. Example: fixed:4,-,scalable:4"));
+static cl::opt<bool> VPlanReport(
+    "vplan-report", cl::init(false), cl::Hidden,
+    cl::desc("Report VPlan candidates, recipes, and cost breakdowns."));
+
+static cl::opt<bool>
+    VPlanJSONL("vplan-jsonl", cl::init(false), cl::Hidden,
+               cl::desc("Emit VPlan list or report records as JSON Lines."));
+
+static cl::opt<std::string>
+    UseVF("use-vf", cl::init(""), cl::Hidden,
+          cl::desc("Comma-separated per-loop VFs to force. Example: f4,-,s4"));
+
+static bool isVPlanReportingEnabled() { return VPlanList || VPlanReport; }
 
 // This flag enables the stress testing of the VPlan H-CFG construction in the
 // VPlan-native vectorization path. It must be used in conjuction with
@@ -755,8 +764,8 @@ static void debugVectorizationMessage(const StringRef Prefix,
   dbgs() << '\n';
 }
 
-static void debugVPlanUseVFLine(StringRef Msg) {
-  DEBUG_WITH_TYPE(VPlanUseVFDebug, dbgs() << "LV: " << Msg << '\n');
+static void debugUseVFLine(StringRef Msg) {
+  LLVM_DEBUG(dbgs() << "LV: " << Msg << '\n');
 }
 #endif
 
@@ -845,103 +854,484 @@ static void reportVectorization(OptimizationRemarkEmitter *ORE, Loop *TheLoop,
   });
 }
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-static std::string formatVPlanExplainVFs(const VPlan &Plan) {
-  std::string VFText;
-  raw_string_ostream OS(VFText);
-  OS << "{";
-  bool First = true;
-  for (ElementCount VF : Plan.vectorFactors()) {
-    if (!First)
-      OS << ",";
-    OS << VF;
-    First = false;
+namespace {
+class VPlanRecord {
+  SmallVector<std::pair<std::string, json::Value>, 16> Fields;
+
+public:
+  void add(StringRef Key, StringRef Value) {
+    Fields.emplace_back(Key.str(), json::Value(Value.str()));
   }
-  OS << "}";
-  return VFText;
+  void add(StringRef Key, int64_t Value) {
+    Fields.emplace_back(Key.str(), json::Value(Value));
+  }
+  void add(StringRef Key, unsigned Value) {
+    add(Key, static_cast<int64_t>(Value));
+  }
+  void add(StringRef Key, bool Value) {
+    Fields.emplace_back(Key.str(), json::Value(Value));
+  }
+  void addNull(StringRef Key) {
+    Fields.emplace_back(Key.str(), json::Value(nullptr));
+  }
+
+  void emit(StringRef Prefix) {
+    if (VPlanJSONL) {
+      json::Object Object;
+      for (auto &Field : Fields)
+        Object.try_emplace(Field.first, std::move(Field.second));
+      errs() << json::Value(std::move(Object)) << '\n';
+      return;
+    }
+
+    errs() << Prefix;
+    for (const auto &Field : Fields) {
+      errs() << ' ' << Field.first << '=';
+      if (auto Value = Field.second.getAsString()) {
+        errs() << '"';
+        printEscapedString(*Value, errs());
+        errs() << '"';
+      } else if (auto Value = Field.second.getAsInteger())
+        errs() << *Value;
+      else if (auto Value = Field.second.getAsBoolean())
+        errs() << (*Value ? "true" : "false");
+      else
+        errs() << "unavailable";
+    }
+    errs() << '\n';
+  }
+};
+} // namespace
+
+static std::string formatVPlanVF(ElementCount VF) {
+  return (Twine(VF.isScalable() ? "s" : "f") + Twine(VF.getKnownMinValue()))
+      .str();
 }
 
-static void emitVPlanExplain(const LoopVectorizationPlanner &LVP,
-                             unsigned LoopIndex, StringRef PathKind,
+static StringRef getVPlanCostComponentName(VPlanCostComponent Component) {
+  switch (Component) {
+  case VPlanCostComponent::Induction:
+    return "induction";
+  case VPlanCostComponent::ExitCondition:
+    return "exit_condition";
+  case VPlanCostComponent::Branch:
+    return "branch";
+  case VPlanCostComponent::Backedge:
+    return "backedge";
+  case VPlanCostComponent::ForcedScalar:
+    return "forced_scalar";
+  case VPlanCostComponent::Scalarization:
+    return "scalarization";
+  }
+  llvm_unreachable("unknown VPlan cost component");
+}
+
+static StringRef getVPlanRecipeCostSourceName(VPlanRecipeCostSource Source) {
+  switch (Source) {
+  case VPlanRecipeCostSource::VPlan:
+    return "vplan";
+  case VPlanRecipeCostSource::Precomputed:
+    return "precomputed";
+  case VPlanRecipeCostSource::Ignored:
+    return "ignored";
+  case VPlanRecipeCostSource::Deduplicated:
+    return "deduplicated";
+  }
+  llvm_unreachable("unknown VPlan recipe cost source");
+}
+
+static StringRef getVPlanRecipeKind(const VPRecipeBase &R) {
+  switch (R.getVPDefID()) {
+  case VPRecipeBase::VPBranchOnMaskSC:
+    return "branch_on_mask";
+  case VPRecipeBase::VPDerivedIVSC:
+    return "derived_iv";
+  case VPRecipeBase::VPExpandSCEVSC:
+    return "expand_scev";
+  case VPRecipeBase::VPExpressionSC:
+    return "expression";
+  case VPRecipeBase::VPIRInstructionSC:
+    return "ir_instruction";
+  case VPRecipeBase::VPInstructionSC:
+    return "instruction";
+  case VPRecipeBase::VPInterleaveEVLSC:
+    return "interleave_evl";
+  case VPRecipeBase::VPInterleaveSC:
+    return "interleave";
+  case VPRecipeBase::VPReductionEVLSC:
+    return "reduction_evl";
+  case VPRecipeBase::VPReductionSC:
+    return "reduction";
+  case VPRecipeBase::VPReplicateSC:
+    return "replicate";
+  case VPRecipeBase::VPScalarIVStepsSC:
+    return "scalar_iv_steps";
+  case VPRecipeBase::VPVectorPointerSC:
+    return "vector_pointer";
+  case VPRecipeBase::VPVectorEndPointerSC:
+    return "vector_end_pointer";
+  case VPRecipeBase::VPWidenCallSC:
+    return "widen_call";
+  case VPRecipeBase::VPWidenCanonicalIVSC:
+    return "widen_canonical_iv";
+  case VPRecipeBase::VPWidenCastSC:
+    return "widen_cast";
+  case VPRecipeBase::VPWidenGEPSC:
+    return "widen_gep";
+  case VPRecipeBase::VPWidenIntrinsicSC:
+    return "widen_intrinsic";
+  case VPRecipeBase::VPWidenLoadEVLSC:
+    return "widen_load_evl";
+  case VPRecipeBase::VPWidenLoadSC:
+    return "widen_load";
+  case VPRecipeBase::VPWidenStoreEVLSC:
+    return "widen_store_evl";
+  case VPRecipeBase::VPWidenStoreSC:
+    return "widen_store";
+  case VPRecipeBase::VPWidenSC:
+    return "widen";
+  case VPRecipeBase::VPWidenSelectSC:
+    return "widen_select";
+  case VPRecipeBase::VPBlendSC:
+    return "blend";
+  case VPRecipeBase::VPHistogramSC:
+    return "histogram";
+  case VPRecipeBase::VPWidenPHISC:
+    return "widen_phi";
+  case VPRecipeBase::VPPredInstPHISC:
+    return "pred_inst_phi";
+  case VPRecipeBase::VPCanonicalIVPHISC:
+    return "canonical_iv_phi";
+  case VPRecipeBase::VPActiveLaneMaskPHISC:
+    return "active_lane_mask_phi";
+  case VPRecipeBase::VPEVLBasedIVPHISC:
+    return "evl_based_iv_phi";
+  case VPRecipeBase::VPFirstOrderRecurrencePHISC:
+    return "first_order_recurrence_phi";
+  case VPRecipeBase::VPWidenIntOrFpInductionSC:
+    return "widen_int_or_fp_induction";
+  case VPRecipeBase::VPWidenPointerInductionSC:
+    return "widen_pointer_induction";
+  case VPRecipeBase::VPReductionPHISC:
+    return "reduction_phi";
+  }
+  return "unknown";
+}
+
+static StringRef getVPlanRecipeGroup(const VPRecipeBase &R,
+                                     std::optional<unsigned> Opcode) {
+  switch (R.getVPDefID()) {
+  case VPRecipeBase::VPInterleaveEVLSC:
+  case VPRecipeBase::VPInterleaveSC:
+  case VPRecipeBase::VPWidenLoadEVLSC:
+  case VPRecipeBase::VPWidenLoadSC:
+  case VPRecipeBase::VPWidenStoreEVLSC:
+  case VPRecipeBase::VPWidenStoreSC:
+    return "memory";
+  case VPRecipeBase::VPWidenCallSC:
+  case VPRecipeBase::VPWidenIntrinsicSC:
+    return "call";
+  case VPRecipeBase::VPHistogramSC:
+  case VPRecipeBase::VPReductionEVLSC:
+  case VPRecipeBase::VPReductionPHISC:
+  case VPRecipeBase::VPReductionSC:
+    return "reduction";
+  case VPRecipeBase::VPDerivedIVSC:
+  case VPRecipeBase::VPExpandSCEVSC:
+  case VPRecipeBase::VPScalarIVStepsSC:
+  case VPRecipeBase::VPVectorEndPointerSC:
+  case VPRecipeBase::VPVectorPointerSC:
+  case VPRecipeBase::VPCanonicalIVPHISC:
+  case VPRecipeBase::VPEVLBasedIVPHISC:
+  case VPRecipeBase::VPWidenCanonicalIVSC:
+  case VPRecipeBase::VPWidenGEPSC:
+  case VPRecipeBase::VPWidenIntOrFpInductionSC:
+  case VPRecipeBase::VPWidenPointerInductionSC:
+    return "address";
+  case VPRecipeBase::VPActiveLaneMaskPHISC:
+  case VPRecipeBase::VPBlendSC:
+  case VPRecipeBase::VPBranchOnMaskSC:
+  case VPRecipeBase::VPFirstOrderRecurrencePHISC:
+  case VPRecipeBase::VPPredInstPHISC:
+  case VPRecipeBase::VPWidenPHISC:
+  case VPRecipeBase::VPWidenSelectSC:
+    return "control";
+  case VPRecipeBase::VPReplicateSC:
+    return "replication";
+  case VPRecipeBase::VPExpressionSC:
+  case VPRecipeBase::VPIRInstructionSC:
+  case VPRecipeBase::VPInstructionSC:
+  case VPRecipeBase::VPWidenCastSC:
+  case VPRecipeBase::VPWidenSC:
+    break;
+  default:
+    return "other";
+  }
+
+  if (Opcode) {
+    switch (*Opcode) {
+    case Instruction::Load:
+    case Instruction::Store:
+      return "memory";
+    case Instruction::Call:
+      return "call";
+    case Instruction::GetElementPtr:
+      return "address";
+    case Instruction::Br:
+    case Instruction::PHI:
+    case Instruction::Select:
+      return "control";
+    default:
+      break;
+    }
+  }
+  return "compute";
+}
+
+static void addVPlanCost(VPlanRecord &Record, StringRef Key,
+                         InstructionCost Cost) {
+  if (Cost.isValid())
+    Record.add(Key, Cost.getValue());
+  else
+    Record.addNull(Key);
+}
+
+static StringRef
+getVPlanCompareKindName(LoopVectorizationPlanner::VPlanCompareKind Kind) {
+  switch (Kind) {
+  case LoopVectorizationPlanner::VPlanCompareKind::CodeSize:
+    return "code_size";
+  case LoopVectorizationPlanner::VPlanCompareKind::TripCount:
+    return "trip_count";
+  case LoopVectorizationPlanner::VPlanCompareKind::PerLane:
+    return "per_lane";
+  }
+  llvm_unreachable("unknown VPlan comparison kind");
+}
+
+static VPlanRecord makeVPlanRecord(StringRef RecordKind, StringRef FunctionName,
+                                   unsigned LoopIndex, StringRef PathKind,
+                                   unsigned PlanIndex, ElementCount VF) {
+  VPlanRecord Record;
+  Record.add("schema", 1U);
+  Record.add("record", RecordKind);
+  Record.add("function", FunctionName);
+  Record.add("loop", LoopIndex);
+  Record.add("path", PathKind);
+  Record.add("plan", PlanIndex);
+  Record.add("vf", formatVPlanVF(VF));
+  return Record;
+}
+
+static void
+addVPlanComparison(VPlanRecord &Record,
+                   const LoopVectorizationPlanner::VPlanComparison &Comparison,
+                   bool Available) {
+  Record.add("compare_kind", getVPlanCompareKindName(Comparison.Kind));
+  if (Available && Comparison.Numerator)
+    Record.add("compare_num", *Comparison.Numerator);
+  else
+    Record.addNull("compare_num");
+  Record.add("compare_den", Comparison.Denominator);
+  if (Comparison.TripCount)
+    Record.add("trip_count", *Comparison.TripCount);
+}
+
+static void emitVPlanComponentRecord(StringRef FunctionName, unsigned LoopIndex,
+                                     StringRef PathKind, unsigned PlanIndex,
+                                     ElementCount VF, StringRef Scope,
+                                     StringRef Name, InstructionCost Cost) {
+  VPlanRecord Record = makeVPlanRecord("component", FunctionName, LoopIndex,
+                                       PathKind, PlanIndex, VF);
+  Record.add("scope", Scope);
+  Record.add("name", Name);
+  addVPlanCost(Record, "cost", Cost);
+  Record.emit("vplan-report");
+}
+
+static void
+emitVPlanRecipeRecord(StringRef FunctionName, unsigned LoopIndex,
+                      StringRef PathKind, unsigned PlanIndex, ElementCount VF,
+                      unsigned RecipeIndex, const VPRecipeBase &Recipe,
+                      std::optional<InstructionCost> Cost, StringRef Source,
+                      std::optional<VPlanCostComponent> CoveredBy,
+                      std::optional<unsigned> Opcode, StringRef Reason = {}) {
+  VPlanRecord Record = makeVPlanRecord("recipe", FunctionName, LoopIndex,
+                                       PathKind, PlanIndex, VF);
+  Record.add("recipe", RecipeIndex);
+  Record.add("block", Recipe.getParent()->getName());
+  Record.add("recipe_kind", getVPlanRecipeKind(Recipe));
+  Record.add("group", getVPlanRecipeGroup(Recipe, Opcode));
+  Record.add("source", Source);
+  if (Cost)
+    addVPlanCost(Record, "cost", *Cost);
+  else
+    Record.addNull("cost");
+  if (CoveredBy)
+    Record.add("covered_by", getVPlanCostComponentName(*CoveredBy));
+  if (Opcode) {
+    Record.add("opcode", *Opcode);
+    if (*Opcode <= Instruction::OtherOpsEnd)
+      Record.add("opcode_name", StringRef(Instruction::getOpcodeName(*Opcode)));
+  }
+  if (!Reason.empty())
+    Record.add("reason", Reason);
+  Record.emit("vplan-report");
+}
+
+static void emitUnavailableVPlanRecipes(StringRef FunctionName,
+                                        unsigned LoopIndex, StringRef PathKind,
+                                        unsigned PlanIndex, ElementCount VF,
+                                        const VPlan &Plan, StringRef Reason) {
+  const VPRegionBlock *Region = Plan.getVectorLoopRegion();
+  if (!Region)
+    return;
+  unsigned RecipeIndex = 0;
+  auto Iter = vp_depth_first_deep(Region->getEntry());
+  for (const VPBasicBlock *VPBB :
+       VPBlockUtils::blocksOnly<const VPBasicBlock>(Iter))
+    for (const VPRecipeBase &Recipe : *VPBB)
+      emitVPlanRecipeRecord(FunctionName, LoopIndex, PathKind, PlanIndex, VF,
+                            RecipeIndex++, Recipe, std::nullopt, "unavailable",
+                            std::nullopt, std::nullopt, Reason);
+}
+
+static void emitVPlanRecords(const LoopVectorizationPlanner &LVP,
+                             StringRef FunctionName, unsigned LoopIndex,
+                             StringRef PathKind,
                              std::optional<ElementCount> SelectedVF) {
-  dbgs() << "LV: Loop[" << LoopIndex << "] path=" << PathKind
-         << " plans=" << LVP.getNumPlans() << "\n";
+  std::optional<unsigned> SelectedPlanIndex;
+  if (SelectedVF)
+    SelectedPlanIndex = LVP.getPlanIndexForVF(*SelectedVF);
+
   for (unsigned PlanIndex = 0, End = LVP.getNumPlans(); PlanIndex != End;
        ++PlanIndex) {
     const VPlan &Plan = LVP.getPlanByIndex(PlanIndex);
-    dbgs() << "LV:   VPlan[" << PlanIndex
-           << "] VFs=" << formatVPlanExplainVFs(Plan) << "\n";
-    for (const auto &Info : LVP.getVPlanExplainInfo(PlanIndex)) {
-      dbgs() << "LV:     VF=" << Info.VF << " cost=";
+    for (const auto &Info : LVP.getVPlanReportInfo(PlanIndex)) {
+      bool Selected = SelectedPlanIndex && *SelectedPlanIndex == PlanIndex &&
+                      SelectedVF && *SelectedVF == Info.VF;
+      StringRef Status = Info.SkipReason ? "skipped"
+                         : Info.Cost
+                             ? (Info.Cost->isValid() ? "evaluated" : "invalid")
+                             : "unavailable";
+      VPlanRecord Record = makeVPlanRecord("plan", FunctionName, LoopIndex,
+                                           PathKind, PlanIndex, Info.VF);
+      Record.add("selected", Selected);
+      Record.add("status", Status);
       if (Info.SkipReason)
-        dbgs() << "skipped(" << Info.SkipReason << ")";
-      else if (Info.Cost) {
-        dbgs() << *Info.Cost;
-        dbgs() << LVP.formatVPlanExplainComparison(PlanIndex, Info.VF,
-                                                  *Info.Cost);
-      } else
-        dbgs() << "n/a";
-      dbgs() << "\n";
+        Record.add("reason", StringRef(Info.SkipReason));
+
+      InstructionCost Cost = Info.Cost.value_or(InstructionCost::getInvalid());
+      auto Comparison =
+          PathKind == "outer-native"
+              ? LoopVectorizationPlanner::
+                    VPlanComparison{LoopVectorizationPlanner::VPlanCompareKind::
+                                        PerLane,
+                                    std::nullopt, Info.VF.getKnownMinValue(),
+                                    std::nullopt}
+              : LVP.getVPlanComparison(PlanIndex, Info.VF, Cost);
+      addVPlanComparison(Record, Comparison,
+                         !Info.SkipReason && Info.Cost.has_value() &&
+                             Info.Cost->isValid());
+
+      if (VPlanReport) {
+        if (Info.Cost)
+          addVPlanCost(Record, "loop_cost", *Info.Cost);
+        else
+          Record.addNull("loop_cost");
+        if (Info.Breakdown) {
+          const VPlanCostBreakdown &B = *Info.Breakdown;
+          InstructionCost Control = B.InductionCost + B.ExitConditionCost +
+                                    B.BranchCost + B.BackedgeCost;
+          InstructionCost Scalar = B.ForcedScalarCost + B.ScalarizationCost;
+          assert((!Info.Cost->isValid() ||
+                  !(Control + Scalar + B.RecipeCost).isValid() ||
+                  *Info.Cost == Control + Scalar + B.RecipeCost) &&
+                 "VPlan report costs must add up to loop cost");
+          addVPlanCost(Record, "control", Control);
+          addVPlanCost(Record, "scalar", Scalar);
+          addVPlanCost(Record, "recipe_cost", B.RecipeCost);
+        } else {
+          Record.addNull("control");
+          Record.addNull("scalar");
+          Record.addNull("recipe_cost");
+        }
+      }
+      Record.emit(VPlanReport ? "vplan-report" : "vplan-list");
+
+      if (!VPlanReport)
+        continue;
+
+      if (!Info.Breakdown) {
+        StringRef Reason = Info.VF.isScalar() ? "scalar-vplan-cost-not-computed"
+                                              : "vplan-cost-not-computed";
+        emitUnavailableVPlanRecipes(FunctionName, LoopIndex, PathKind,
+                                    PlanIndex, Info.VF, Plan, Reason);
+        continue;
+      }
+
+      const VPlanCostBreakdown &B = *Info.Breakdown;
+      for (auto [Component, Cost] :
+           {std::pair(VPlanCostComponent::Induction, B.InductionCost),
+            std::pair(VPlanCostComponent::ExitCondition, B.ExitConditionCost),
+            std::pair(VPlanCostComponent::Branch, B.BranchCost),
+            std::pair(VPlanCostComponent::Backedge, B.BackedgeCost),
+            std::pair(VPlanCostComponent::ForcedScalar, B.ForcedScalarCost),
+            std::pair(VPlanCostComponent::Scalarization, B.ScalarizationCost)})
+        emitVPlanComponentRecord(FunctionName, LoopIndex, PathKind, PlanIndex,
+                                 Info.VF, "loop",
+                                 getVPlanCostComponentName(Component), Cost);
+
+      for (StringRef Group : {"memory", "compute", "control", "address",
+                              "reduction", "call", "replication", "other"}) {
+        InstructionCost GroupCost = 0;
+        for (const VPlanRecipeCost &RecipeCost : B.Recipes)
+          if (getVPlanRecipeGroup(*RecipeCost.Recipe, RecipeCost.Opcode) ==
+              Group)
+            GroupCost += RecipeCost.Cost;
+        emitVPlanComponentRecord(FunctionName, LoopIndex, PathKind, PlanIndex,
+                                 Info.VF, "recipe", Group, GroupCost);
+      }
+
+      for (auto [RecipeIndex, RecipeCost] : enumerate(B.Recipes))
+        emitVPlanRecipeRecord(FunctionName, LoopIndex, PathKind, PlanIndex,
+                              Info.VF, RecipeIndex, *RecipeCost.Recipe,
+                              RecipeCost.Cost,
+                              getVPlanRecipeCostSourceName(RecipeCost.Source),
+                              RecipeCost.CoveredBy, RecipeCost.Opcode);
     }
   }
-  if (!SelectedVF)
-    return;
-
-  std::optional<unsigned> SelectedPlanIndex = LVP.getPlanIndexForVF(*SelectedVF);
-  if (!SelectedPlanIndex)
-    return;
-
-  dbgs() << "LV:   selected VF=" << *SelectedVF
-         << " plan=" << *SelectedPlanIndex << "\n";
 }
 
-static void emitSelectedVPlanUseVFDebugDump(
-    const LoopVectorizationPlanner &LVP, unsigned LoopIndex,
-    ElementCount SelectedVF) {
-  std::optional<unsigned> SelectedPlanIndex = LVP.getPlanIndexForVF(SelectedVF);
-  if (!SelectedPlanIndex)
-    return;
-
-  DEBUG_WITH_TYPE(VPlanUseVFDebug, {
-    dbgs() << "LV: Loop[" << LoopIndex << "] selected VF=" << SelectedVF
-           << " plan=" << *SelectedPlanIndex << "\n";
-    dbgs() << "LV: Loop[" << LoopIndex << "] selected VPlan dump follows\n";
-    LVP.getPlanByIndex(*SelectedPlanIndex).print(dbgs());
-  });
-}
-#endif
-
-static VPlanUseVFOverride parseVPlanUseVFOverride(StringRef Entry) {
-  VPlanUseVFOverride Override;
+static UseVFOverride parseUseVFOverride(StringRef Entry) {
+  UseVFOverride Override;
   Override.Text = Entry.str();
   if (Entry == "-")
     return Override;
 
-  auto [Kind, WidthText] = Entry.split(':');
+  if (Entry.size() < 2 || (Entry.front() != 'f' && Entry.front() != 's')) {
+    Override.OverrideKind = UseVFOverride::Kind::Invalid;
+    return Override;
+  }
+
+  char Kind = Entry.front();
+  StringRef WidthText = Entry.drop_front();
   unsigned Width = 0;
-  if (WidthText.empty() || WidthText.contains(':') ||
-      WidthText.getAsInteger(10, Width) || Width == 0 ||
+  if (WidthText.getAsInteger(10, Width) || Width == 0 ||
       !isPowerOf2_32(Width)) {
-    Override.OverrideKind = VPlanUseVFOverride::Kind::Invalid;
+    Override.OverrideKind = UseVFOverride::Kind::Invalid;
     return Override;
   }
 
-  if (Kind == "fixed")
-    Override.IsScalable = false;
-  else if (Kind == "scalable")
-    Override.IsScalable = true;
-  else {
-    Override.OverrideKind = VPlanUseVFOverride::Kind::Invalid;
-    return Override;
-  }
+  Override.IsScalable = Kind == 's';
 
-  Override.OverrideKind = VPlanUseVFOverride::Kind::Parsed;
+  Override.OverrideKind = UseVFOverride::Kind::Parsed;
   Override.Width = Width;
   return Override;
 }
 
-static void parseVPlanUseVFOverrides(
-    StringRef OverrideText, SmallVectorImpl<VPlanUseVFOverride> &Overrides) {
+static void parseUseVFOverrides(StringRef OverrideText,
+                                SmallVectorImpl<UseVFOverride> &Overrides) {
   Overrides.clear();
   if (OverrideText.empty())
     return;
@@ -949,27 +1339,26 @@ static void parseVPlanUseVFOverrides(
   SmallVector<StringRef, 4> Entries;
   OverrideText.split(Entries, ',', /*MaxSplit=*/-1, /*KeepEmpty=*/true);
   for (StringRef Entry : Entries)
-    Overrides.push_back(parseVPlanUseVFOverride(Entry));
+    Overrides.push_back(parseUseVFOverride(Entry));
 }
 
-static const VPlanUseVFOverride *
-getVPlanUseVFOverride(ArrayRef<VPlanUseVFOverride> Overrides,
-                      unsigned LoopIndex) {
+static const UseVFOverride *getUseVFOverride(ArrayRef<UseVFOverride> Overrides,
+                                             unsigned LoopIndex) {
   if (LoopIndex >= Overrides.size())
     return nullptr;
   return &Overrides[LoopIndex];
 }
 
-static ElementCount getElementCountForOverride(const VPlanUseVFOverride &Override) {
-  assert(Override.OverrideKind == VPlanUseVFOverride::Kind::Parsed &&
+static ElementCount getElementCountForOverride(const UseVFOverride &Override) {
+  assert(Override.OverrideKind == UseVFOverride::Kind::Parsed &&
          "Expected parsed VPlan VF override");
   if (Override.IsScalable)
     return ElementCount::getScalable(Override.Width);
   return ElementCount::getFixed(Override.Width);
 }
 
-static std::string formatVPlanUseVFMessage(unsigned LoopIndex, StringRef Message,
-                                           StringRef Entry = {}) {
+static std::string formatUseVFMessage(unsigned LoopIndex, StringRef Message,
+                                      StringRef Entry = {}) {
   std::string Buffer;
   raw_string_ostream OS(Buffer);
   OS << Message;
@@ -979,32 +1368,34 @@ static std::string formatVPlanUseVFMessage(unsigned LoopIndex, StringRef Message
   return Buffer;
 }
 
-static std::string formatVPlanUseVFDebugLoopMessage(unsigned LoopIndex,
-                                                    StringRef Message) {
+#ifndef NDEBUG
+static std::string formatUseVFDebugLoopMessage(unsigned LoopIndex,
+                                               StringRef Message) {
   std::string Buffer;
   raw_string_ostream OS(Buffer);
   OS << "Loop[" << LoopIndex << "] " << Message;
   return Buffer;
 }
+#endif
 
-static void debugVPlanUseVFLoopMessage(unsigned LoopIndex, StringRef Message) {
+static void debugUseVFLoopMessage(unsigned LoopIndex, StringRef Message) {
 #ifndef NDEBUG
-  debugVPlanUseVFLine(formatVPlanUseVFDebugLoopMessage(LoopIndex, Message));
+  debugUseVFLine(formatUseVFDebugLoopMessage(LoopIndex, Message));
 #endif
 }
 
-static void debugVPlanUseVFFailureMessage(unsigned LoopIndex, StringRef Message,
-                                          StringRef Entry = {}) {
+static void debugUseVFFailureMessage(unsigned LoopIndex, StringRef Message,
+                                     StringRef Entry = {}) {
 #ifndef NDEBUG
-  debugVPlanUseVFLine((Twine("Not vectorizing: ") +
-                       formatVPlanUseVFMessage(LoopIndex, Message, Entry) + ".")
-                          .str());
+  debugUseVFLine((Twine("Not vectorizing: ") +
+                  formatUseVFMessage(LoopIndex, Message, Entry) + ".")
+                     .str());
 #endif
 }
 
-static void debugVPlanUseVFMessage(StringRef Message) {
+static void debugUseVFMessage(StringRef Message) {
 #ifndef NDEBUG
-  debugVPlanUseVFLine(Message);
+  debugUseVFLine(Message);
 #endif
 }
 
@@ -4149,26 +4540,23 @@ bool LoopVectorizationPlanner::isMoreProfitable(const VectorizationFactor &A,
                                                     IsEpilogue);
 }
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-std::string
-LoopVectorizationPlanner::formatVPlanExplainComparison(unsigned PlanIndex,
-                                                       ElementCount VF,
-                                                       InstructionCost Cost) const {
-  std::string Text;
-  raw_string_ostream OS(Text);
-  OS << " compare=";
-
-  if (CM.CostKind == TTI::TCK_CodeSize) {
-    OS << Cost;
-    return Text;
-  }
+LoopVectorizationPlanner::VPlanComparison
+LoopVectorizationPlanner::getVPlanComparison(unsigned PlanIndex,
+                                             ElementCount VF,
+                                             InstructionCost Cost) const {
+  if (CM.CostKind == TTI::TCK_CodeSize)
+    return {VPlanCompareKind::CodeSize,
+            Cost.isValid() ? std::optional<int64_t>(Cost.getValue())
+                           : std::nullopt,
+            1, std::nullopt};
 
   unsigned EstimatedWidth = estimateElementCount(VF, CM.getVScaleForTuning());
   const unsigned MaxTripCount = PSE.getSmallConstantMaxTripCount();
-  if (!MaxTripCount) {
-    OS << format("%.4f", double(Cost.getValue()) / EstimatedWidth);
-    return Text;
-  }
+  if (!MaxTripCount)
+    return {VPlanCompareKind::PerLane,
+            Cost.isValid() ? std::optional<int64_t>(Cost.getValue())
+                           : std::nullopt,
+            EstimatedWidth, std::nullopt};
 
   auto GetCostForTC = [MaxTripCount](unsigned Width, InstructionCost VectorCost,
                                      InstructionCost ScalarCost,
@@ -4179,26 +4567,27 @@ LoopVectorizationPlanner::formatVPlanExplainComparison(unsigned PlanIndex,
     return VectorCost * divideCeil(MaxTripCount, Width);
   };
 
-  InstructionCost ScalarCost = VF.isScalar() ? Cost : InstructionCost::getInvalid();
+  InstructionCost ScalarCost =
+      VF.isScalar() ? Cost : CM.expectedCost(ElementCount::getFixed(1));
   if (!VF.isScalar())
     if (std::optional<unsigned> ScalarPlanIndex =
             getPlanIndexForVF(ElementCount::getFixed(1)))
-      for (const auto &Info : getVPlanExplainInfo(*ScalarPlanIndex))
+      for (const auto &Info : getVPlanReportInfo(*ScalarPlanIndex))
         if (Info.VF.isScalar() && Info.Cost) {
           ScalarCost = *Info.Cost;
           break;
         }
 
-  if (!ScalarCost.isValid()) {
-    OS << "n/a";
-    return Text;
-  }
-
-  OS << GetCostForTC(EstimatedWidth, Cost, ScalarCost,
-                     getPlanByIndex(PlanIndex).hasScalarTail());
-  return Text;
+  InstructionCost CompareCost =
+      Cost.isValid() && ScalarCost.isValid()
+          ? GetCostForTC(EstimatedWidth, Cost, ScalarCost,
+                         getPlanByIndex(PlanIndex).hasScalarTail())
+          : InstructionCost::getInvalid();
+  return {VPlanCompareKind::TripCount,
+          CompareCost.isValid() ? std::optional<int64_t>(CompareCost.getValue())
+                                : std::nullopt,
+          1, MaxTripCount};
 }
-#endif
 
 void LoopVectorizationPlanner::emitInvalidCostRemarks(
     OptimizationRemarkEmitter *ORE) {
@@ -7069,6 +7458,18 @@ bool VPCostContext::skipCostComputation(Instruction *UI, bool IsVector) const {
          SkipCostComputation.contains(UI);
 }
 
+VPlanRecipeCostSource VPCostContext::getRecipeCostSource(Instruction *UI,
+                                                         bool IsVector) const {
+  assert(UI && skipCostComputation(UI, IsVector) &&
+         "expected a skipped recipe cost");
+  if (PrecomputedCostComponents.contains(UI))
+    return VPlanRecipeCostSource::Precomputed;
+  if (CM.ValuesToIgnore.contains(UI) ||
+      (IsVector && CM.VecValuesToIgnore.contains(UI)))
+    return VPlanRecipeCostSource::Ignored;
+  return VPlanRecipeCostSource::Deduplicated;
+}
+
 unsigned VPCostContext::getPredBlockCostDivisor(BasicBlock *BB) const {
   return CM.getPredBlockCostDivisor(CostKind, BB);
 }
@@ -7128,6 +7529,8 @@ LoopVectorizationPlanner::precomputeCosts(VPlan &Plan, ElementCount VF,
                << ": induction instruction " << *IVInst << "\n";
       });
       Cost += InductionCost;
+      CostCtx.recordComponent(VPlanCostComponent::Induction, InductionCost,
+                              IVInst);
       CostCtx.SkipCostComputation.insert(IVInst);
     }
   }
@@ -7160,6 +7563,8 @@ LoopVectorizationPlanner::precomputeCosts(VPlan &Plan, ElementCount VF,
              << ": exit condition instruction " << *CondI << "\n";
     });
     Cost += CondICost;
+    CostCtx.recordComponent(VPlanCostComponent::ExitCondition, CondICost,
+                            CondI);
     for (Value *Op : CondI->operands()) {
       auto *OpI = dyn_cast<Instruction>(Op);
       if (!OpI || CostCtx.skipCostComputation(OpI, VF.isVector()) ||
@@ -7184,6 +7589,8 @@ LoopVectorizationPlanner::precomputeCosts(VPlan &Plan, ElementCount VF,
       continue;
     auto BranchCost = CostCtx.getLegacyCost(BB->getTerminator(), VF);
     Cost += BranchCost;
+    CostCtx.recordComponent(VPlanCostComponent::Branch, BranchCost,
+                            BB->getTerminator());
   }
 
   // Pre-compute costs for instructions that are forced-scalar or profitable to
@@ -7199,6 +7606,8 @@ LoopVectorizationPlanner::precomputeCosts(VPlan &Plan, ElementCount VF,
              << ": forced scalar " << *ForcedScalar << "\n";
     });
     Cost += ForcedCost;
+    CostCtx.recordComponent(VPlanCostComponent::ForcedScalar, ForcedCost,
+                            ForcedScalar);
   }
   for (const auto &[Scalarized, ScalarCost] : CM.InstsToScalarize[VF]) {
     if (CostCtx.skipCostComputation(Scalarized, VF.isVector()))
@@ -7209,14 +7618,18 @@ LoopVectorizationPlanner::precomputeCosts(VPlan &Plan, ElementCount VF,
              << ": profitable to scalarize " << *Scalarized << "\n";
     });
     Cost += ScalarCost;
+    CostCtx.recordComponent(VPlanCostComponent::Scalarization, ScalarCost,
+                            Scalarized);
   }
 
   return Cost;
 }
 
-InstructionCost LoopVectorizationPlanner::cost(VPlan &Plan,
-                                               ElementCount VF) const {
-  VPCostContext CostCtx(CM.TTI, *CM.TLI, Plan, CM, CM.CostKind, PSE, OrigLoop);
+InstructionCost
+LoopVectorizationPlanner::cost(VPlan &Plan, ElementCount VF,
+                               VPlanCostBreakdown *Breakdown) const {
+  VPCostContext CostCtx(CM.TTI, *CM.TLI, Plan, CM, CM.CostKind, PSE, OrigLoop,
+                        Breakdown);
   InstructionCost Cost = precomputeCosts(Plan, VF, CostCtx);
 
   // Now compute and add the VPlan-based cost.
@@ -7233,6 +7646,18 @@ InstructionCost LoopVectorizationPlanner::cost(VPlan &Plan,
   LLVM_DEBUG(dbgs() << ")\n");
 #endif
   return Cost;
+}
+
+void LoopVectorizationPlanner::collectVPlanReportCost(unsigned PlanIndex,
+                                                      ElementCount VF) {
+  if (VF.isScalar()) {
+    setVPlanReportCost(PlanIndex, VF, CM.expectedCost(VF));
+    return;
+  }
+
+  VPlanCostBreakdown Breakdown;
+  InstructionCost Cost = cost(getPlanByIndex(PlanIndex), VF, &Breakdown);
+  setVPlanReportCost(PlanIndex, VF, Cost, std::move(Breakdown));
 }
 
 #ifndef NDEBUG
@@ -7373,24 +7798,24 @@ static bool planContainsAdditionalSimplifications(VPlan &Plan,
 #endif
 
 VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  if (VPlanExplain && OrigLoop->isInnermost())
-    clearVPlanExplainInfo();
-#endif
+  bool CollectReport = isVPlanReportingEnabled() && OrigLoop->isInnermost();
+  if (CollectReport)
+    initializeVPlanReportInfo();
   if (VPlans.empty())
     return VectorizationFactor::Disabled();
   // If there is a single VPlan with a single VF, return it directly.
   VPlan &FirstPlan = *VPlans[0];
   if (VPlans.size() == 1 && size(FirstPlan.vectorFactors()) == 1) {
     ElementCount VF = *FirstPlan.vectorFactors().begin();
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-    if (VPlanExplain && OrigLoop->isInnermost()) {
+    if (CollectReport) {
       if (VF.isScalar())
-        setVPlanExplainCost(0, VF, CM.expectedCost(VF));
-      else
-        setVPlanExplainCost(0, VF, cost(FirstPlan, VF));
+        setVPlanReportCost(0, VF, CM.expectedCost(VF));
+      else {
+        VPlanCostBreakdown Breakdown;
+        InstructionCost Cost = cost(FirstPlan, VF, &Breakdown);
+        setVPlanReportCost(0, VF, Cost, std::move(Breakdown));
+      }
     }
-#endif
     return {VF, 0, 0};
   }
 
@@ -7411,11 +7836,9 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
   // TODO: Compute scalar cost using VPlan-based cost model.
   InstructionCost ScalarCost = CM.expectedCost(ScalarVF);
   LLVM_DEBUG(dbgs() << "LV: Scalar loop costs: " << ScalarCost << ".\n");
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  if (VPlanExplain && OrigLoop->isInnermost())
+  if (CollectReport)
     if (std::optional<unsigned> ScalarPlanIndex = getPlanIndexForVF(ScalarVF))
-      setVPlanExplainCost(*ScalarPlanIndex, ScalarVF, ScalarCost);
-#endif
+      setVPlanReportCost(*ScalarPlanIndex, ScalarVF, ScalarCost);
   VectorizationFactor ScalarFactor(ScalarVF, ScalarCost, ScalarCost);
   VectorizationFactor BestFactor = ScalarFactor;
 
@@ -7442,10 +7865,8 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
       if (VF.isScalar())
         continue;
       if (!ForceVectorization && !willGenerateVectors(*P, VF, TTI)) {
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-        if (VPlanExplain && OrigLoop->isInnermost())
-          setVPlanExplainSkipReason(PlanIndex, VF, "no-vector-insts");
-#endif
+        if (CollectReport)
+          setVPlanReportSkipReason(PlanIndex, VF, "no-vector-insts");
         LLVM_DEBUG(
             dbgs()
             << "LV: Not considering vector loop of width " << VF
@@ -7453,10 +7874,8 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
         continue;
       }
       if (CM.OptForSize && !ForceVectorization && hasReplicatorRegion(*P)) {
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-        if (VPlanExplain && OrigLoop->isInnermost())
-          setVPlanExplainSkipReason(PlanIndex, VF, "size-opt-replicator");
-#endif
+        if (CollectReport)
+          setVPlanReportSkipReason(PlanIndex, VF, "size-opt-replicator");
         LLVM_DEBUG(
             dbgs()
             << "LV: Not considering vector loop of width " << VF
@@ -7465,19 +7884,16 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
         continue;
       }
 
-      InstructionCost Cost = cost(*P, VF);
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-      if (VPlanExplain && OrigLoop->isInnermost())
-        setVPlanExplainCost(PlanIndex, VF, Cost);
-#endif
+      VPlanCostBreakdown Breakdown;
+      InstructionCost Cost = cost(*P, VF, CollectReport ? &Breakdown : nullptr);
+      if (CollectReport)
+        setVPlanReportCost(PlanIndex, VF, Cost, std::move(Breakdown));
       VectorizationFactor CurrentFactor(VF, Cost, ScalarCost);
 
       if (CM.shouldConsiderRegPressureForVF(VF) &&
           RUs[I].exceedsMaxNumRegs(TTI, ForceTargetNumVectorRegs)) {
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-        if (VPlanExplain && OrigLoop->isInnermost())
-          setVPlanExplainSkipReason(PlanIndex, VF, "register-pressure");
-#endif
+        if (CollectReport)
+          setVPlanReportSkipReason(PlanIndex, VF, "register-pressure");
         LLVM_DEBUG(dbgs() << "LV(REG): Not considering vector loop of width "
                           << VF << " because it uses too many registers\n");
         continue;
@@ -9264,7 +9680,7 @@ static bool processLoopInVPlanNativePath(
     OptimizationRemarkEmitter *ORE,
     std::function<BlockFrequencyInfo &()> GetBFI, bool OptForSize,
     LoopVectorizeHints &Hints, LoopVectorizationRequirements &Requirements,
-    unsigned &VPlanLoopIndex, ArrayRef<VPlanUseVFOverride> VPlanUseVFOverrides) {
+    unsigned &VPlanLoopIndex, ArrayRef<UseVFOverride> UseVFOverrides) {
 
   if (isa<SCEVCouldNotCompute>(PSE.getBackedgeTakenCount())) {
     LLVM_DEBUG(dbgs() << "LV: cannot compute the outer-loop trip count\n");
@@ -9291,42 +9707,41 @@ static bool processLoopInVPlanNativePath(
   CM.collectElementTypesForWidening();
 
   unsigned LoopIndex = VPlanLoopIndex++;
-  if (const VPlanUseVFOverride *ForcedOverride =
-          getVPlanUseVFOverride(VPlanUseVFOverrides, LoopIndex)) {
-    if (ForcedOverride->OverrideKind == VPlanUseVFOverride::Kind::Invalid) {
-      std::string Msg = formatVPlanUseVFMessage(
-          LoopIndex, "invalid -vplan-use-vf entry", ForcedOverride->Text);
-      debugVPlanUseVFFailureMessage(LoopIndex, "invalid -vplan-use-vf entry",
-                                    ForcedOverride->Text);
-      reportVectorizationFailure(Msg, "VPlanUseVFInvalid", ORE, L);
+  if (const UseVFOverride *ForcedOverride =
+          getUseVFOverride(UseVFOverrides, LoopIndex)) {
+    if (ForcedOverride->OverrideKind == UseVFOverride::Kind::Invalid) {
+      std::string Msg = formatUseVFMessage(LoopIndex, "invalid -use-vf entry",
+                                           ForcedOverride->Text);
+      debugUseVFFailureMessage(LoopIndex, "invalid -use-vf entry",
+                               ForcedOverride->Text);
+      reportVectorizationFailure(Msg, "UseVFInvalid", ORE, L);
       return false;
     }
-    if (ForcedOverride->OverrideKind == VPlanUseVFOverride::Kind::Parsed) {
-      std::string Msg = formatVPlanUseVFMessage(
+    if (ForcedOverride->OverrideKind == UseVFOverride::Kind::Parsed) {
+      std::string Msg = formatUseVFMessage(
           LoopIndex,
-          "forced -vplan-use-vf is unsupported for outer loops in the "
+          "forced -use-vf is unsupported for outer loops in the "
           "VPlan-native path",
           ForcedOverride->Text);
-      debugVPlanUseVFFailureMessage(
+      debugUseVFFailureMessage(
           LoopIndex,
-          "forced -vplan-use-vf is unsupported for outer loops in the "
+          "forced -use-vf is unsupported for outer loops in the "
           "VPlan-native path",
           ForcedOverride->Text);
-      reportVectorizationFailure(Msg, "VPlanUseVFUnsupported", ORE, L);
+      reportVectorizationFailure(Msg, "UseVFUnsupported", ORE, L);
       return false;
     }
   }
 
   // Plan how to best vectorize, return the best VF and its cost.
   const VectorizationFactor VF = LVP.planInVPlanNativePath(UserVF);
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  if (VPlanExplain) {
+  if (isVPlanReportingEnabled()) {
+    LVP.initializeVPlanReportInfo();
     std::optional<ElementCount> SelectedVF;
     if (LVP.hasPlanWithVF(VF.Width))
       SelectedVF = VF.Width;
-    emitVPlanExplain(LVP, LoopIndex, "outer-native", SelectedVF);
+    emitVPlanRecords(LVP, F->getName(), LoopIndex, "outer-native", SelectedVF);
   }
-#endif
 
   // If we are stress testing VPlan builds, do not attempt to generate vector
   // code. Masked vector code generation support will follow soon.
@@ -10056,10 +10471,9 @@ bool LoopVectorizePass::processLoop(Loop *L) {
   // the incoming IR, we need to build VPlan upfront in the vectorization
   // pipeline.
   if (!L->isInnermost())
-    return processLoopInVPlanNativePath(L, PSE, LI, DT, &LVL, TTI, TLI, DB, AC,
-                                        ORE, GetBFI, OptForSize, Hints,
-                                        Requirements, VPlanLoopIndex,
-                                        VPlanUseVFOverrides);
+    return processLoopInVPlanNativePath(
+        L, PSE, LI, DT, &LVL, TTI, TLI, DB, AC, ORE, GetBFI, OptForSize, Hints,
+        Requirements, VPlanLoopIndex, UseVFOverrides);
 
   assert(L->isInnermost() && "Inner loop expected.");
 
@@ -10176,25 +10590,23 @@ bool LoopVectorizePass::processLoop(Loop *L) {
   // Plan how to best vectorize.
   unsigned LoopIndex = VPlanLoopIndex++;
   std::optional<ElementCount> ForcedVF;
-  const VPlanUseVFOverride *ForcedOverride =
-      getVPlanUseVFOverride(VPlanUseVFOverrides, LoopIndex);
+  const UseVFOverride *ForcedOverride =
+      getUseVFOverride(UseVFOverrides, LoopIndex);
   if (ForcedOverride) {
-    if (ForcedOverride->OverrideKind == VPlanUseVFOverride::Kind::Invalid) {
-      std::string Msg = formatVPlanUseVFMessage(
-          LoopIndex, "invalid -vplan-use-vf entry", ForcedOverride->Text);
-      debugVPlanUseVFFailureMessage(LoopIndex, "invalid -vplan-use-vf entry",
-                                    ForcedOverride->Text);
-      reportVectorizationFailure(Msg, "VPlanUseVFInvalid", ORE, L);
+    if (ForcedOverride->OverrideKind == UseVFOverride::Kind::Invalid) {
+      std::string Msg = formatUseVFMessage(LoopIndex, "invalid -use-vf entry",
+                                           ForcedOverride->Text);
+      debugUseVFFailureMessage(LoopIndex, "invalid -use-vf entry",
+                               ForcedOverride->Text);
+      reportVectorizationFailure(Msg, "UseVFInvalid", ORE, L);
       return false;
     }
-    if (ForcedOverride->OverrideKind == VPlanUseVFOverride::Kind::Parsed) {
+    if (ForcedOverride->OverrideKind == UseVFOverride::Kind::Parsed) {
       ForcedVF = getElementCountForOverride(*ForcedOverride);
       std::string ForcedVFText;
       raw_string_ostream OS(ForcedVFText);
       OS << *ForcedVF;
-      debugVPlanUseVFLoopMessage(LoopIndex, ("forcing VF " + OS.str()));
-      LLVM_DEBUG(dbgs() << "LV: Loop[" << LoopIndex << "] forcing VF "
-                        << *ForcedVF << "\n");
+      debugUseVFLoopMessage(LoopIndex, ("forcing VF " + OS.str()));
       UserVF = *ForcedVF;
     }
   }
@@ -10213,21 +10625,23 @@ bool LoopVectorizePass::processLoop(Loop *L) {
     if (LVP.hasPlanWithVF(VF.Width))
       SelectedVF = VF.Width;
   }
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  if (VPlanExplain) {
-    emitVPlanExplain(LVP, LoopIndex, "inner", SelectedVF);
+  if (isVPlanReportingEnabled() && ForcedVF) {
+    LVP.initializeVPlanReportInfo();
+    if (SelectedVF)
+      if (std::optional<unsigned> PlanIndex =
+              LVP.getPlanIndexForVF(*SelectedVF))
+        LVP.collectVPlanReportCost(*PlanIndex, *SelectedVF);
   }
-  if (ForcedVF && SelectedVF)
-    emitSelectedVPlanUseVFDebugDump(LVP, LoopIndex, *SelectedVF);
-#endif
+  if (isVPlanReportingEnabled())
+    emitVPlanRecords(LVP, F->getName(), LoopIndex, "inner", SelectedVF);
   if (ForcedVF && !SelectedVF) {
-    std::string Msg = formatVPlanUseVFMessage(
-        LoopIndex, "requested -vplan-use-vf is not available",
+    std::string Msg = formatUseVFMessage(
+        LoopIndex, "requested -use-vf is not available",
         ForcedOverride ? StringRef(ForcedOverride->Text) : StringRef());
-    debugVPlanUseVFFailureMessage(
-        LoopIndex, "requested -vplan-use-vf is not available",
-        ForcedOverride ? StringRef(ForcedOverride->Text) : StringRef());
-    reportVectorizationFailure(Msg, "VPlanUseVFUnavailable", ORE, L);
+    debugUseVFFailureMessage(LoopIndex, "requested -use-vf is not available",
+                             ForcedOverride ? StringRef(ForcedOverride->Text)
+                                            : StringRef());
+    reportVectorizationFailure(Msg, "UseVFUnavailable", ORE, L);
     return false;
   }
   unsigned IC = 1;
@@ -10240,10 +10654,8 @@ bool LoopVectorizePass::processLoop(Loop *L) {
     // Select the interleave count.
     if (ForcedVF) {
       IC = UserIC > 0 ? UserIC : 1;
-      debugVPlanUseVFLoopMessage(
-          LoopIndex, "bypassing interleave selection for forced VF");
-      LLVM_DEBUG(dbgs() << "LV: Loop[" << LoopIndex
-                        << "] bypassing interleave selection for forced VF\n");
+      debugUseVFLoopMessage(LoopIndex,
+                            "bypassing interleave selection for forced VF");
     } else {
       IC = LVP.selectInterleaveCount(LVP.getPlanFor(VF.Width), VF.Width,
                                      VF.Cost);
@@ -10289,11 +10701,8 @@ bool LoopVectorizePass::processLoop(Loop *L) {
         return false;
       }
     } else {
-      debugVPlanUseVFLoopMessage(
+      debugUseVFLoopMessage(
           LoopIndex, "bypassing outside-loop work profitability for forced VF");
-      LLVM_DEBUG(dbgs() << "LV: Loop[" << LoopIndex
-                        << "] bypassing outside-loop work profitability for "
-                           "forced VF\n");
     }
   }
 
@@ -10426,10 +10835,8 @@ bool LoopVectorizePass::processLoop(Loop *L) {
   if (!ForcedVF)
     EpilogueVF = LVP.selectEpilogueVectorizationFactor(VF.Width, IC);
   else {
-    debugVPlanUseVFLoopMessage(LoopIndex,
-                               "disabling epilogue vectorization for forced VF");
-    LLVM_DEBUG(dbgs() << "LV: Loop[" << LoopIndex
-                      << "] disabling epilogue vectorization for forced VF\n");
+    debugUseVFLoopMessage(LoopIndex,
+                          "disabling epilogue vectorization for forced VF");
   }
   if (EpilogueVF.Width.isVector()) {
     std::unique_ptr<VPlan> BestMainPlan(BestPlan.duplicate());
@@ -10484,7 +10891,7 @@ bool LoopVectorizePass::processLoop(Loop *L) {
 
 LoopVectorizeResult LoopVectorizePass::runImpl(Function &F) {
   VPlanLoopIndex = 0;
-  parseVPlanUseVFOverrides(VPlanUseVF, VPlanUseVFOverrides);
+  parseUseVFOverrides(UseVF, UseVFOverrides);
 
   // Don't attempt if
   // 1. the target claims to have no vector registers, and
@@ -10538,20 +10945,12 @@ LoopVectorizeResult LoopVectorizePass::runImpl(Function &F) {
     }
   }
 
-  if (VPlanUseVFOverrides.size() > VPlanLoopIndex) {
-    debugVPlanUseVFMessage((Twine("ignoring ") +
-                            Twine(VPlanUseVFOverrides.size() - VPlanLoopIndex) +
-                            " extra -vplan-use-vf " +
-                            ((VPlanUseVFOverrides.size() - VPlanLoopIndex) == 1
-                                 ? "entry"
-                                 : "entries"))
-                               .str());
-    LLVM_DEBUG(dbgs() << "LV: ignoring "
-                      << (VPlanUseVFOverrides.size() - VPlanLoopIndex)
-                      << " extra -vplan-use-vf entr"
-                      << ((VPlanUseVFOverrides.size() - VPlanLoopIndex) == 1
-                              ? "y\n"
-                              : "ies\n"));
+  if (UseVFOverrides.size() > VPlanLoopIndex) {
+    debugUseVFMessage(
+        (Twine("ignoring ") + Twine(UseVFOverrides.size() - VPlanLoopIndex) +
+         " extra -use-vf " +
+         ((UseVFOverrides.size() - VPlanLoopIndex) == 1 ? "entry" : "entries"))
+            .str());
   }
 
   // Process each loop nest in the function.

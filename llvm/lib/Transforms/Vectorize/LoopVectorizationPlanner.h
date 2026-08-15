@@ -25,8 +25,11 @@
 #define LLVM_TRANSFORMS_VECTORIZE_LOOPVECTORIZATIONPLANNER_H
 
 #include "VPlan.h"
+#include "VPlanHelpers.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Support/InstructionCost.h"
+#include <cstdint>
+#include <optional>
 #include <string>
 
 namespace {
@@ -476,15 +479,14 @@ class LoopVectorizationPlanner {
   /// Profitable vector factors.
   SmallVector<VectorizationFactor, 8> ProfitableVFs;
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  struct VPlanExplainVFInfo {
+  struct VPlanReportVFInfo {
     ElementCount VF;
     std::optional<InstructionCost> Cost;
+    std::optional<VPlanCostBreakdown> Breakdown;
     const char *SkipReason = nullptr;
   };
 
-  SmallVector<SmallVector<VPlanExplainVFInfo, 4>, 4> VPlanExplainInfo;
-#endif
+  SmallVector<SmallVector<VPlanReportVFInfo, 4>, 4> VPlanReportInfo;
 
   /// A builder used to construct the current plan.
   VPBuilder Builder;
@@ -497,7 +499,8 @@ class LoopVectorizationPlanner {
   ///
   /// TODO: Move to VPlan::cost once the use of LoopVectorizationLegality has
   /// been retired.
-  InstructionCost cost(VPlan &Plan, ElementCount VF) const;
+  InstructionCost cost(VPlan &Plan, ElementCount VF,
+                       VPlanCostBreakdown *Breakdown = nullptr) const;
 
   /// Precompute costs for certain instructions using the legacy cost model. The
   /// function is used to bring up the VPlan-based cost model to initially avoid
@@ -506,6 +509,15 @@ class LoopVectorizationPlanner {
                                   VPCostContext &CostCtx) const;
 
 public:
+  enum class VPlanCompareKind { CodeSize, TripCount, PerLane };
+
+  struct VPlanComparison {
+    VPlanCompareKind Kind;
+    std::optional<int64_t> Numerator;
+    unsigned Denominator = 1;
+    std::optional<unsigned> TripCount;
+  };
+
   LoopVectorizationPlanner(
       Loop *L, LoopInfo *LI, DominatorTree *DT, const TargetLibraryInfo *TLI,
       const TargetTransformInfo &TTI, LoopVectorizationLegality *Legal,
@@ -534,49 +546,52 @@ public:
 
   std::optional<unsigned> getPlanIndexForVF(ElementCount VF) const;
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  void clearVPlanExplainInfo() {
-    VPlanExplainInfo.clear();
-    VPlanExplainInfo.resize(VPlans.size());
+  void initializeVPlanReportInfo() {
+    VPlanReportInfo.clear();
+    VPlanReportInfo.resize(VPlans.size());
     for (auto [PlanIndex, Plan] : enumerate(VPlans))
       for (ElementCount VF : Plan->vectorFactors())
-        VPlanExplainInfo[PlanIndex].push_back({VF, std::nullopt, nullptr});
+        VPlanReportInfo[PlanIndex].push_back(
+            {VF, std::nullopt, std::nullopt, nullptr});
   }
 
-  void setVPlanExplainCost(unsigned PlanIndex, ElementCount VF,
-                           InstructionCost Cost) {
-    assert(PlanIndex < VPlanExplainInfo.size() && "Invalid VPlan index");
-    for (VPlanExplainVFInfo &Info : VPlanExplainInfo[PlanIndex]) {
+  void setVPlanReportCost(unsigned PlanIndex, ElementCount VF,
+                          InstructionCost Cost,
+                          std::optional<VPlanCostBreakdown> Breakdown = {}) {
+    assert(PlanIndex < VPlanReportInfo.size() && "Invalid VPlan index");
+    for (VPlanReportVFInfo &Info : VPlanReportInfo[PlanIndex]) {
       if (Info.VF != VF)
         continue;
       Info.Cost = Cost;
+      Info.Breakdown = std::move(Breakdown);
       Info.SkipReason = nullptr;
       return;
     }
-    llvm_unreachable("Missing VPlan explain VF entry");
+    llvm_unreachable("Missing VPlan report VF entry");
   }
 
-  void setVPlanExplainSkipReason(unsigned PlanIndex, ElementCount VF,
-                                 const char *Reason) {
-    assert(PlanIndex < VPlanExplainInfo.size() && "Invalid VPlan index");
-    for (VPlanExplainVFInfo &Info : VPlanExplainInfo[PlanIndex]) {
+  void setVPlanReportSkipReason(unsigned PlanIndex, ElementCount VF,
+                                const char *Reason) {
+    assert(PlanIndex < VPlanReportInfo.size() && "Invalid VPlan index");
+    for (VPlanReportVFInfo &Info : VPlanReportInfo[PlanIndex]) {
       if (Info.VF != VF)
         continue;
       Info.SkipReason = Reason;
       return;
     }
-    llvm_unreachable("Missing VPlan explain VF entry");
+    llvm_unreachable("Missing VPlan report VF entry");
   }
 
-  ArrayRef<VPlanExplainVFInfo> getVPlanExplainInfo(unsigned PlanIndex) const {
-    if (PlanIndex >= VPlanExplainInfo.size())
+  ArrayRef<VPlanReportVFInfo> getVPlanReportInfo(unsigned PlanIndex) const {
+    if (PlanIndex >= VPlanReportInfo.size())
       return {};
-    return VPlanExplainInfo[PlanIndex];
+    return VPlanReportInfo[PlanIndex];
   }
 
-  std::string formatVPlanExplainComparison(unsigned PlanIndex, ElementCount VF,
-                                           InstructionCost Cost) const;
-#endif
+  void collectVPlanReportCost(unsigned PlanIndex, ElementCount VF);
+
+  VPlanComparison getVPlanComparison(unsigned PlanIndex, ElementCount VF,
+                                     InstructionCost Cost) const;
 
   /// Compute and return the most profitable vectorization factor. Also collect
   /// all profitable VFs in ProfitableVFs.

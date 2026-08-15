@@ -1,16 +1,10 @@
-; REQUIRES: asserts
-
-; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -debug-only=loop-vectorize-vplan-use-vf -vplan-explain -vplan-use-vf=fixed:2 -disable-output < %s 2>&1 | FileCheck %s --check-prefix=DBG
-; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -S -vplan-use-vf=fixed:2 < %s | FileCheck %s --check-prefix=IR
+; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -vplan-list -use-vf=f2,- -disable-output < %s 2>&1 | FileCheck %s --check-prefix=LIST
+; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -S -use-vf=f2,- < %s | FileCheck %s --check-prefix=IR
 
 target triple = "aarch64-unknown-linux-gnu"
 
-; DBG:      LV: Loop[0] forcing VF 2
-; DBG:      LV: Loop[0] path=inner plans=1
-; DBG-NEXT: LV:   VPlan[0] VFs={2}
-; DBG-NEXT: LV:   selected VF=2 plan=0
-; DBG:      LV: Loop[1] path=inner plans={{[0-9]+}}
-; DBG:      LV:   selected VF=4 plan={{[0-9]+}}
+; LIST: vplan-list schema=1 record="plan" function="test_multiloop" loop=0 path="inner" plan=0 vf="f2" selected=true
+; LIST: vplan-list schema=1 record="plan" function="test_multiloop" loop=1 path="inner" plan={{[0-9]+}} vf="f4" selected=true
 
 define void @test_multiloop(ptr noalias %a, ptr noalias %b, ptr readonly %c,
                             ptr readonly %d) #0 {

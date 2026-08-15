@@ -270,13 +270,16 @@ InstructionCost VPRecipeBase::cost(ElementCount VF, VPCostContext &Ctx) {
   Instruction *UI = nullptr;
   if (auto *S = dyn_cast<VPSingleDefRecipe>(this))
     UI = dyn_cast_or_null<Instruction>(S->getUnderlyingValue());
+  else if (auto *IR = dyn_cast<VPIRInstruction>(this))
+    UI = &IR->getInstruction();
   else if (auto *IG = dyn_cast<VPInterleaveBase>(this))
     UI = IG->getInsertPos();
   else if (auto *WidenMem = dyn_cast<VPWidenMemoryRecipe>(this))
     UI = &WidenMem->getIngredient();
 
   InstructionCost RecipeCost;
-  if (UI && Ctx.skipCostComputation(UI, VF.isVector())) {
+  bool WasSkipped = UI && Ctx.skipCostComputation(UI, VF.isVector());
+  if (WasSkipped) {
     RecipeCost = 0;
   } else {
     RecipeCost = computeCost(VF, Ctx);
@@ -287,6 +290,21 @@ InstructionCost VPRecipeBase::cost(ElementCount VF, VPCostContext &Ctx) {
       else
         RecipeCost = InstructionCost(0);
     }
+  }
+
+  if (Ctx.CostBreakdown) {
+    std::optional<unsigned> Opcode;
+    if (UI)
+      Opcode = UI->getOpcode();
+    else if (auto *VPI = dyn_cast<VPInstruction>(this))
+      Opcode = VPI->getOpcode();
+    VPlanRecipeCostSource Source =
+        WasSkipped ? Ctx.getRecipeCostSource(UI, VF.isVector())
+                   : VPlanRecipeCostSource::VPlan;
+    std::optional<VPlanCostComponent> CoveredBy;
+    if (Source == VPlanRecipeCostSource::Precomputed)
+      CoveredBy = Ctx.PrecomputedCostComponents.lookup(UI);
+    Ctx.CostBreakdown->addRecipe(this, RecipeCost, Source, CoveredBy, Opcode);
   }
 
   LLVM_DEBUG({

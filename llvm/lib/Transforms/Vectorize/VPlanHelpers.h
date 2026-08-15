@@ -25,6 +25,7 @@
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/ModuleSlotTracker.h"
 #include "llvm/Support/InstructionCost.h"
+#include <optional>
 
 namespace llvm {
 
@@ -37,9 +38,76 @@ class LoopInfo;
 class SCEV;
 class Type;
 class VPBasicBlock;
+class VPRecipeBase;
 class VPRegionBlock;
 class VPlan;
 class Value;
+
+enum class VPlanCostComponent : unsigned char {
+  Induction,
+  ExitCondition,
+  Branch,
+  Backedge,
+  ForcedScalar,
+  Scalarization,
+};
+
+enum class VPlanRecipeCostSource : unsigned char {
+  VPlan,
+  Precomputed,
+  Ignored,
+  Deduplicated,
+};
+
+struct VPlanRecipeCost {
+  const VPRecipeBase *Recipe;
+  InstructionCost Cost;
+  VPlanRecipeCostSource Source;
+  std::optional<VPlanCostComponent> CoveredBy;
+  std::optional<unsigned> Opcode;
+};
+
+struct VPlanCostBreakdown {
+  InstructionCost InductionCost = 0;
+  InstructionCost ExitConditionCost = 0;
+  InstructionCost BranchCost = 0;
+  InstructionCost BackedgeCost = 0;
+  InstructionCost ForcedScalarCost = 0;
+  InstructionCost ScalarizationCost = 0;
+  InstructionCost RecipeCost = 0;
+  SmallVector<VPlanRecipeCost, 16> Recipes;
+
+  void addComponent(VPlanCostComponent Component, InstructionCost Cost) {
+    switch (Component) {
+    case VPlanCostComponent::Induction:
+      InductionCost += Cost;
+      break;
+    case VPlanCostComponent::ExitCondition:
+      ExitConditionCost += Cost;
+      break;
+    case VPlanCostComponent::Branch:
+      BranchCost += Cost;
+      break;
+    case VPlanCostComponent::Backedge:
+      BackedgeCost += Cost;
+      break;
+    case VPlanCostComponent::ForcedScalar:
+      ForcedScalarCost += Cost;
+      break;
+    case VPlanCostComponent::Scalarization:
+      ScalarizationCost += Cost;
+      break;
+    }
+  }
+
+  void addRecipe(const VPRecipeBase *Recipe, InstructionCost Cost,
+                 VPlanRecipeCostSource Source,
+                 std::optional<VPlanCostComponent> CoveredBy,
+                 std::optional<unsigned> Opcode) {
+    RecipeCost += Cost;
+    Recipes.push_back({Recipe, Cost, Source, CoveredBy, Opcode});
+  }
+};
 
 /// Returns a calculation for the total number of elements for a given \p VF.
 /// For fixed width vectors this value is a constant, whereas for scalable
@@ -336,13 +404,28 @@ struct VPCostContext {
   TargetTransformInfo::TargetCostKind CostKind;
   PredicatedScalarEvolution &PSE;
   const Loop *L;
+  VPlanCostBreakdown *CostBreakdown;
+  DenseMap<Instruction *, VPlanCostComponent> PrecomputedCostComponents;
 
   VPCostContext(const TargetTransformInfo &TTI, const TargetLibraryInfo &TLI,
                 const VPlan &Plan, LoopVectorizationCostModel &CM,
                 TargetTransformInfo::TargetCostKind CostKind,
-                PredicatedScalarEvolution &PSE, const Loop *L)
+                PredicatedScalarEvolution &PSE, const Loop *L,
+                VPlanCostBreakdown *CostBreakdown = nullptr)
       : TTI(TTI), TLI(TLI), Types(Plan), LLVMCtx(Plan.getContext()), CM(CM),
-        CostKind(CostKind), PSE(PSE), L(L) {}
+        CostKind(CostKind), PSE(PSE), L(L), CostBreakdown(CostBreakdown) {}
+
+  void recordComponent(VPlanCostComponent Component, InstructionCost Cost,
+                       Instruction *I = nullptr) {
+    if (!CostBreakdown)
+      return;
+    CostBreakdown->addComponent(Component, Cost);
+    if (I)
+      PrecomputedCostComponents[I] = Component;
+  }
+
+  VPlanRecipeCostSource getRecipeCostSource(Instruction *UI,
+                                            bool IsVector) const;
 
   /// Return the cost for \p UI with \p VF using the legacy cost model as
   /// fallback until computing the cost of all recipes migrates to VPlan.

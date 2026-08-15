@@ -1,14 +1,12 @@
 ; REQUIRES: asserts
 
-; RUN: opt -passes=loop-vectorize -enable-vplan-native-path -debug-only=loop-vectorize -vplan-explain -disable-output %s 2>&1 | FileCheck %s --check-prefix=EXPLAIN
-; RUN: opt -passes=loop-vectorize -enable-vplan-native-path -debug-only=loop-vectorize-vplan-use-vf -vplan-use-vf=fixed:4 -disable-output %s 2>&1 | FileCheck %s --check-prefix=OUTERFORCE
+; RUN: opt -passes=loop-vectorize -enable-vplan-native-path -debug-only=loop-vectorize -vplan-list -disable-output %s 2>&1 | FileCheck %s --check-prefix=EXPLAIN
+; RUN: opt -passes=loop-vectorize -enable-vplan-native-path -debug-only=loop-vectorize -use-vf=f4 -disable-output %s 2>&1 | FileCheck %s --check-prefix=OUTERFORCE
 ; RUN: opt -passes=loop-vectorize -pass-remarks=loop-vectorize -enable-vplan-native-path -debug -disable-output %s 2>&1 | FileCheck %s
 
-; EXPLAIN:      LV: Loop[0] path=outer-native plans=1
-; EXPLAIN-NEXT: LV:   VPlan[0] VFs={4}
-; EXPLAIN-NEXT: LV:   selected VF=4 plan=0
+; EXPLAIN: vplan-list schema=1 record="plan" function="foo" loop=0 path="outer-native" plan=0 vf="f4" selected=true status="unavailable" compare_kind="per_lane" compare_num=unavailable compare_den=4
 
-; OUTERFORCE: LV: Not vectorizing: forced -vplan-use-vf is unsupported for outer loops in the VPlan-native path 'fixed:4' for loop index 0.
+; OUTERFORCE: LV: Not vectorizing: forced -use-vf is unsupported for outer loops in the VPlan-native path 'f4' for loop index 0.
 
 @arr2 = external global [8 x i64], align 16
 @arr = external global [8 x [8 x i64]], align 16

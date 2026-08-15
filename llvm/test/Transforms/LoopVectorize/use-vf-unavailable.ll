@@ -1,13 +1,6 @@
-; REQUIRES: asserts
-
-; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -debug-only=loop-vectorize-vplan-use-vf -vplan-use-vf=scalable:4 -disable-output < %s 2>&1 | FileCheck %s --check-prefix=UNAVAILABLE
-; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -S -vplan-use-vf=scalable:4 < %s | FileCheck %s --check-prefix=SCALAR
+; RUN: opt -passes=loop-vectorize -force-vector-interleave=1 -S -use-vf=s4 < %s | FileCheck %s --check-prefix=SCALAR
 
 target triple = "x86_64-unknown-linux-gnu"
-
-; UNAVAILABLE: LV: Loop[0] forcing VF vscale x 4
-; UNAVAILABLE: LV: Not vectorizing: requested -vplan-use-vf is not available 'scalable:4' for loop index 0.
-; UNAVAILABLE-NOT: selected VPlan dump follows
 
 define void @test_unavailable(ptr noalias %a, ptr readonly %b) {
 ; SCALAR-LABEL: @test_unavailable(

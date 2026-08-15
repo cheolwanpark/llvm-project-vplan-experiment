@@ -809,6 +809,9 @@ InstructionCost VPRegionBlock::cost(ElementCount VF, VPCostContext &Ctx) {
             : Ctx.TTI.getCFInstrCost(Instruction::Br, Ctx.CostKind);
     LLVM_DEBUG(dbgs() << "Cost of " << BackedgeCost << " for VF " << VF
                       << ": vector loop backedge\n");
+    if (Ctx.CostBreakdown)
+      Ctx.CostBreakdown->addComponent(VPlanCostComponent::Backedge,
+                                      BackedgeCost);
     Cost += BackedgeCost;
     return Cost;
   }
@@ -1007,13 +1010,23 @@ InstructionCost VPlan::cost(ElementCount VF, VPCostContext &Ctx) {
   // recipes with invalid costs.
   InstructionCost Cost = getVectorLoopRegion()->cost(VF, Ctx);
 
+  if (!Cost.isValid())
+    return InstructionCost::getInvalid();
+
+  // Skeleton costs are queried only to detect invalid costs. Do not include
+  // them in the vector-loop report.
+  VPlanCostBreakdown *CostBreakdown = Ctx.CostBreakdown;
+  Ctx.CostBreakdown = nullptr;
+
   // If the cost of the loop region is invalid or any recipe in the skeleton
   // outside loop regions are invalid return an invalid cost.
-  if (!Cost.isValid() || any_of(VPBlockUtils::blocksOnly<VPBasicBlock>(
-                                    vp_depth_first_shallow(getEntry())),
-                                [&VF, &Ctx](VPBasicBlock *VPBB) {
-                                  return !VPBB->cost(VF, Ctx).isValid();
-                                }))
+  bool HasInvalidSkeletonCost = any_of(VPBlockUtils::blocksOnly<VPBasicBlock>(
+                                           vp_depth_first_shallow(getEntry())),
+                                       [&VF, &Ctx](VPBasicBlock *VPBB) {
+                                         return !VPBB->cost(VF, Ctx).isValid();
+                                       });
+  Ctx.CostBreakdown = CostBreakdown;
+  if (HasInvalidSkeletonCost)
     return InstructionCost::getInvalid();
 
   return Cost;
