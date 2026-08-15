@@ -44,42 +44,6 @@ static cl::opt<unsigned>
                              "vectorization while tail-folding."),
                     cl::init(5), cl::Hidden);
 
-static cl::opt<bool> RVVPreciseMemCost(
-    "precise-mem-cost",
-    cl::desc("Use detailed instruction-level cost model for "
-             "gather/scatter and strided memory operations."),
-    cl::init(false), cl::Hidden);
-
-static cl::opt<unsigned> RVVGatherScatterOverhead(
-    "gather-scatter-overhead", cl::Hidden);
-
-static cl::opt<unsigned> RVVStridedMemOverhead(
-    "strided-mem-overhead", cl::Hidden);
-
-static cl::opt<unsigned> RVVGatherScatterSetupCost(
-    "gather-scatter-setup-cost",
-    cl::desc("Constant setup cost added to the precise gather/scatter "
-             "memory cost model."),
-    cl::init(0), cl::Hidden);
-
-static cl::opt<unsigned> RVVStridedMemSetupCost(
-    "strided-mem-setup-cost",
-    cl::desc("Constant setup cost added to the precise strided memory "
-             "cost model."),
-    cl::init(0), cl::Hidden);
-
-static unsigned getRVVGatherScatterOverhead(const RISCVSubtarget *ST) {
-  if (RVVGatherScatterOverhead.getNumOccurrences() > 0)
-    return RVVGatherScatterOverhead;
-  return ST->getGatherScatterOverhead();
-}
-
-static unsigned getRVVStridedMemOverhead(const RISCVSubtarget *ST) {
-  if (RVVStridedMemOverhead.getNumOccurrences() > 0)
-    return RVVStridedMemOverhead;
-  return ST->getStridedMemoryOverhead();
-}
-
 InstructionCost
 RISCVTTIImpl::getRISCVInstructionCost(ArrayRef<unsigned> OpCodes, MVT VT,
                                       TTI::TargetCostKind CostKind) const {
@@ -1234,21 +1198,7 @@ RISCVTTIImpl::getGatherScatterOpCost(const MemIntrinsicCostAttributes &MICA,
   // know exactly what VL will be.
   auto &VTy = *cast<VectorType>(DataTy);
   unsigned NumLoads = getEstimatedVLFor(&VTy);
-
-  if (!RVVPreciseMemCost)
-    return NumLoads * TTI::TCC_Basic;
-
-  // Detailed cost model: per-element memory cost scaled by a configurable
-  // overhead multiplier, plus a configurable constant setup cost (vsetvli,
-  // index vector generation, mask merge, ...).
-  InstructionCost LaneMemCost =
-      getMemoryOpCost(Opcode, VTy.getElementType(), Alignment, 0, CostKind);
-  InstructionCost MemCost =
-      NumLoads * LaneMemCost * getRVVGatherScatterOverhead(ST);
-
-  InstructionCost SetupCost = (unsigned)RVVGatherScatterSetupCost;
-
-  return MemCost + SetupCost;
+  return NumLoads * TTI::TCC_Basic;
 }
 
 InstructionCost RISCVTTIImpl::getExpandCompressMemoryOpCost(
@@ -1321,19 +1271,7 @@ RISCVTTIImpl::getStridedMemoryOpCost(const MemIntrinsicCostAttributes &MICA,
       getMemoryOpCost(Opcode, VTy.getElementType(), Alignment, 0, CostKind,
                       {TTI::OK_AnyValue, TTI::OP_None}, I);
   unsigned NumLoads = getEstimatedVLFor(&VTy);
-
-  if (!RVVPreciseMemCost)
-    return NumLoads * MemOpCost;
-
-  // Detailed cost model for strided load/store (vlse/vsse): per-element
-  // memory cost scaled by a configurable overhead multiplier, plus a
-  // configurable constant setup cost (vsetvli, ...).
-  InstructionCost TotalMemCost =
-      NumLoads * MemOpCost * getRVVStridedMemOverhead(ST);
-
-  InstructionCost SetupCost = (unsigned)RVVStridedMemSetupCost;
-
-  return TotalMemCost + SetupCost;
+  return NumLoads * MemOpCost;
 }
 
 InstructionCost

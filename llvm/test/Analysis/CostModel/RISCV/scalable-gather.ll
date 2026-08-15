@@ -5,7 +5,6 @@
 ; RUN: opt -passes="print<cost-model>" 2>&1 -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zfh,+zvfhmin < %s | FileCheck %s --check-prefixes=CHECK,SUPPORTED,RV64
 ; RUN: opt -passes="print<cost-model>" 2>&1 -disable-output -mtriple=riscv32 < %s | FileCheck %s --check-prefixes=CHECK,UNSUPPORTED
 ; RUN: opt -passes="print<cost-model>" 2>&1 -disable-output -mtriple=riscv64 < %s | FileCheck %s --check-prefixes=CHECK,UNSUPPORTED
-; RUN: opt -passes="print<cost-model>" 2>&1 -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zfh,+zvfh -precise-mem-cost < %s | FileCheck %s --check-prefix=PRECISE
 
 define void @masked_gather_aligned() {
 ; SUPPORTED-LABEL: 'masked_gather_aligned'
@@ -76,40 +75,6 @@ define void @masked_gather_aligned() {
 ; UNSUPPORTED-NEXT:  Cost Model: Invalid cost for instruction: %V1I8 = call <vscale x 1 x i8> @llvm.masked.gather.nxv1i8.nxv1p0(<vscale x 1 x ptr> align 1 undef, <vscale x 1 x i1> undef, <vscale x 1 x i8> undef)
 ; UNSUPPORTED-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
 ;
-; PRECISE-LABEL: 'masked_gather_aligned'
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 56 for instruction: %V8F64 = call <vscale x 8 x double> @llvm.masked.gather.nxv8f64.nxv8p0(<vscale x 8 x ptr> align 8 undef, <vscale x 8 x i1> undef, <vscale x 8 x double> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 28 for instruction: %V4F64 = call <vscale x 4 x double> @llvm.masked.gather.nxv4f64.nxv4p0(<vscale x 4 x ptr> align 8 undef, <vscale x 4 x i1> undef, <vscale x 4 x double> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 14 for instruction: %V2F64 = call <vscale x 2 x double> @llvm.masked.gather.nxv2f64.nxv2p0(<vscale x 2 x ptr> align 8 undef, <vscale x 2 x i1> undef, <vscale x 2 x double> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 7 for instruction: %V1F64 = call <vscale x 1 x double> @llvm.masked.gather.nxv1f64.nxv1p0(<vscale x 1 x ptr> align 8 undef, <vscale x 1 x i1> undef, <vscale x 1 x double> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 88 for instruction: %V16F32 = call <vscale x 16 x float> @llvm.masked.gather.nxv16f32.nxv16p0(<vscale x 16 x ptr> align 4 undef, <vscale x 16 x i1> undef, <vscale x 16 x float> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 44 for instruction: %V8F32 = call <vscale x 8 x float> @llvm.masked.gather.nxv8f32.nxv8p0(<vscale x 8 x ptr> align 4 undef, <vscale x 8 x i1> undef, <vscale x 8 x float> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 22 for instruction: %V4F32 = call <vscale x 4 x float> @llvm.masked.gather.nxv4f32.nxv4p0(<vscale x 4 x ptr> align 4 undef, <vscale x 4 x i1> undef, <vscale x 4 x float> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 11 for instruction: %V2F32 = call <vscale x 2 x float> @llvm.masked.gather.nxv2f32.nxv2p0(<vscale x 2 x ptr> align 4 undef, <vscale x 2 x i1> undef, <vscale x 2 x float> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 7 for instruction: %V1F32 = call <vscale x 1 x float> @llvm.masked.gather.nxv1f32.nxv1p0(<vscale x 1 x ptr> align 4 undef, <vscale x 1 x i1> undef, <vscale x 1 x float> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 56 for instruction: %V8I64 = call <vscale x 8 x i64> @llvm.masked.gather.nxv8i64.nxv8p0(<vscale x 8 x ptr> align 8 undef, <vscale x 8 x i1> undef, <vscale x 8 x i64> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 28 for instruction: %V4I64 = call <vscale x 4 x i64> @llvm.masked.gather.nxv4i64.nxv4p0(<vscale x 4 x ptr> align 8 undef, <vscale x 4 x i1> undef, <vscale x 4 x i64> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 14 for instruction: %V2I64 = call <vscale x 2 x i64> @llvm.masked.gather.nxv2i64.nxv2p0(<vscale x 2 x ptr> align 8 undef, <vscale x 2 x i1> undef, <vscale x 2 x i64> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 7 for instruction: %V1I64 = call <vscale x 1 x i64> @llvm.masked.gather.nxv1i64.nxv1p0(<vscale x 1 x ptr> align 8 undef, <vscale x 1 x i1> undef, <vscale x 1 x i64> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 88 for instruction: %V16I32 = call <vscale x 16 x i32> @llvm.masked.gather.nxv16i32.nxv16p0(<vscale x 16 x ptr> align 4 undef, <vscale x 16 x i1> undef, <vscale x 16 x i32> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 44 for instruction: %V8I32 = call <vscale x 8 x i32> @llvm.masked.gather.nxv8i32.nxv8p0(<vscale x 8 x ptr> align 4 undef, <vscale x 8 x i1> undef, <vscale x 8 x i32> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 22 for instruction: %V4I32 = call <vscale x 4 x i32> @llvm.masked.gather.nxv4i32.nxv4p0(<vscale x 4 x ptr> align 4 undef, <vscale x 4 x i1> undef, <vscale x 4 x i32> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 11 for instruction: %V2I32 = call <vscale x 2 x i32> @llvm.masked.gather.nxv2i32.nxv2p0(<vscale x 2 x ptr> align 4 undef, <vscale x 2 x i1> undef, <vscale x 2 x i32> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 7 for instruction: %V1I32 = call <vscale x 1 x i32> @llvm.masked.gather.nxv1i32.nxv1p0(<vscale x 1 x ptr> align 4 undef, <vscale x 1 x i1> undef, <vscale x 1 x i32> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 152 for instruction: %V32I16 = call <vscale x 32 x i16> @llvm.masked.gather.nxv32i16.nxv32p0(<vscale x 32 x ptr> align 2 undef, <vscale x 32 x i1> undef, <vscale x 32 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 76 for instruction: %V16I16 = call <vscale x 16 x i16> @llvm.masked.gather.nxv16i16.nxv16p0(<vscale x 16 x ptr> align 2 undef, <vscale x 16 x i1> undef, <vscale x 16 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 38 for instruction: %V8I16 = call <vscale x 8 x i16> @llvm.masked.gather.nxv8i16.nxv8p0(<vscale x 8 x ptr> align 2 undef, <vscale x 8 x i1> undef, <vscale x 8 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 19 for instruction: %V4I16 = call <vscale x 4 x i16> @llvm.masked.gather.nxv4i16.nxv4p0(<vscale x 4 x ptr> align 2 undef, <vscale x 4 x i1> undef, <vscale x 4 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 11 for instruction: %V2I16 = call <vscale x 2 x i16> @llvm.masked.gather.nxv2i16.nxv2p0(<vscale x 2 x ptr> align 2 undef, <vscale x 2 x i1> undef, <vscale x 2 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 7 for instruction: %V1I16 = call <vscale x 1 x i16> @llvm.masked.gather.nxv1i16.nxv1p0(<vscale x 1 x ptr> align 2 undef, <vscale x 1 x i1> undef, <vscale x 1 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 280 for instruction: %V64I8 = call <vscale x 64 x i8> @llvm.masked.gather.nxv64i8.nxv64p0(<vscale x 64 x ptr> align 1 undef, <vscale x 64 x i1> undef, <vscale x 64 x i8> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 140 for instruction: %V32I8 = call <vscale x 32 x i8> @llvm.masked.gather.nxv32i8.nxv32p0(<vscale x 32 x ptr> align 1 undef, <vscale x 32 x i1> undef, <vscale x 32 x i8> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 70 for instruction: %V16I8 = call <vscale x 16 x i8> @llvm.masked.gather.nxv16i8.nxv16p0(<vscale x 16 x ptr> align 1 undef, <vscale x 16 x i1> undef, <vscale x 16 x i8> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 35 for instruction: %V8I8 = call <vscale x 8 x i8> @llvm.masked.gather.nxv8i8.nxv8p0(<vscale x 8 x ptr> align 1 undef, <vscale x 8 x i1> undef, <vscale x 8 x i8> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 19 for instruction: %V4I8 = call <vscale x 4 x i8> @llvm.masked.gather.nxv4i8.nxv4p0(<vscale x 4 x ptr> align 1 undef, <vscale x 4 x i1> undef, <vscale x 4 x i8> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 11 for instruction: %V2I8 = call <vscale x 2 x i8> @llvm.masked.gather.nxv2i8.nxv2p0(<vscale x 2 x ptr> align 1 undef, <vscale x 2 x i1> undef, <vscale x 2 x i8> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 7 for instruction: %V1I8 = call <vscale x 1 x i8> @llvm.masked.gather.nxv1i8.nxv1p0(<vscale x 1 x ptr> align 1 undef, <vscale x 1 x i1> undef, <vscale x 1 x i8> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
-;
   %V8F64 = call <vscale x 8 x double> @llvm.masked.gather.nxv8f64.nxv8p0(<vscale x 8 x ptr> undef, i32 8, <vscale x 8 x i1> undef, <vscale x 8 x double> undef)
   %V4F64 = call <vscale x 4 x double> @llvm.masked.gather.nxv4f64.nxv4p0(<vscale x 4 x ptr> undef, i32 8, <vscale x 4 x i1> undef, <vscale x 4 x double> undef)
   %V2F64 = call <vscale x 2 x double> @llvm.masked.gather.nxv2f64.nxv2p0(<vscale x 2 x ptr> undef, i32 8, <vscale x 2 x i1> undef, <vscale x 2 x double> undef)
@@ -169,15 +134,6 @@ define void @masked_gather_aligned_f16() {
 ; UNSUPPORTED-NEXT:  Cost Model: Invalid cost for instruction: %V1F16 = call <vscale x 1 x half> @llvm.masked.gather.nxv1f16.nxv1p0(<vscale x 1 x ptr> align 2 undef, <vscale x 1 x i1> undef, <vscale x 1 x half> undef)
 ; UNSUPPORTED-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
 ;
-; PRECISE-LABEL: 'masked_gather_aligned_f16'
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 152 for instruction: %V32F16 = call <vscale x 32 x half> @llvm.masked.gather.nxv32f16.nxv32p0(<vscale x 32 x ptr> align 2 undef, <vscale x 32 x i1> undef, <vscale x 32 x half> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 76 for instruction: %V16F16 = call <vscale x 16 x half> @llvm.masked.gather.nxv16f16.nxv16p0(<vscale x 16 x ptr> align 2 undef, <vscale x 16 x i1> undef, <vscale x 16 x half> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 38 for instruction: %V8F16 = call <vscale x 8 x half> @llvm.masked.gather.nxv8f16.nxv8p0(<vscale x 8 x ptr> align 2 undef, <vscale x 8 x i1> undef, <vscale x 8 x half> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 19 for instruction: %V4F16 = call <vscale x 4 x half> @llvm.masked.gather.nxv4f16.nxv4p0(<vscale x 4 x ptr> align 2 undef, <vscale x 4 x i1> undef, <vscale x 4 x half> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 11 for instruction: %V2F16 = call <vscale x 2 x half> @llvm.masked.gather.nxv2f16.nxv2p0(<vscale x 2 x ptr> align 2 undef, <vscale x 2 x i1> undef, <vscale x 2 x half> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 7 for instruction: %V1F16 = call <vscale x 1 x half> @llvm.masked.gather.nxv1f16.nxv1p0(<vscale x 1 x ptr> align 2 undef, <vscale x 1 x i1> undef, <vscale x 1 x half> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
-;
   %V32F16 = call <vscale x 32 x half> @llvm.masked.gather.nxv32f16.nxv32p0(<vscale x 32 x ptr> undef, i32 2, <vscale x 32 x i1> undef, <vscale x 32 x half> undef)
   %V16F16 = call <vscale x 16 x half> @llvm.masked.gather.nxv16f16.nxv16p0(<vscale x 16 x ptr> undef, i32 2, <vscale x 16 x i1> undef, <vscale x 16 x half> undef)
   %V8F16 = call <vscale x 8 x half> @llvm.masked.gather.nxv8f16.nxv8p0(<vscale x 8 x ptr> undef, i32 2, <vscale x 8 x i1> undef, <vscale x 8 x half> undef)
@@ -215,33 +171,6 @@ define void @masked_gather_unaligned() {
 ; CHECK-NEXT:  Cost Model: Invalid cost for instruction: %V2I16.u = call <vscale x 2 x i16> @llvm.masked.gather.nxv2i16.nxv2p0(<vscale x 2 x ptr> align 1 undef, <vscale x 2 x i1> undef, <vscale x 2 x i16> undef)
 ; CHECK-NEXT:  Cost Model: Invalid cost for instruction: %V1I16.u = call <vscale x 1 x i16> @llvm.masked.gather.nxv1i16.nxv1p0(<vscale x 1 x ptr> align 1 undef, <vscale x 1 x i1> undef, <vscale x 1 x i16> undef)
 ; CHECK-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
-;
-; PRECISE-LABEL: 'masked_gather_unaligned'
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V8F64.u = call <vscale x 8 x double> @llvm.masked.gather.nxv8f64.nxv8p0(<vscale x 8 x ptr> align 2 undef, <vscale x 8 x i1> undef, <vscale x 8 x double> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V4F64.u = call <vscale x 4 x double> @llvm.masked.gather.nxv4f64.nxv4p0(<vscale x 4 x ptr> align 2 undef, <vscale x 4 x i1> undef, <vscale x 4 x double> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V2F64.u = call <vscale x 2 x double> @llvm.masked.gather.nxv2f64.nxv2p0(<vscale x 2 x ptr> align 2 undef, <vscale x 2 x i1> undef, <vscale x 2 x double> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V1F64.u = call <vscale x 1 x double> @llvm.masked.gather.nxv1f64.nxv1p0(<vscale x 1 x ptr> align 2 undef, <vscale x 1 x i1> undef, <vscale x 1 x double> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V16F32.u = call <vscale x 16 x float> @llvm.masked.gather.nxv16f32.nxv16p0(<vscale x 16 x ptr> align 2 undef, <vscale x 16 x i1> undef, <vscale x 16 x float> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V8F32.u = call <vscale x 8 x float> @llvm.masked.gather.nxv8f32.nxv8p0(<vscale x 8 x ptr> align 2 undef, <vscale x 8 x i1> undef, <vscale x 8 x float> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V4F32.u = call <vscale x 4 x float> @llvm.masked.gather.nxv4f32.nxv4p0(<vscale x 4 x ptr> align 2 undef, <vscale x 4 x i1> undef, <vscale x 4 x float> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V2F32.u = call <vscale x 2 x float> @llvm.masked.gather.nxv2f32.nxv2p0(<vscale x 2 x ptr> align 2 undef, <vscale x 2 x i1> undef, <vscale x 2 x float> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V1F32.u = call <vscale x 1 x float> @llvm.masked.gather.nxv1f32.nxv1p0(<vscale x 1 x ptr> align 2 undef, <vscale x 1 x i1> undef, <vscale x 1 x float> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V8I64.u = call <vscale x 8 x i64> @llvm.masked.gather.nxv8i64.nxv8p0(<vscale x 8 x ptr> align 4 undef, <vscale x 8 x i1> undef, <vscale x 8 x i64> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V4I64.u = call <vscale x 4 x i64> @llvm.masked.gather.nxv4i64.nxv4p0(<vscale x 4 x ptr> align 4 undef, <vscale x 4 x i1> undef, <vscale x 4 x i64> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V2I64.u = call <vscale x 2 x i64> @llvm.masked.gather.nxv2i64.nxv2p0(<vscale x 2 x ptr> align 4 undef, <vscale x 2 x i1> undef, <vscale x 2 x i64> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V1I64.u = call <vscale x 1 x i64> @llvm.masked.gather.nxv1i64.nxv1p0(<vscale x 1 x ptr> align 4 undef, <vscale x 1 x i1> undef, <vscale x 1 x i64> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V16I32.u = call <vscale x 16 x i32> @llvm.masked.gather.nxv16i32.nxv16p0(<vscale x 16 x ptr> align 1 undef, <vscale x 16 x i1> undef, <vscale x 16 x i32> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V8I32.u = call <vscale x 8 x i32> @llvm.masked.gather.nxv8i32.nxv8p0(<vscale x 8 x ptr> align 1 undef, <vscale x 8 x i1> undef, <vscale x 8 x i32> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V4I32.u = call <vscale x 4 x i32> @llvm.masked.gather.nxv4i32.nxv4p0(<vscale x 4 x ptr> align 1 undef, <vscale x 4 x i1> undef, <vscale x 4 x i32> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V2I32.u = call <vscale x 2 x i32> @llvm.masked.gather.nxv2i32.nxv2p0(<vscale x 2 x ptr> align 1 undef, <vscale x 2 x i1> undef, <vscale x 2 x i32> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V1I32.u = call <vscale x 1 x i32> @llvm.masked.gather.nxv1i32.nxv1p0(<vscale x 1 x ptr> align 1 undef, <vscale x 1 x i1> undef, <vscale x 1 x i32> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V32I16.u = call <vscale x 32 x i16> @llvm.masked.gather.nxv32i16.nxv32p0(<vscale x 32 x ptr> align 1 undef, <vscale x 32 x i1> undef, <vscale x 32 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V16I16.u = call <vscale x 16 x i16> @llvm.masked.gather.nxv16i16.nxv16p0(<vscale x 16 x ptr> align 1 undef, <vscale x 16 x i1> undef, <vscale x 16 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V8I16.u = call <vscale x 8 x i16> @llvm.masked.gather.nxv8i16.nxv8p0(<vscale x 8 x ptr> align 1 undef, <vscale x 8 x i1> undef, <vscale x 8 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V4I16.u = call <vscale x 4 x i16> @llvm.masked.gather.nxv4i16.nxv4p0(<vscale x 4 x ptr> align 1 undef, <vscale x 4 x i1> undef, <vscale x 4 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V2I16.u = call <vscale x 2 x i16> @llvm.masked.gather.nxv2i16.nxv2p0(<vscale x 2 x ptr> align 1 undef, <vscale x 2 x i1> undef, <vscale x 2 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V1I16.u = call <vscale x 1 x i16> @llvm.masked.gather.nxv1i16.nxv1p0(<vscale x 1 x ptr> align 1 undef, <vscale x 1 x i1> undef, <vscale x 1 x i16> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
 ;
   %V8F64.u = call <vscale x 8 x double> @llvm.masked.gather.nxv8f64.nxv8p0(<vscale x 8 x ptr> undef, i32 2, <vscale x 8 x i1> undef, <vscale x 8 x double> undef)
   %V4F64.u = call <vscale x 4 x double> @llvm.masked.gather.nxv4f64.nxv4p0(<vscale x 4 x ptr> undef, i32 2, <vscale x 4 x i1> undef, <vscale x 4 x double> undef)
@@ -285,15 +214,6 @@ define void @masked_gather_unaligned_f16() {
 ; CHECK-NEXT:  Cost Model: Invalid cost for instruction: %V1F16.u = call <vscale x 1 x half> @llvm.masked.gather.nxv1f16.nxv1p0(<vscale x 1 x ptr> align 1 undef, <vscale x 1 x i1> undef, <vscale x 1 x half> undef)
 ; CHECK-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
 ;
-; PRECISE-LABEL: 'masked_gather_unaligned_f16'
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V32F16.u = call <vscale x 32 x half> @llvm.masked.gather.nxv32f16.nxv32p0(<vscale x 32 x ptr> align 1 undef, <vscale x 32 x i1> undef, <vscale x 32 x half> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V16F16.u = call <vscale x 16 x half> @llvm.masked.gather.nxv16f16.nxv16p0(<vscale x 16 x ptr> align 1 undef, <vscale x 16 x i1> undef, <vscale x 16 x half> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V8F16.u = call <vscale x 8 x half> @llvm.masked.gather.nxv8f16.nxv8p0(<vscale x 8 x ptr> align 1 undef, <vscale x 8 x i1> undef, <vscale x 8 x half> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V4F16.u = call <vscale x 4 x half> @llvm.masked.gather.nxv4f16.nxv4p0(<vscale x 4 x ptr> align 1 undef, <vscale x 4 x i1> undef, <vscale x 4 x half> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V2F16.u = call <vscale x 2 x half> @llvm.masked.gather.nxv2f16.nxv2p0(<vscale x 2 x ptr> align 1 undef, <vscale x 2 x i1> undef, <vscale x 2 x half> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V1F16.u = call <vscale x 1 x half> @llvm.masked.gather.nxv1f16.nxv1p0(<vscale x 1 x ptr> align 1 undef, <vscale x 1 x i1> undef, <vscale x 1 x half> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
-;
   %V32F16.u = call <vscale x 32 x half> @llvm.masked.gather.nxv32f16.nxv32p0(<vscale x 32 x ptr> undef, i32 1, <vscale x 32 x i1> undef, <vscale x 32 x half> undef)
   %V16F16.u = call <vscale x 16 x half> @llvm.masked.gather.nxv16f16.nxv16p0(<vscale x 16 x ptr> undef, i32 1, <vscale x 16 x i1> undef, <vscale x 16 x half> undef)
   %V8F16.u = call <vscale x 8 x half> @llvm.masked.gather.nxv8f16.nxv8p0(<vscale x 8 x ptr> undef, i32 1, <vscale x 8 x i1> undef, <vscale x 8 x half> undef)
@@ -326,13 +246,6 @@ define void @masked_gather_ptr_align4() {
 ; UNSUPPORTED-NEXT:  Cost Model: Invalid cost for instruction: %V1PTR = call <vscale x 1 x ptr> @llvm.masked.gather.nxv1p0.nxv1p0(<vscale x 1 x ptr> align 4 undef, <vscale x 1 x i1> undef, <vscale x 1 x ptr> undef)
 ; UNSUPPORTED-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
 ;
-; PRECISE-LABEL: 'masked_gather_ptr_align4'
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V8PTR = call <vscale x 8 x ptr> @llvm.masked.gather.nxv8p0.nxv8p0(<vscale x 8 x ptr> align 4 undef, <vscale x 8 x i1> undef, <vscale x 8 x ptr> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V4PTR = call <vscale x 4 x ptr> @llvm.masked.gather.nxv4p0.nxv4p0(<vscale x 4 x ptr> align 4 undef, <vscale x 4 x i1> undef, <vscale x 4 x ptr> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V2PTR = call <vscale x 2 x ptr> @llvm.masked.gather.nxv2p0.nxv2p0(<vscale x 2 x ptr> align 4 undef, <vscale x 2 x i1> undef, <vscale x 2 x ptr> undef)
-; PRECISE-NEXT:  Cost Model: Invalid cost for instruction: %V1PTR = call <vscale x 1 x ptr> @llvm.masked.gather.nxv1p0.nxv1p0(<vscale x 1 x ptr> align 4 undef, <vscale x 1 x i1> undef, <vscale x 1 x ptr> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
-;
   %V8PTR = call <vscale x 8 x ptr> @llvm.masked.gather.nxv8p0.nxv8p0(<vscale x 8 x ptr> align 4 undef, <vscale x 8 x i1> undef, <vscale x 8 x ptr> undef)
   %V4PTR = call <vscale x 4 x ptr> @llvm.masked.gather.nxv4p0.nxv4p0(<vscale x 4 x ptr> align 4 undef, <vscale x 4 x i1> undef, <vscale x 4 x ptr> undef)
   %V2PTR = call <vscale x 2 x ptr> @llvm.masked.gather.nxv2p0.nxv2p0(<vscale x 2 x ptr> align 4 undef, <vscale x 2 x i1> undef, <vscale x 2 x ptr> undef)
@@ -354,13 +267,6 @@ define void @masked_gather_ptr_align8() {
 ; UNSUPPORTED-NEXT:  Cost Model: Invalid cost for instruction: %V2PTR = call <vscale x 2 x ptr> @llvm.masked.gather.nxv2p0.nxv2p0(<vscale x 2 x ptr> align 8 undef, <vscale x 2 x i1> undef, <vscale x 2 x ptr> undef)
 ; UNSUPPORTED-NEXT:  Cost Model: Invalid cost for instruction: %V1PTR = call <vscale x 1 x ptr> @llvm.masked.gather.nxv1p0.nxv1p0(<vscale x 1 x ptr> align 8 undef, <vscale x 1 x i1> undef, <vscale x 1 x ptr> undef)
 ; UNSUPPORTED-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
-;
-; PRECISE-LABEL: 'masked_gather_ptr_align8'
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 56 for instruction: %V8PTR = call <vscale x 8 x ptr> @llvm.masked.gather.nxv8p0.nxv8p0(<vscale x 8 x ptr> align 8 undef, <vscale x 8 x i1> undef, <vscale x 8 x ptr> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 28 for instruction: %V4PTR = call <vscale x 4 x ptr> @llvm.masked.gather.nxv4p0.nxv4p0(<vscale x 4 x ptr> align 8 undef, <vscale x 4 x i1> undef, <vscale x 4 x ptr> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 14 for instruction: %V2PTR = call <vscale x 2 x ptr> @llvm.masked.gather.nxv2p0.nxv2p0(<vscale x 2 x ptr> align 8 undef, <vscale x 2 x i1> undef, <vscale x 2 x ptr> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 7 for instruction: %V1PTR = call <vscale x 1 x ptr> @llvm.masked.gather.nxv1p0.nxv1p0(<vscale x 1 x ptr> align 8 undef, <vscale x 1 x i1> undef, <vscale x 1 x ptr> undef)
-; PRECISE-NEXT:  Cost Model: Found an estimated cost of 0 for instruction: ret void
 ;
   %V8PTR = call <vscale x 8 x ptr> @llvm.masked.gather.nxv8p0.nxv8p0(<vscale x 8 x ptr> align 8 undef, <vscale x 8 x i1> undef, <vscale x 8 x ptr> undef)
   %V4PTR = call <vscale x 4 x ptr> @llvm.masked.gather.nxv4p0.nxv4p0(<vscale x 4 x ptr> align 8 undef, <vscale x 4 x i1> undef, <vscale x 4 x ptr> undef)
