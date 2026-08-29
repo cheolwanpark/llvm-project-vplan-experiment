@@ -7,11 +7,101 @@
 //===----------------------------------------------------------------------===//
 
 #include "RISCVMachineScheduler.h"
+#include "RISCVVectorSchedFeatures.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/CodeGen/ScheduleDAG.h"
 
 using namespace llvm;
 
 #define DEBUG_TYPE "riscv-prera-sched-strategy"
+
+static StringRef reasonName(GenericSchedulerBase::CandReason Reason) {
+  switch (Reason) {
+  case GenericSchedulerBase::NoCand:
+    return "no-candidate";
+  case GenericSchedulerBase::Only1:
+    return "only-one";
+  case GenericSchedulerBase::PhysReg:
+    return "phys-reg";
+  case GenericSchedulerBase::RegExcess:
+    return "reg-excess";
+  case GenericSchedulerBase::RegCritical:
+    return "reg-critical";
+  case GenericSchedulerBase::Stall:
+    return "stall";
+  case GenericSchedulerBase::Cluster:
+    return "cluster-or-vsetvli-compat";
+  case GenericSchedulerBase::Weak:
+    return "weak";
+  case GenericSchedulerBase::RegMax:
+    return "reg-max";
+  case GenericSchedulerBase::ResourceReduce:
+    return "resource-reduce";
+  case GenericSchedulerBase::ResourceDemand:
+    return "resource-demand";
+  case GenericSchedulerBase::BotHeightReduce:
+    return "bottom-height-reduce";
+  case GenericSchedulerBase::BotPathReduce:
+    return "bottom-path-reduce";
+  case GenericSchedulerBase::TopDepthReduce:
+    return "top-depth-reduce";
+  case GenericSchedulerBase::TopPathReduce:
+    return "top-path-reduce";
+  case GenericSchedulerBase::NodeOrder:
+    return "node-order";
+  case GenericSchedulerBase::FirstValid:
+    return "first-valid";
+  }
+  llvm_unreachable("unknown scheduler candidate reason");
+}
+
+void RISCVPreRAMachineSchedStrategy::initialize(ScheduleDAGMI *DAG) {
+  endRISCVVectorSchedTrace(VectorSchedTraceToken);
+  VectorSchedTraceToken = 0;
+  GenericScheduler::initialize(DAG);
+  StringRef Direction = RegionPolicy.OnlyTopDown    ? "topdown"
+                        : RegionPolicy.OnlyBottomUp ? "bottomup"
+                                                    : "bidirectional";
+  VectorSchedTraceToken = beginRISCVVectorSchedTrace(
+      *this->DAG, Direction, Rem.CriticalPath, Rem.CyclicCritPath);
+}
+
+SUnit *RISCVPreRAMachineSchedStrategy::pickNode(bool &IsTopNode) {
+  SUnit *SU = GenericScheduler::pickNode(IsTopNode);
+  if (!SU || !VectorSchedTraceToken)
+    return SU;
+
+  const SchedCandidate *Selected = nullptr;
+  if (IsTopNode && TopCand.SU == SU && TopCand.Reason != NoCand)
+    Selected = &TopCand;
+  else if (!IsTopNode && BotCand.SU == SU && BotCand.Reason != NoCand)
+    Selected = &BotCand;
+
+  SmallPtrSet<SUnit *, 16> UniqueReady;
+  for (SUnit *Ready : Top.Available.elements())
+    UniqueReady.insert(Ready);
+  for (SUnit *Ready : Bot.Available.elements())
+    UniqueReady.insert(Ready);
+  UniqueReady.insert(SU);
+
+  bool IsPressureReason = Selected && (Selected->Reason == RegExcess ||
+                                       Selected->Reason == RegCritical ||
+                                       Selected->Reason == RegMax);
+  unsigned SelectedPath = IsTopNode ? SU->getHeight() : SU->getDepth();
+  unsigned BestReadyPath = SelectedPath;
+  for (SUnit *Ready :
+       IsTopNode ? Top.Available.elements() : Bot.Available.elements())
+    BestReadyPath = std::max(BestReadyPath, IsTopNode ? Ready->getHeight()
+                                                      : Ready->getDepth());
+
+  recordRISCVVectorSchedPick(
+      VectorSchedTraceToken, *SU,
+      reasonName(Selected ? Selected->Reason : Only1), IsTopNode,
+      Top.Available.size() + IsTopNode, Bot.Available.size() + !IsTopNode,
+      UniqueReady.size(), IsPressureReason && SelectedPath < BestReadyPath,
+      Selected ? &Selected->RPDelta : nullptr);
+  return SU;
+}
 
 RISCV::VSETVLIInfo
 RISCVPreRAMachineSchedStrategy::getVSETVLIInfo(const MachineInstr *MI) const {
@@ -183,11 +273,15 @@ bool RISCVPreRAMachineSchedStrategy::tryCandidate(SchedCandidate &Cand,
 }
 
 void RISCVPreRAMachineSchedStrategy::enterMBB(MachineBasicBlock *MBB) {
+  endRISCVVectorSchedTrace(VectorSchedTraceToken);
+  VectorSchedTraceToken = 0;
   TopInfo = RISCV::VSETVLIInfo();
   BottomInfo = RISCV::VSETVLIInfo();
 }
 
 void RISCVPreRAMachineSchedStrategy::leaveMBB() {
+  endRISCVVectorSchedTrace(VectorSchedTraceToken);
+  VectorSchedTraceToken = 0;
   TopInfo = RISCV::VSETVLIInfo();
   BottomInfo = RISCV::VSETVLIInfo();
 }

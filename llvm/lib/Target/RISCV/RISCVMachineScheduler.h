@@ -25,6 +25,7 @@ class RISCVPreRAMachineSchedStrategy : public GenericScheduler {
   RISCV::RISCVVSETVLIInfoAnalysis VIA;
   RISCV::VSETVLIInfo TopInfo;
   RISCV::VSETVLIInfo BottomInfo;
+  uint64_t VectorSchedTraceToken = 0;
 
   RISCV::VSETVLIInfo getVSETVLIInfo(const MachineInstr *MI) const;
   bool tryVSETVLIInfo(const RISCV::VSETVLIInfo &TryInfo,
@@ -36,6 +37,9 @@ public:
   RISCVPreRAMachineSchedStrategy(const MachineSchedContext *C)
       : GenericScheduler(C), ST(&C->MF->getSubtarget<RISCVSubtarget>()),
         VIA(ST, C->LIS) {}
+
+  void initialize(ScheduleDAGMI *DAG) override;
+  SUnit *pickNode(bool &IsTopNode) override;
 
 protected:
   bool tryCandidate(SchedCandidate &Cand, SchedCandidate &TryCand,

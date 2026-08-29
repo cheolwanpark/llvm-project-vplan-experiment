@@ -17,6 +17,7 @@
 #include "RISCVMachineScheduler.h"
 #include "RISCVTargetObjectFile.h"
 #include "RISCVTargetTransformInfo.h"
+#include "RISCVVectorSchedFeatures.h"
 #include "TargetInfo/RISCVTargetInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/CodeGen/GlobalISel/CSEInfo.h"
@@ -130,6 +131,11 @@ extern "C" LLVM_ABI LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
   initializeRISCVMakeCompressibleOptPass(*PR);
   initializeRISCVGatherScatterLoweringPass(*PR);
   initializeRISCVCodeGenPrepareLegacyPassPass(*PR);
+  initializeRISCVVectorSchedPrePass(*PR);
+  initializeRISCVVectorSchedPostPass(*PR);
+  initializeRISCVVectorPostRAPass(*PR);
+  initializeRISCVVectorFinalSchedPass(*PR);
+  initializeRISCVVectorSchedReportPass(*PR);
   initializeRISCVPostRAExpandPseudoPass(*PR);
   initializeRISCVMergeBaseOffsetOptPass(*PR);
   initializeRISCVOptWInstrsPass(*PR);
@@ -392,6 +398,13 @@ public:
       : TargetPassConfig(TM, PM) {
     if (TM.getOptLevel() != CodeGenOptLevel::None)
       substitutePass(&PostRASchedulerID, &PostMachineSchedulerID);
+    if (TM.getOptLevel() != CodeGenOptLevel::None &&
+        isRISCVVectorSchedFeatureEnabled()) {
+      insertPass(&RenameIndependentSubregsID, &RISCVVectorSchedPreID);
+      insertPass(&MachineSchedulerID, &RISCVVectorSchedPostID);
+      insertPass(&RISCVInsertVSETVLIID, &RISCVVectorPostRAID);
+      insertPass(&PostMachineSchedulerID, &RISCVVectorFinalSchedID);
+    }
     setEnableSinkAndFold(EnableSinkFold);
     EnableLoopTermFold = true;
   }
@@ -606,6 +619,9 @@ void RISCVPassConfig::addPreEmitPass2() {
 
   if (EnableCFIInstrInserter)
     addPass(createCFIInstrInserter());
+
+  if (isRISCVVectorSchedFeatureEnabled())
+    addPass(createRISCVVectorSchedReportPass());
 }
 
 void RISCVPassConfig::addMachineSSAOptimization() {
