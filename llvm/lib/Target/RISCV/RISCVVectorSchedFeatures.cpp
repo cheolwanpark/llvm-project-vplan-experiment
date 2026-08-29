@@ -11,6 +11,7 @@
 #include "RISCVInstrInfo.h"
 #include "RISCVRegisterInfo.h"
 #include "RISCVSubtarget.h"
+#include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
@@ -44,6 +45,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <functional>
 #include <limits>
 #include <map>
 #include <numeric>
@@ -178,10 +181,15 @@ struct SchedRegionRecord {
 };
 
 struct LoopOrderState {
-  DenseMap<const MachineInstr *, unsigned> IDs;
-  DenseMap<unsigned, unsigned> PrePositions;
-  DenseMap<unsigned, unsigned> PostPositions;
-  unsigned NextID = 0;
+  StringMap<SmallVector<std::string, 2>> PreIDsBySemanticKey;
+  StringMap<unsigned> PrePositions;
+};
+
+struct InstructionIdentity {
+  unsigned MBBNumber = 0;
+  unsigned RegionOrdinal = 0;
+  unsigned InstructionOrdinal = 0;
+  std::string SemanticKey;
 };
 
 struct OrderComparison {
@@ -190,6 +198,12 @@ struct OrderComparison {
   unsigned CurrentCount = 0;
   double MeanAbsoluteDisplacement = 0.0;
   unsigned MaxAbsoluteDisplacement = 0;
+};
+
+struct OrderCapture {
+  SmallVector<std::string, 64> StableIDs;
+  std::optional<OrderComparison> Comparison;
+  unsigned UnmatchedCount = 0;
 };
 
 class FeatureDatabase {
@@ -263,79 +277,65 @@ public:
     FunctionRegions.erase(It);
   }
 
-  std::pair<std::optional<OrderComparison>, std::optional<OrderComparison>>
-  captureOrder(const MachineFunction *MF, StringRef LoopUID,
-               RISCVVectorSchedStage Stage,
-               ArrayRef<MachineInstr *> Instructions) {
+  OrderCapture captureOrder(const MachineFunction *MF, StringRef LoopUID,
+                            RISCVVectorSchedStage Stage,
+                            ArrayRef<InstructionIdentity> Identities) {
     sys::SmartScopedLock<true> Lock(Mutex);
     LoopOrderState &State = Orders[MF][LoopUID];
+    OrderCapture Capture;
     if (Stage == RISCVVectorSchedStage::PreSched) {
-      for (unsigned Position = 0; Position != Instructions.size(); ++Position) {
-        unsigned ID = State.NextID++;
-        State.IDs[Instructions[Position]] = ID;
+      for (unsigned Position = 0; Position != Identities.size(); ++Position) {
+        const InstructionIdentity &Identity = Identities[Position];
+        std::string Input =
+            (Twine(LoopUID) + "|" + Twine(Identity.MBBNumber) + "|" +
+             Twine(Identity.RegionOrdinal) + "|" +
+             Twine(Identity.InstructionOrdinal) + "|" + Identity.SemanticKey)
+                .str();
+        SHA256 Hasher;
+        Hasher.update(Input);
+        std::string ID = toHex(Hasher.final(), /*LowerCase=*/true);
+        State.PreIDsBySemanticKey[Identity.SemanticKey].push_back(ID);
         State.PrePositions[ID] = Position;
+        Capture.StableIDs.push_back(std::move(ID));
       }
-      return {};
+      return Capture;
     }
+    if (Stage != RISCVVectorSchedStage::PostSched)
+      return Capture;
 
-    auto Compare =
-        [&](const DenseMap<unsigned, unsigned> &Baseline) -> OrderComparison {
-      OrderComparison Result;
-      Result.BaselineCount = Baseline.size();
-      Result.CurrentCount = Instructions.size();
-      uint64_t TotalDisplacement = 0;
-      for (unsigned Position = 0; Position != Instructions.size(); ++Position) {
-        auto IDIt = State.IDs.find(Instructions[Position]);
-        if (IDIt == State.IDs.end())
-          continue;
-        auto BaselineIt = Baseline.find(IDIt->second);
-        if (BaselineIt == Baseline.end())
-          continue;
-        unsigned Displacement = std::max(Position, BaselineIt->second) -
-                                std::min(Position, BaselineIt->second);
-        ++Result.Matched;
-        TotalDisplacement += Displacement;
-        Result.MaxAbsoluteDisplacement =
-            std::max(Result.MaxAbsoluteDisplacement, Displacement);
+    StringMap<unsigned> Occurrences;
+    OrderComparison Comparison;
+    Comparison.BaselineCount = State.PrePositions.size();
+    Comparison.CurrentCount = Identities.size();
+    uint64_t TotalDisplacement = 0;
+    for (unsigned Position = 0; Position != Identities.size(); ++Position) {
+      StringRef Key = Identities[Position].SemanticKey;
+      unsigned Occurrence = Occurrences[Key]++;
+      auto It = State.PreIDsBySemanticKey.find(Key);
+      if (It == State.PreIDsBySemanticKey.end() ||
+          Occurrence >= It->second.size()) {
+        Capture.StableIDs.push_back(
+            (Twine("post_unmatched:") + Key + ":" + Twine(Occurrence)).str());
+        ++Capture.UnmatchedCount;
+        continue;
       }
-      if (Result.Matched)
-        Result.MeanAbsoluteDisplacement =
-            static_cast<double>(TotalDisplacement) / Result.Matched;
-      return Result;
-    };
-
-    std::optional<OrderComparison> Pre = Compare(State.PrePositions);
-    std::optional<OrderComparison> Post;
-    if (Stage == RISCVVectorSchedStage::PostSched) {
-      for (unsigned Position = 0; Position != Instructions.size(); ++Position)
-        if (auto It = State.IDs.find(Instructions[Position]);
-            It != State.IDs.end())
-          State.PostPositions[It->second] = Position;
-    } else if (Stage == RISCVVectorSchedStage::FinalSched) {
-      Post = Compare(State.PostPositions);
+      StringRef ID = It->second[Occurrence];
+      Capture.StableIDs.push_back(ID.str());
+      auto BaselineIt = State.PrePositions.find(ID);
+      if (BaselineIt == State.PrePositions.end())
+        continue;
+      unsigned Displacement = std::max(Position, BaselineIt->second) -
+                              std::min(Position, BaselineIt->second);
+      ++Comparison.Matched;
+      TotalDisplacement += Displacement;
+      Comparison.MaxAbsoluteDisplacement =
+          std::max(Comparison.MaxAbsoluteDisplacement, Displacement);
     }
-    return {Pre, Post};
-  }
-
-  std::string stableOrderHash(const MachineFunction *MF, StringRef LoopUID,
-                              ArrayRef<MachineInstr *> Instructions) {
-    sys::SmartScopedLock<true> Lock(Mutex);
-    auto FunctionIt = Orders.find(MF);
-    if (FunctionIt == Orders.end())
-      return "";
-    auto LoopIt = FunctionIt->second.find(LoopUID);
-    if (LoopIt == FunctionIt->second.end())
-      return "";
-    SHA256 Hasher;
-    for (unsigned Position = 0; Position != Instructions.size(); ++Position) {
-      auto IDIt = LoopIt->second.IDs.find(Instructions[Position]);
-      std::string Token = IDIt == LoopIt->second.IDs.end()
-                              ? "u" + std::to_string(Position)
-                              : "i" + std::to_string(IDIt->second);
-      Hasher.update(Token);
-      Hasher.update("\n");
-    }
-    return toHex(Hasher.final(), /*LowerCase=*/true);
+    if (Comparison.Matched)
+      Comparison.MeanAbsoluteDisplacement =
+          static_cast<double>(TotalDisplacement) / Comparison.Matched;
+    Capture.Comparison = Comparison;
+    return Capture;
   }
 
   void eraseOrders(const MachineFunction *MF) {
@@ -358,7 +358,7 @@ struct RVVInstrShape {
   std::string BaseOpcode;
   std::string LMUL;
   int LMULLog2 = 0;
-  unsigned Weight = 1;
+  unsigned WeightedWorkUnits = 1;
   unsigned SEW = 0;
 };
 
@@ -394,7 +394,7 @@ static RVVInstrShape getRVVInstrShape(const MachineInstr &MI,
       ExecutionLMUL = Segment->second;
     Shape.LMUL = "m" + std::to_string(ExecutionLMUL);
     Shape.LMULLog2 = Log2_32(ExecutionLMUL);
-    Shape.Weight = Units;
+    Shape.WeightedWorkUnits = Units;
     return Shape;
   }
   Shape.BaseOpcode = TII.getName(Info->BaseInstr).str();
@@ -402,7 +402,7 @@ static RVVInstrShape getRVVInstrShape(const MachineInstr &MI,
   auto [LMUL, Fractional] = RISCVVType::decodeVLMUL(Encoded);
   Shape.LMUL = (Fractional ? "mf" : "m") + std::to_string(LMUL);
   Shape.LMULLog2 = Log2_32(LMUL) * (Fractional ? -1 : 1);
-  Shape.Weight = Fractional ? 1 : LMUL;
+  Shape.WeightedWorkUnits = Fractional ? 1 : LMUL;
   if (RISCVII::hasSEWOp(MI.getDesc().TSFlags)) {
     const MachineOperand &SEWOp =
         MI.getOperand(RISCVII::getSEWOpNum(MI.getDesc()));
@@ -414,6 +414,145 @@ static RVVInstrShape getRVVInstrShape(const MachineInstr &MI,
 
 static bool isRealInstruction(const MachineInstr &MI) {
   return !MI.isMetaInstruction();
+}
+
+static std::string canonicalOperand(const MachineOperand &MO,
+                                    const MachineInstr &MI,
+                                    const TargetRegisterInfo &TRI) {
+  std::string Result;
+  raw_string_ostream OS(Result);
+  if (MO.isReg()) {
+    Register Reg = MO.getReg();
+    OS << "reg:";
+    if (!Reg)
+      OS << "none";
+    else if (Reg.isVirtual())
+      OS << 'v' << Reg.virtRegIndex();
+    else
+      OS << 'p' << TRI.getName(Reg);
+    OS << ':' << (MO.isDef() ? "def" : "use") << ":implicit=" << MO.isImplicit()
+       << ":undef=" << MO.isUndef() << ":subreg=" << MO.getSubReg();
+    if (MO.isTied())
+      OS << ":tied=" << MI.findTiedOperandIdx(MO.getOperandNo());
+  } else if (MO.isImm()) {
+    OS << "imm:" << MO.getImm();
+  } else if (MO.isMBB()) {
+    OS << "mbb:" << MO.getMBB()->getNumber();
+  } else if (MO.isFI()) {
+    OS << "fi:" << MO.getIndex();
+  } else if (MO.isCPI()) {
+    OS << "cpi:" << MO.getIndex();
+  } else if (MO.isJTI()) {
+    OS << "jti:" << MO.getIndex();
+  } else if (MO.isTargetIndex()) {
+    OS << "target-index:" << MO.getIndex() << ':' << MO.getOffset();
+  } else if (MO.isGlobal()) {
+    OS << "global:" << MO.getGlobal()->getName() << ':' << MO.getOffset()
+       << ":flags=" << MO.getTargetFlags();
+  } else if (MO.isSymbol()) {
+    OS << "symbol:" << MO.getSymbolName() << ':' << MO.getOffset()
+       << ":flags=" << MO.getTargetFlags();
+  } else if (MO.isRegMask()) {
+    SHA256 Hasher;
+    unsigned Words = MachineOperand::getRegMaskSize(TRI.getNumRegs());
+    const uint32_t *Mask = MO.getRegMask();
+    for (unsigned I = 0; I != Words; ++I) {
+      Hasher.update(utostr(Mask[I]));
+      Hasher.update("|");
+    }
+    OS << "regmask:" << toHex(Hasher.final(), /*LowerCase=*/true);
+  } else if (MO.isCImm()) {
+    OS << "cimm:" << MO.getCImm()->getValue();
+  } else if (MO.isFPImm()) {
+    OS << "fpimm:" << MO.getFPImm()->getValueAPF().bitcastToAPInt();
+  } else if (MO.isMCSymbol()) {
+    OS << "mcsymbol:" << MO.getMCSymbol()->getName();
+  } else if (MO.isBlockAddress()) {
+    const BlockAddress *Address = MO.getBlockAddress();
+    OS << "block-address:" << Address->getFunction()->getName() << ':'
+       << Address->getBasicBlock()->getName() << ':' << MO.getOffset()
+       << ":flags=" << MO.getTargetFlags();
+  } else if (MO.isRegLiveOut()) {
+    SHA256 Hasher;
+    unsigned Words = MachineOperand::getRegMaskSize(TRI.getNumRegs());
+    const uint32_t *Mask = MO.getRegLiveOut();
+    for (unsigned I = 0; I != Words; ++I) {
+      Hasher.update(utostr(Mask[I]));
+      Hasher.update("|");
+    }
+    OS << "reg-live-out:" << toHex(Hasher.final(), /*LowerCase=*/true);
+  } else if (MO.isCFIIndex()) {
+    OS << "cfi:" << MO.getCFIIndex();
+  } else if (MO.isIntrinsicID()) {
+    OS << "intrinsic:" << static_cast<unsigned>(MO.getIntrinsicID());
+  } else if (MO.isPredicate()) {
+    OS << "predicate:" << MO.getPredicate();
+  } else if (MO.isDbgInstrRef()) {
+    OS << "instr-ref:" << MO.getInstrRefInstrIndex() << ':'
+       << MO.getInstrRefOpIndex();
+  } else if (MO.isShuffleMask()) {
+    OS << "shuffle:";
+    for (int Element : MO.getShuffleMask())
+      OS << Element << ',';
+  } else if (MO.isLaneMask()) {
+    OS << "lane-mask:" << MO.getLaneMask().getAsInteger();
+  } else {
+    OS << "operand-kind:" << static_cast<unsigned>(MO.getType());
+  }
+  return OS.str();
+}
+
+static std::string canonicalInstruction(const MachineInstr &MI,
+                                        const TargetInstrInfo &TII,
+                                        const TargetRegisterInfo &TRI) {
+  std::string Result = TII.getName(MI.getOpcode()).str();
+  for (const MachineOperand &MO : MI.operands()) {
+    Result += '|';
+    Result += canonicalOperand(MO, MI, TRI);
+  }
+  return Result;
+}
+
+static SmallVector<InstructionIdentity, 64>
+getInstructionIdentities(MachineFunction &MF, const MachineLoop &Loop,
+                         ArrayRef<MachineInstr *> Instructions) {
+  const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+  const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
+  SmallVector<InstructionIdentity, 64> Result;
+  Result.reserve(Instructions.size());
+  for (MachineBasicBlock &MBB : MF) {
+    if (!Loop.contains(&MBB))
+      continue;
+    unsigned RegionOrdinal = 0;
+    unsigned InstructionOrdinal = 0;
+    for (MachineInstr &MI : MBB) {
+      if (!isRealInstruction(MI))
+        continue;
+      std::string Canonical = canonicalInstruction(MI, TII, TRI);
+      std::string SemanticKey = (Twine(MBB.getNumber()) + "|" +
+                                 Twine(RegionOrdinal) + "|" + Canonical)
+                                    .str();
+      Result.push_back(InstructionIdentity{
+          static_cast<unsigned>(MBB.getNumber()), RegionOrdinal,
+          InstructionOrdinal++, std::move(SemanticKey)});
+      if (MI.isCall() || TII.isSchedulingBoundary(MI, &MBB, MF) ||
+          MI.isFakeUse()) {
+        ++RegionOrdinal;
+        InstructionOrdinal = 0;
+      }
+    }
+  }
+  assert(Result.size() == Instructions.size());
+  return Result;
+}
+
+static std::string hashStrings(ArrayRef<std::string> Values) {
+  SHA256 Hasher;
+  for (StringRef Value : Values) {
+    Hasher.update(Value);
+    Hasher.update("\n");
+  }
+  return toHex(Hasher.final(), /*LowerCase=*/true);
 }
 
 static json::Object
@@ -469,6 +608,7 @@ static bool isVectorRelated(const MachineInstr &MI,
 
 struct VectorVReg {
   Register Reg;
+  const TargetRegisterClass *RC = nullptr;
   unsigned Units = 0;
   unsigned LMUL = 0;
   unsigned NF = 0;
@@ -515,12 +655,101 @@ static SmallVector<VectorVReg, 32> getVectorVRegs(const MachineFunction &MF,
     if (!Intersects)
       continue;
     Result.push_back(
-        VectorVReg{Reg, allocationUnits(RC),
+        VectorVReg{Reg, RC, allocationUnits(RC),
                    1u << static_cast<unsigned>(RISCVRI::getLMul(RC->TSFlags)),
                    RISCVRI::getNF(RC->TSFlags),
                    MF.getSubtarget().getRegisterInfo()->getRegClassName(RC)});
   }
   return Result;
+}
+
+struct RecurrenceComponent {
+  SmallVector<Register, 4> VRegs;
+  SmallVector<const TargetRegisterClass *, 4> RegClasses;
+  unsigned Units = 0;
+};
+
+using CandidateMaskCache =
+    DenseMap<const TargetRegisterClass *, SmallVector<uint32_t, 32>>;
+
+static ArrayRef<uint32_t> getCandidateMasks(const MachineFunction &MF,
+                                            const TargetRegisterClass *RC,
+                                            CandidateMaskCache &Cache) {
+  auto [It, Inserted] = Cache.try_emplace(RC);
+  if (!Inserted)
+    return It->second;
+  const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
+  BitVector Allocatable = TRI.getAllocatableSet(MF, RC);
+  SmallVector<uint32_t, 32> &Masks = It->second;
+  for (int Reg = Allocatable.find_first(); Reg >= 0;
+       Reg = Allocatable.find_next(Reg)) {
+    uint32_t Mask = 0;
+    unsigned Bit = 0;
+    for (MCPhysReg Base : RISCV::VRRegClass) {
+      if (TRI.regsOverlap(static_cast<MCRegister>(Reg), Base))
+        Mask |= uint32_t(1) << Bit;
+      ++Bit;
+    }
+    if (Mask && !llvm::is_contained(Masks, Mask))
+      Masks.push_back(Mask);
+  }
+  llvm::sort(Masks);
+  return Masks;
+}
+
+static bool canExactlyPack(const MachineFunction &MF,
+                           ArrayRef<const TargetRegisterClass *> RegClasses,
+                           CandidateMaskCache &Cache) {
+  struct Demand {
+    ArrayRef<uint32_t> Candidates;
+    unsigned Footprint = 0;
+  };
+  SmallVector<Demand, 32> Demands;
+  for (const TargetRegisterClass *RC : RegClasses) {
+    ArrayRef<uint32_t> Candidates = getCandidateMasks(MF, RC, Cache);
+    if (Candidates.empty())
+      return false;
+    Demands.push_back({Candidates, allocationUnits(RC)});
+  }
+  llvm::sort(Demands, [](const Demand &A, const Demand &B) {
+    if (A.Candidates.size() != B.Candidates.size())
+      return A.Candidates.size() < B.Candidates.size();
+    return A.Footprint > B.Footprint;
+  });
+  DenseSet<uint64_t> Failed;
+  std::function<bool(unsigned, uint32_t)> Pack = [&](unsigned Index,
+                                                     uint32_t Used) {
+    if (Index == Demands.size())
+      return true;
+    uint64_t State = (uint64_t(Index) << 32) | Used;
+    if (!Failed.insert(State).second)
+      return false;
+    for (uint32_t Candidate : Demands[Index].Candidates)
+      if (!(Candidate & Used) && Pack(Index + 1, Used | Candidate))
+        return true;
+    return false;
+  };
+  return Pack(0, 0);
+}
+
+static unsigned
+maxExactlyPackableCopies(const MachineFunction &MF,
+                         ArrayRef<const TargetRegisterClass *> FixedRegClasses,
+                         const RecurrenceComponent &Component,
+                         CandidateMaskCache &Cache, unsigned UpperBound) {
+  unsigned Low = 0;
+  unsigned High = UpperBound;
+  while (Low < High) {
+    unsigned Copies = Low + (High - Low + 1) / 2;
+    SmallVector<const TargetRegisterClass *, 32> Demands(FixedRegClasses);
+    for (unsigned I = 0; I != Copies; ++I)
+      append_range(Demands, Component.RegClasses);
+    if (canExactlyPack(MF, Demands, Cache))
+      Low = Copies;
+    else
+      High = Copies - 1;
+  }
+  return Low;
 }
 
 static SmallVector<TrueEdge, 64>
@@ -569,7 +798,7 @@ buildTrueEdges(const MachineLoop &Loop, ArrayRef<MachineInstr *> Instructions,
           ++Gap;
           WeightedGap += getRVVInstrShape(*Instructions[P],
                                           *MF.getSubtarget().getInstrInfo())
-                             .Weight;
+                             .WeightedWorkUnits;
         }
       }
       Edges.push_back(TrueEdge{DefMI, UseMI, Reg, SameBlockForward,
@@ -620,7 +849,8 @@ buildPhysicalTrueEdges(const MachineLoop &Loop,
         unsigned WeightedGap = 0;
         for (unsigned P = From + 1; P < To; ++P) {
           ++Gap;
-          WeightedGap += getRVVInstrShape(*Instructions[P], TII).Weight;
+          WeightedGap +=
+              getRVVInstrShape(*Instructions[P], TII).WeightedWorkUnits;
         }
         Edges.push_back(TrueEdge{DefMI, MI, Reg, true,
                                  isVectorRelated(*DefMI, MRI, TRI) ||
@@ -640,7 +870,8 @@ buildPhysicalTrueEdges(const MachineLoop &Loop,
 
 static void addInstructionMetrics(json::Object &Row, MachineFunction &MF,
                                   const MachineLoop &Loop,
-                                  ArrayRef<MachineInstr *> Instructions) {
+                                  ArrayRef<MachineInstr *> Instructions,
+                                  ArrayRef<std::string> StableIDs) {
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
   std::map<std::string, unsigned> Opcodes;
   std::map<std::string, unsigned> LMULs;
@@ -668,15 +899,20 @@ static void addInstructionMetrics(json::Object &Row, MachineFunction &MF,
       MaxLMULLog2 = Shape.LMULLog2;
       MaxLMUL = Shape.LMUL;
     }
-    if (RVVSchedEmitInstructions)
-      InstructionArray.push_back(
-          json::Object{{"position", static_cast<int64_t>(Position)},
-                       {"opcode", TII.getName(MI->getOpcode()).str()},
-                       {"base_opcode", Shape.BaseOpcode},
-                       {"lmul", Shape.LMUL},
-                       {"lmul_log2", static_cast<int64_t>(Shape.LMULLog2)},
-                       {"sew", static_cast<int64_t>(Shape.SEW)},
-                       {"weight", static_cast<int64_t>(Shape.Weight)}});
+    if (RVVSchedEmitInstructions) {
+      json::Object Record{{"position", static_cast<int64_t>(Position)},
+                          {"opcode", TII.getName(MI->getOpcode()).str()},
+                          {"base_opcode", Shape.BaseOpcode},
+                          {"lmul", Shape.LMUL},
+                          {"lmul_log2", static_cast<int64_t>(Shape.LMULLog2)},
+                          {"sew", static_cast<int64_t>(Shape.SEW)},
+                          {"weighted_work_units",
+                           static_cast<int64_t>(Shape.WeightedWorkUnits)},
+                          {"distinct_macro_ops", 1}};
+      if (!StableIDs.empty())
+        Record["stable_mi_id"] = StableIDs[Position];
+      InstructionArray.push_back(std::move(Record));
+    }
     ++Position;
   }
   Row["vector_opcode_histogram"] = mapToJSONObject(Opcodes);
@@ -726,6 +962,13 @@ static void addLiveStateMetrics(json::Object &Row, MachineFunction &MF,
   Row["vector_register_class_histogram"] = mapToJSONObject(ClassHistogram);
   Row["allocation_unit_histogram"] = mapToJSONObject(AllocationHistogram);
   Row["max_allocation_units"] = static_cast<int64_t>(MaxAllocationUnits);
+  const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
+  BitVector AllocatableVRs = TRI.getAllocatableSet(MF, &RISCV::VRRegClass);
+  unsigned AllocatorVectorRegisters = 0;
+  for (MCPhysReg Base : RISCV::VRRegClass)
+    AllocatorVectorRegisters += AllocatableVRs.test(Base);
+  Row["allocator_vector_register_count"] =
+      static_cast<int64_t>(AllocatorVectorRegisters);
 
   SmallVector<SlotIndex, 64> Samples;
   for (MachineBasicBlock *MBB : Loop.blocks())
@@ -847,13 +1090,51 @@ static void addLiveStateMetrics(json::Object &Row, MachineFunction &MF,
     for (unsigned I = 1; I < StateRegs.size(); ++I)
       Unite(StateRegs[0], StateRegs[I]);
   }
-  std::map<unsigned, unsigned> ComponentUnits;
-  for (unsigned I = 0; I != Carried.size(); ++I)
-    ComponentUnits[Find(I)] += Carried[I]->Units;
-  unsigned RecurrenceCount = ComponentUnits.size();
+  std::map<unsigned, RecurrenceComponent> ComponentMap;
+  for (unsigned I = 0; I != Carried.size(); ++I) {
+    RecurrenceComponent &Component = ComponentMap[Find(I)];
+    Component.VRegs.push_back(Carried[I]->Reg);
+    Component.RegClasses.push_back(Carried[I]->RC);
+    Component.Units += Carried[I]->Units;
+  }
+  SmallVector<RecurrenceComponent, 8> Components;
+  for (auto &[_, Component] : ComponentMap)
+    Components.push_back(std::move(Component));
+  unsigned RecurrenceCount = Components.size();
   unsigned MaxStateUnits = 0;
-  for (const auto &[_, Units] : ComponentUnits)
-    MaxStateUnits = std::max(MaxStateUnits, Units);
+  for (const RecurrenceComponent &Component : Components)
+    MaxStateUnits = std::max(MaxStateUnits, Component.Units);
+
+  struct ActiveSample {
+    unsigned TotalUnits = 0;
+    unsigned NonRecurrenceUnits = 0;
+    SmallVector<const TargetRegisterClass *, 16> NonRecurrenceRegClasses;
+  };
+  SmallVector<ActiveSample, 64> ActiveSamples;
+  std::vector<unsigned> FreeUnitsWhileRecurrenceLive;
+  unsigned PeakTotalUnitsWhileRecurrenceLive = 0;
+  for (SlotIndex Sample : Samples) {
+    ActiveSample State;
+    bool RecurrenceActive = false;
+    for (const VectorVReg &Info : VRegs) {
+      if (!LIS.getInterval(Info.Reg).liveAt(Sample))
+        continue;
+      State.TotalUnits += Info.Units;
+      if (llvm::is_contained(Carried, &Info)) {
+        RecurrenceActive = true;
+      } else {
+        State.NonRecurrenceUnits += Info.Units;
+        State.NonRecurrenceRegClasses.push_back(Info.RC);
+      }
+    }
+    if (!RecurrenceActive)
+      continue;
+    PeakTotalUnitsWhileRecurrenceLive =
+        std::max(PeakTotalUnitsWhileRecurrenceLive, State.TotalUnits);
+    FreeUnitsWhileRecurrenceLive.push_back(
+        State.TotalUnits >= 32 ? 0 : 32 - State.TotalUnits);
+    ActiveSamples.push_back(std::move(State));
+  }
 
   Row["header_live_in_vec_units"] = static_cast<int64_t>(HeaderLiveInUnits);
   Row["latch_live_out_vec_units"] = static_cast<int64_t>(LatchLiveOutUnits);
@@ -866,17 +1147,86 @@ static void addLiveStateMetrics(json::Object &Row, MachineFunction &MF,
     Row["state_units_per_recurrence"] =
         static_cast<double>(LoopCarriedUnits) / RecurrenceCount;
     Row["max_state_units_per_recurrence"] = static_cast<int64_t>(MaxStateUnits);
-    Row["resident_chain_upper_bound"] =
-        static_cast<int64_t>(32 / std::max(1u, MaxStateUnits));
-    unsigned Remaining =
-        PeakNonRecurrenceUnits >= 32 ? 0 : 32 - PeakNonRecurrenceUnits;
-    Row["resident_chain_upper_bound_after_nonrec_live"] =
-        static_cast<int64_t>(Remaining / std::max(1u, MaxStateUnits));
+    unsigned ResidentArch = std::numeric_limits<unsigned>::max();
+    unsigned ResidentAllocator = std::numeric_limits<unsigned>::max();
+    CandidateMaskCache MaskCache;
+    StringMap<unsigned> PackingCache;
+    auto CachedMaxPack =
+        [&](ArrayRef<const TargetRegisterClass *> FixedRegClasses,
+            const RecurrenceComponent &Component) {
+          SmallVector<StringRef, 32> FixedNames;
+          for (const TargetRegisterClass *RC : FixedRegClasses)
+            FixedNames.push_back(TRI.getRegClassName(RC));
+          llvm::sort(FixedNames);
+          SmallVector<StringRef, 8> ComponentNames;
+          for (const TargetRegisterClass *RC : Component.RegClasses)
+            ComponentNames.push_back(TRI.getRegClassName(RC));
+          llvm::sort(ComponentNames);
+          std::string Key;
+          raw_string_ostream OS(Key);
+          OS << "fixed:";
+          for (StringRef Name : FixedNames)
+            OS << Name << ',';
+          OS << "|component:";
+          for (StringRef Name : ComponentNames)
+            OS << Name << ',';
+          auto It = PackingCache.find(Key);
+          if (It != PackingCache.end())
+            return It->second;
+          unsigned Result = maxExactlyPackableCopies(
+              MF, FixedRegClasses, Component, MaskCache,
+              32 / std::max(1u, Component.Units));
+          PackingCache[Key] = Result;
+          return Result;
+        };
+    for (const RecurrenceComponent &Component : Components) {
+      unsigned ArchBound = 32 / std::max(1u, Component.Units);
+      ResidentArch = std::min(ResidentArch, ArchBound);
+      ResidentAllocator =
+          std::min(ResidentAllocator, CachedMaxPack({}, Component));
+    }
+    Row["resident_chain_upper_bound_arch"] = static_cast<int64_t>(ResidentArch);
+    Row["resident_chain_upper_bound_allocator"] =
+        static_cast<int64_t>(ResidentAllocator);
+
+    if (!ActiveSamples.empty()) {
+      unsigned OverlapArch = std::numeric_limits<unsigned>::max();
+      unsigned OverlapAllocator = std::numeric_limits<unsigned>::max();
+      for (const ActiveSample &Sample : ActiveSamples) {
+        unsigned Remaining = Sample.NonRecurrenceUnits >= 32
+                                 ? 0
+                                 : 32 - Sample.NonRecurrenceUnits;
+        for (const RecurrenceComponent &Component : Components) {
+          unsigned ArchBound = Remaining / std::max(1u, Component.Units);
+          OverlapArch = std::min(OverlapArch, ArchBound);
+          OverlapAllocator = std::min(
+              OverlapAllocator,
+              CachedMaxPack(Sample.NonRecurrenceRegClasses, Component));
+        }
+      }
+      Row["min_free_vec_units_while_recurrence_live"] = static_cast<int64_t>(
+          *llvm::min_element(FreeUnitsWhileRecurrenceLive));
+      setOptional(Row, "p10_free_vec_units_while_recurrence_live",
+                  percentile(FreeUnitsWhileRecurrenceLive, 0.10));
+      Row["peak_total_units_while_recurrence_live"] =
+          static_cast<int64_t>(PeakTotalUnitsWhileRecurrenceLive);
+      Row["resident_chain_bound_under_overlap_arch"] =
+          static_cast<int64_t>(OverlapArch);
+      Row["resident_chain_bound_under_overlap_allocator"] =
+          static_cast<int64_t>(OverlapAllocator);
+    }
   } else {
     Row["state_units_per_recurrence"] = nullptr;
     Row["max_state_units_per_recurrence"] = nullptr;
-    Row["resident_chain_upper_bound"] = nullptr;
-    Row["resident_chain_upper_bound_after_nonrec_live"] = nullptr;
+    Row["resident_chain_upper_bound_arch"] = nullptr;
+    Row["resident_chain_upper_bound_allocator"] = nullptr;
+  }
+  if (ActiveSamples.empty()) {
+    Row["min_free_vec_units_while_recurrence_live"] = nullptr;
+    Row["p10_free_vec_units_while_recurrence_live"] = nullptr;
+    Row["peak_total_units_while_recurrence_live"] = nullptr;
+    Row["resident_chain_bound_under_overlap_arch"] = nullptr;
+    Row["resident_chain_bound_under_overlap_allocator"] = nullptr;
   }
   Row["architectural_vector_budget"] = 32;
 }
@@ -1028,9 +1378,8 @@ static void addLookaheadAndWindowMetrics(json::Object &Row, MachineFunction &MF,
     Preds[To].push_back(From);
   }
 
-  std::map<unsigned, std::vector<unsigned>> Lookaheads;
-  for (unsigned Threshold : {1u, 2u, 4u})
-    Lookaheads[Threshold] = {};
+  std::map<unsigned, std::vector<unsigned>> WeightedWorkLookaheads;
+  std::map<unsigned, std::vector<unsigned>> MacroOpLookaheads;
   for (unsigned Start = 0; Start != Instructions.size(); ++Start) {
     if (!getRVVInstrShape(*Instructions[Start], TII).IsVector)
       continue;
@@ -1044,21 +1393,36 @@ static void addLookaheadAndWindowMetrics(json::Object &Row, MachineFunction &MF,
       Reachable[Node] = true;
       append_range(Worklist, Succs[Node]);
     }
-    unsigned IndependentUnits = 0;
+    unsigned IndependentWeightedWork = 0;
+    unsigned IndependentMacroOps = 0;
     unsigned ScannedWeight = 0;
-    std::set<unsigned> Pending = {1, 2, 4};
-    for (unsigned I = Start + 1; I != Instructions.size() && !Pending.empty();
+    std::set<unsigned> PendingWeightedWork = {1, 2, 4};
+    std::set<unsigned> PendingMacroOps = {1, 2, 4};
+    for (unsigned I = Start + 1;
+         I != Instructions.size() &&
+         (!PendingWeightedWork.empty() || !PendingMacroOps.empty());
          ++I) {
       if (Instructions[I]->getParent() != Instructions[Start]->getParent())
         break;
       RVVInstrShape Shape = getRVVInstrShape(*Instructions[I], TII);
-      ScannedWeight += Shape.Weight;
-      if (Shape.IsVector && !Reachable[I])
-        IndependentUnits += Shape.Weight;
-      for (auto It = Pending.begin(); It != Pending.end();) {
-        if (IndependentUnits >= *It) {
-          Lookaheads[*It].push_back(ScannedWeight);
-          It = Pending.erase(It);
+      ScannedWeight += Shape.WeightedWorkUnits;
+      if (Shape.IsVector && !Reachable[I]) {
+        IndependentWeightedWork += Shape.WeightedWorkUnits;
+        ++IndependentMacroOps;
+      }
+      for (auto It = PendingWeightedWork.begin();
+           It != PendingWeightedWork.end();) {
+        if (IndependentWeightedWork >= *It) {
+          WeightedWorkLookaheads[*It].push_back(ScannedWeight);
+          It = PendingWeightedWork.erase(It);
+        } else {
+          ++It;
+        }
+      }
+      for (auto It = PendingMacroOps.begin(); It != PendingMacroOps.end();) {
+        if (IndependentMacroOps >= *It) {
+          MacroOpLookaheads[*It].push_back(ScannedWeight);
+          It = PendingMacroOps.erase(It);
         } else {
           ++It;
         }
@@ -1066,19 +1430,28 @@ static void addLookaheadAndWindowMetrics(json::Object &Row, MachineFunction &MF,
     }
   }
   for (unsigned Threshold : {1u, 2u, 4u}) {
-    std::string Base = "lookahead_to_ready_" + std::to_string(Threshold);
-    setOptional(Row, Base + "_p50", percentile(Lookaheads[Threshold], 0.50));
-    setOptional(Row, Base + "_p90", percentile(Lookaheads[Threshold], 0.90));
-    Row[Base + "_max"] = Lookaheads[Threshold].empty()
-                             ? json::Value(nullptr)
-                             : json::Value(static_cast<int64_t>(
-                                   *llvm::max_element(Lookaheads[Threshold])));
+    auto AddLookahead = [&](StringRef Kind,
+                            const std::vector<unsigned> &Values) {
+      std::string Base =
+          (Twine("lookahead_to_independent_") + Kind + "_" + Twine(Threshold))
+              .str();
+      setOptional(Row, Base + "_p50", percentile(Values, 0.50));
+      setOptional(Row, Base + "_p90", percentile(Values, 0.90));
+      Row[Base + "_max"] =
+          Values.empty()
+              ? json::Value(nullptr)
+              : json::Value(static_cast<int64_t>(*llvm::max_element(Values)));
+    };
+    AddLookahead("weighted_work", WeightedWorkLookaheads[Threshold]);
+    AddLookahead("macroop", MacroOpLookaheads[Threshold]);
   }
 
   for (unsigned Window : {8u, 16u, 32u, 64u}) {
-    std::vector<double> ILPs;
-    std::vector<unsigned> ReadyUnits;
-    std::vector<unsigned> ChainCounts;
+    std::vector<double> MacroILPs;
+    std::vector<double> WeightedWorkILPs;
+    std::vector<unsigned> ReadyWeightedWork;
+    std::vector<unsigned> ReadyMacroOps;
+    std::vector<unsigned> ComponentCounts;
     std::vector<unsigned> CriticalPaths;
     for (unsigned Start = 0; Start != Instructions.size(); ++Start) {
       if (!getRVVInstrShape(*Instructions[Start], TII).IsVector)
@@ -1089,7 +1462,8 @@ static void addLookaheadAndWindowMetrics(json::Object &Row, MachineFunction &MF,
              Instructions[End]->getParent() ==
                  Instructions[Start]->getParent() &&
              StaticWeight < Window) {
-        StaticWeight += getRVVInstrShape(*Instructions[End], TII).Weight;
+        StaticWeight +=
+            getRVVInstrShape(*Instructions[End], TII).WeightedWorkUnits;
         ++End;
       }
       if (End == Start)
@@ -1114,8 +1488,10 @@ static void addLookaheadAndWindowMetrics(json::Object &Row, MachineFunction &MF,
         if (A != B)
           Parent[B] = A;
       };
-      unsigned WindowReadyUnits = 0;
-      unsigned VectorWeight = 0;
+      unsigned WindowReadyWeightedWork = 0;
+      unsigned WindowReadyMacroOps = 0;
+      unsigned VectorWeightedWork = 0;
+      unsigned VectorMacroOps = 0;
       for (unsigned I = Start; I != End; ++I) {
         RVVInstrShape Shape = getRVVInstrShape(*Instructions[I], TII);
         unsigned Latency =
@@ -1131,9 +1507,12 @@ static void addLookaheadAndWindowMetrics(json::Object &Row, MachineFunction &MF,
           Unite(I - Start, Pred - Start);
         }
         if (Shape.IsVector) {
-          VectorWeight += Shape.Weight;
-          if (!HasWindowPred)
-            WindowReadyUnits += Shape.Weight;
+          VectorWeightedWork += Shape.WeightedWorkUnits;
+          ++VectorMacroOps;
+          if (!HasWindowPred) {
+            WindowReadyWeightedWork += Shape.WeightedWorkUnits;
+            ++WindowReadyMacroOps;
+          }
         }
       }
       std::set<unsigned> VectorComponents;
@@ -1141,10 +1520,14 @@ static void addLookaheadAndWindowMetrics(json::Object &Row, MachineFunction &MF,
         if (getRVVInstrShape(*Instructions[I], TII).IsVector)
           VectorComponents.insert(Find(I - Start));
       unsigned CP = *llvm::max_element(Critical);
-      ReadyUnits.push_back(WindowReadyUnits);
-      ChainCounts.push_back(VectorComponents.size());
+      ReadyWeightedWork.push_back(WindowReadyWeightedWork);
+      ReadyMacroOps.push_back(WindowReadyMacroOps);
+      ComponentCounts.push_back(VectorComponents.size());
       CriticalPaths.push_back(CP);
-      ILPs.push_back(static_cast<double>(VectorWeight) / std::max(1u, CP));
+      MacroILPs.push_back(static_cast<double>(VectorMacroOps) /
+                          std::max(1u, CP));
+      WeightedWorkILPs.push_back(static_cast<double>(VectorWeightedWork) /
+                                 std::max(1u, CP));
     }
     auto MeanUnsigned = [](ArrayRef<unsigned> Values) -> std::optional<double> {
       if (Values.empty())
@@ -1159,13 +1542,17 @@ static void addLookaheadAndWindowMetrics(json::Object &Row, MachineFunction &MF,
       return std::accumulate(Values.begin(), Values.end(), 0.0) / Values.size();
     };
     std::string Suffix = std::to_string(Window);
-    setOptional(Row, "window_ready_vec_units_" + Suffix,
-                MeanUnsigned(ReadyUnits));
-    setOptional(Row, "window_independent_chain_count_" + Suffix,
-                MeanUnsigned(ChainCounts));
+    setOptional(Row, "window_ready_weighted_work_units_" + Suffix,
+                MeanUnsigned(ReadyWeightedWork));
+    setOptional(Row, "window_ready_macroop_count_" + Suffix,
+                MeanUnsigned(ReadyMacroOps));
+    setOptional(Row, "window_distinct_dependency_components_" + Suffix,
+                MeanUnsigned(ComponentCounts));
     setOptional(Row, "window_critical_path_" + Suffix,
                 MeanUnsigned(CriticalPaths));
-    setOptional(Row, "window_ilp_" + Suffix, MeanDouble(ILPs));
+    setOptional(Row, "window_macro_ilp_" + Suffix, MeanDouble(MacroILPs));
+    setOptional(Row, "window_weighted_work_ilp_" + Suffix,
+                MeanDouble(WeightedWorkILPs));
   }
 }
 
@@ -1177,6 +1564,18 @@ instructionSequenceHash(ArrayRef<MachineInstr *> Instructions,
     RVVInstrShape Shape = getRVVInstrShape(*MI, TII);
     Hasher.update(Shape.IsVector ? Shape.BaseOpcode
                                  : TII.getName(MI->getOpcode()));
+    Hasher.update("\n");
+  }
+  return toHex(Hasher.final(), /*LowerCase=*/true);
+}
+
+static std::string
+stageInstructionSequenceHash(ArrayRef<MachineInstr *> Instructions,
+                             const TargetInstrInfo &TII,
+                             const TargetRegisterInfo &TRI) {
+  SHA256 Hasher;
+  for (const MachineInstr *MI : Instructions) {
+    Hasher.update(canonicalInstruction(*MI, TII, TRI));
     Hasher.update("\n");
   }
   return toHex(Hasher.final(), /*LowerCase=*/true);
@@ -1405,7 +1804,7 @@ static json::Object buildBaseRow(const MachineFunction &MF,
                                  unsigned VectorInstCount, StringRef LoopUID) {
   auto [MinLine, MaxLine] = sourceLineRange(Loop);
   json::Object Row;
-  Row["schema_version"] = 1;
+  Row["schema_version"] = 2;
   Row["candidate_id"] = RVVSchedCandidateID;
   Row["module"] = MF.getFunction().getParent()->getModuleIdentifier();
   Row["function"] = MF.getName();
@@ -1579,22 +1978,29 @@ static bool collectRows(MachineFunction &MF, RISCVVectorSchedStage Stage,
         buildBaseRow(MF, *Loop, Stage, Ordinal, VectorInstCount, LoopUID);
     SmallVector<MachineInstr *, 64> Instructions =
         getLoopInstructions(MF, *Loop);
-    addInstructionMetrics(Row, MF, *Loop, Instructions);
-    Row["vector_opcode_sequence_hash"] = instructionSequenceHash(
-        Instructions, *MF.getSubtarget().getInstrInfo());
-    auto [PreOrder, PostOrder] =
-        FeatureDB->captureOrder(&MF, LoopUID, Stage, Instructions);
-    Row["stage_order_hash"] =
-        FeatureDB->stableOrderHash(&MF, LoopUID, Instructions);
-    if (PreOrder) {
-      StringRef Prefix =
-          Stage == RISCVVectorSchedStage::PostSched   ? "pre_to_post"
-          : Stage == RISCVVectorSchedStage::PostRVVRA ? "pre_to_post_rvv_ra"
-                                                      : "pre_to_final";
-      addOrderComparison(Row, Prefix, *PreOrder);
+    OrderCapture Capture;
+    if (Stage == RISCVVectorSchedStage::PreSched ||
+        Stage == RISCVVectorSchedStage::PostSched) {
+      SmallVector<InstructionIdentity, 64> Identities =
+          getInstructionIdentities(MF, *Loop, Instructions);
+      Capture = FeatureDB->captureOrder(&MF, LoopUID, Stage, Identities);
+      json::Array StableIDArray;
+      for (const std::string &ID : Capture.StableIDs)
+        StableIDArray.push_back(ID);
+      Row["stable_mi_ids"] = std::move(StableIDArray);
+      Row["stable_mi_id_sequence_hash"] = hashStrings(Capture.StableIDs);
+      Row["stable_mi_unmatched_count"] =
+          static_cast<int64_t>(Capture.UnmatchedCount);
+      if (Capture.Comparison)
+        addOrderComparison(Row, "pre_to_post", *Capture.Comparison);
     }
-    if (PostOrder)
-      addOrderComparison(Row, "post_to_final", *PostOrder);
+    addInstructionMetrics(Row, MF, *Loop, Instructions, Capture.StableIDs);
+    const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+    const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
+    Row["vector_opcode_sequence_hash"] =
+        instructionSequenceHash(Instructions, TII);
+    Row["stage_instruction_sequence_hash"] =
+        stageInstructionSequenceHash(Instructions, TII, TRI);
     if (LIS) {
       addLiveStateMetrics(Row, MF, *Loop, Instructions, *LIS);
       SmallVector<TrueEdge, 64> Edges =
