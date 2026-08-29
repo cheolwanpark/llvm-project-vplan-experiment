@@ -347,7 +347,10 @@ public:
 ManagedStatic<FeatureDatabase> FeatureDB;
 
 static bool isRVVInstruction(const MachineInstr &MI) {
-  return RISCVVPseudosTable::getPseudoInfo(MI.getOpcode()) != nullptr;
+  // isRVVSpill also recognizes RVV whole-register loads/stores, even when no
+  // frame index is present. Those opcodes are not in RISCVVPseudosTable.
+  return RISCVVPseudosTable::getPseudoInfo(MI.getOpcode()) != nullptr ||
+         RISCV::isRVVSpill(MI);
 }
 
 struct RVVInstrShape {
@@ -363,9 +366,37 @@ static RVVInstrShape getRVVInstrShape(const MachineInstr &MI,
                                       const TargetInstrInfo &TII) {
   RVVInstrShape Shape;
   const auto *Info = RISCVVPseudosTable::getPseudoInfo(MI.getOpcode());
-  if (!Info)
+  if (!Info && !RISCV::isRVVSpill(MI))
     return Shape;
   Shape.IsVector = true;
+  if (!Info) {
+    Shape.BaseOpcode = TII.getName(MI.getOpcode()).str();
+    const MachineRegisterInfo &MRI = MI.getMF()->getRegInfo();
+    const TargetRegisterInfo &TRI =
+        *MI.getMF()->getSubtarget().getRegisterInfo();
+    unsigned Units = 1;
+    for (const MachineOperand &MO : MI.operands()) {
+      if (!MO.isReg() || !MO.getReg())
+        continue;
+      Register Reg = MO.getReg();
+      const TargetRegisterClass *RC = nullptr;
+      if (Reg.isVirtual())
+        RC = MRI.getRegClassOrNull(Reg);
+      else if (Reg.isPhysical() && TRI.isInAllocatableClass(Reg))
+        RC = TRI.getMinimalPhysRegClass(Reg);
+      if (RC && RISCVRegisterInfo::isRVVRegClass(RC))
+        Units = std::max(Units, (1u << static_cast<unsigned>(
+                                     RISCVRI::getLMul(RC->TSFlags))) *
+                                    RISCVRI::getNF(RC->TSFlags));
+    }
+    unsigned ExecutionLMUL = Units;
+    if (auto Segment = RISCV::isRVVSpillForZvlsseg(MI.getOpcode()))
+      ExecutionLMUL = Segment->second;
+    Shape.LMUL = "m" + std::to_string(ExecutionLMUL);
+    Shape.LMULLog2 = Log2_32(ExecutionLMUL);
+    Shape.Weight = Units;
+    return Shape;
+  }
   Shape.BaseOpcode = TII.getName(Info->BaseInstr).str();
   RISCVVType::VLMUL Encoded = RISCVII::getLMul(MI.getDesc().TSFlags);
   auto [LMUL, Fractional] = RISCVVType::decodeVLMUL(Encoded);
@@ -428,7 +459,7 @@ static bool isVectorRelated(const MachineInstr &MI,
     const TargetRegisterClass *RC = nullptr;
     if (Reg.isVirtual())
       RC = MRI.getRegClassOrNull(Reg);
-    else if (Reg.isPhysical())
+    else if (Reg.isPhysical() && TRI.isInAllocatableClass(Reg))
       RC = TRI.getMinimalPhysRegClass(Reg);
     if (RC && RISCVRegisterInfo::isRVVRegClass(RC))
       return true;
@@ -1191,6 +1222,8 @@ static void addPhysicalMetrics(json::Object &Row, MachineFunction &MF,
       if (!MO.isReg() || !MO.getReg().isPhysical())
         continue;
       Register Reg = MO.getReg();
+      if (!TRI.isInAllocatableClass(Reg))
+        continue;
       const TargetRegisterClass *RC = TRI.getMinimalPhysRegClass(Reg);
       if (!RC || !RISCVRegisterInfo::isRVVRegClass(RC))
         continue;
