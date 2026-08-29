@@ -19,7 +19,7 @@
 ; RUN:   -riscv-vsched-emit-instructions -riscv-vsched-emit-edges \
 ; RUN:   -riscv-vsched-trace-picks %s
 ; RUN: cmp %t.verbose-a.jsonl %t.verbose-b.jsonl
-; RUN: %python -c "import json; rows=[json.loads(x) for x in open(r'%t.verbose-a.jsonl')]; pre=rows[0]; post=rows[1]; final=rows[3]; print(pre['max_lmul'],pre['peak_live_vec_units'] > 0,pre['num_sched_nodes'] > 0,'window_ilp_8' in pre,post['scheduler_pick_count'] > 0,post['scheduler_edge_count'] > 0,'scheduler_picks' in post,'scheduler_edges' in post,final['pre_to_final_matched_instruction_count'] > 0)" \
+; RUN: %python -c "import json; rows=[json.loads(x) for x in open(r'%t.verbose-a.jsonl')]; pre=rows[0]; post=rows[1]; postra=rows[2]; final=rows[3]; print(pre['max_lmul'],pre['peak_live_vec_units'] > 0,pre['num_sched_nodes'] > 0,'window_ilp_8' in pre,post['scheduler_pick_count'] > 0,post['scheduler_edge_count'] > 0,'scheduler_picks' in post,'scheduler_edges' in post,'stack_size_bytes' in postra,final['num_sched_nodes'] > 0,final['pre_to_final_matched_instruction_count'] > 0)" \
 ; RUN:   | FileCheck %s --check-prefix=METRICS
 ; RUN: llc -O3 -mtriple=riscv64 -mattr=+v -filetype=null \
 ; RUN:   -riscv-vsched-feature-output=%t.nested.jsonl \
@@ -57,7 +57,7 @@
 ; REQUIRES: asserts
 
 ; ROWS: [('lit-candidate', 'vector_loop', 'pre-sched', 1), ('lit-candidate', 'vector_loop', 'post-sched', 1), ('lit-candidate', 'vector_loop', 'post-rvv-ra', 1), ('lit-candidate', 'vector_loop', 'final-sched', 1)]
-; METRICS: m2 True True True True True True True True
+; METRICS: m2 True True True True True True True True True True
 ; NESTED: 4 [2]
 ; FILTERED: 0
 ; NO-SCHED: 4 False 0

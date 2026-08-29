@@ -27,11 +27,13 @@
 #include "llvm/CodeGen/MachineLoopInfo.h"
 #include "llvm/CodeGen/MachineScheduler.h"
 #include "llvm/CodeGen/SlotIndexes.h"
+#include "llvm/CodeGen/TargetFrameLowering.h"
 #include "llvm/CodeGen/TargetSchedule.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/Module.h"
 #include "llvm/InitializePasses.h"
+#include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FileSystem.h"
@@ -543,6 +545,63 @@ buildTrueEdges(const MachineLoop &Loop, ArrayRef<MachineInstr *> Instructions,
                                isVectorRelated(*DefMI, MRI, TRI) ||
                                    isVectorRelated(*UseMI, MRI, TRI),
                                Gap, WeightedGap});
+    }
+  }
+  return Edges;
+}
+
+static SmallVector<TrueEdge, 64>
+buildPhysicalTrueEdges(const MachineLoop &Loop,
+                       ArrayRef<MachineInstr *> Instructions) {
+  const MachineFunction &MF = *Loop.getHeader()->getParent();
+  const MachineRegisterInfo &MRI = MF.getRegInfo();
+  const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
+  const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+  DenseMap<const MachineInstr *, unsigned> Positions;
+  DenseMap<const MachineInstr *, unsigned> BlockPositions;
+  DenseMap<const MachineBasicBlock *, unsigned> NextBlockPosition;
+  for (unsigned I = 0; I != Instructions.size(); ++I) {
+    Positions[Instructions[I]] = I;
+    BlockPositions[Instructions[I]] =
+        NextBlockPosition[Instructions[I]->getParent()]++;
+  }
+
+  DenseMap<MCRegUnit, const MachineInstr *> LastDef;
+  DenseSet<std::pair<const MachineInstr *, const MachineInstr *>> Seen;
+  SmallVector<TrueEdge, 64> Edges;
+  const MachineBasicBlock *CurrentMBB = nullptr;
+  for (MachineInstr *MI : Instructions) {
+    if (MI->getParent() != CurrentMBB) {
+      CurrentMBB = MI->getParent();
+      LastDef.clear();
+    }
+    for (const MachineOperand &MO : MI->uses()) {
+      if (!MO.isReg() || !MO.getReg().isPhysical() || MO.isUndef())
+        continue;
+      Register Reg = MO.getReg();
+      for (MCRegUnitIterator Units(Reg, &TRI); Units.isValid(); ++Units) {
+        const MachineInstr *DefMI = LastDef.lookup(*Units);
+        if (!DefMI || DefMI == MI || !Seen.insert({DefMI, MI}).second)
+          continue;
+        unsigned From = Positions.lookup(DefMI);
+        unsigned To = Positions.lookup(MI);
+        unsigned Gap = 0;
+        unsigned WeightedGap = 0;
+        for (unsigned P = From + 1; P < To; ++P) {
+          ++Gap;
+          WeightedGap += getRVVInstrShape(*Instructions[P], TII).Weight;
+        }
+        Edges.push_back(TrueEdge{DefMI, MI, Reg, true,
+                                 isVectorRelated(*DefMI, MRI, TRI) ||
+                                     isVectorRelated(*MI, MRI, TRI),
+                                 Gap, WeightedGap});
+      }
+    }
+    for (const MachineOperand &MO : MI->defs()) {
+      if (!MO.isReg() || !MO.getReg().isPhysical())
+        continue;
+      for (MCRegUnitIterator Units(MO.getReg(), &TRI); Units.isValid(); ++Units)
+        LastDef[*Units] = MI;
     }
   }
   return Edges;
@@ -1206,6 +1265,23 @@ static void addPhysicalMetrics(json::Object &Row, MachineFunction &MF,
   Row["vtype_transition_count"] = static_cast<int64_t>(VTypeTransitions);
   Row["sew_transition_count"] = static_cast<int64_t>(SEWTransitions);
   Row["lmul_transition_count"] = static_cast<int64_t>(LMULTransitions);
+
+  const MachineFrameInfo &MFI = MF.getFrameInfo();
+  unsigned ScalableObjectCount = 0;
+  uint64_t ScalableObjectMinBytes = 0;
+  for (int FI = MFI.getObjectIndexBegin(); FI != MFI.getObjectIndexEnd();
+       ++FI) {
+    if (MFI.isDeadObjectIndex(FI) ||
+        MFI.getStackID(FI) != TargetStackID::ScalableVector)
+      continue;
+    ++ScalableObjectCount;
+    ScalableObjectMinBytes += MFI.getObjectSize(FI);
+  }
+  Row["stack_size_bytes"] = static_cast<int64_t>(MFI.getStackSize());
+  Row["scalable_stack_object_count"] =
+      static_cast<int64_t>(ScalableObjectCount);
+  Row["scalable_stack_object_min_bytes"] =
+      static_cast<int64_t>(ScalableObjectMinBytes);
 }
 
 static void addOrderComparison(json::Object &Row, StringRef Prefix,
@@ -1494,8 +1570,13 @@ static bool collectRows(MachineFunction &MF, RISCVVectorSchedStage Stage,
       addLookaheadAndWindowMetrics(Row, MF, Instructions, Edges);
     }
     if (Stage == RISCVVectorSchedStage::PostRVVRA ||
-        Stage == RISCVVectorSchedStage::FinalSched)
+        Stage == RISCVVectorSchedStage::FinalSched) {
       addPhysicalMetrics(Row, MF, *Loop, Instructions);
+      SmallVector<TrueEdge, 64> PhysicalEdges =
+          buildPhysicalTrueEdges(*Loop, Instructions);
+      addDFGMetrics(Row, MF, *Loop, Instructions, PhysicalEdges);
+      addLookaheadAndWindowMetrics(Row, MF, Instructions, PhysicalEdges);
+    }
     if (Stage == RISCVVectorSchedStage::PostSched)
       addSchedulerSummary(Row, *Loop, Regions);
     FeatureDB->addRow(MF.getFunction().getParent(),
