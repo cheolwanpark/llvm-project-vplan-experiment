@@ -9,6 +9,7 @@
 #ifndef LLVM_LIB_TARGET_RISCV_RISCVVECTORSCHEDFEATURES_H
 #define LLVM_LIB_TARGET_RISCV_RISCVVECTORSCHEDFEATURES_H
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include <cstdint>
 
@@ -19,6 +20,46 @@ class PassRegistry;
 struct RegPressureDelta;
 class ScheduleDAGMILive;
 class SUnit;
+
+namespace RISCVVSPacking {
+
+enum class Status { Feasible, Infeasible, Unknown };
+
+struct Demand {
+  ArrayRef<uint32_t> Candidates;
+  unsigned Footprint = 0;
+  unsigned Multiplicity = 1;
+};
+
+struct Budget {
+  explicit Budget(uint64_t Limit) : Limit(Limit) {}
+
+  uint64_t Limit = 0;
+  uint64_t Used = 0;
+  bool Exhausted = false;
+};
+
+struct Result {
+  Status PackingStatus = Status::Unknown;
+  uint64_t SearchStates = 0;
+  bool BudgetExhausted = false;
+};
+
+struct MaxCopiesResult {
+  unsigned LowerBound = 0;
+  unsigned UpperBound = 0;
+
+  bool isExact() const { return LowerBound == UpperBound; }
+};
+
+Result solve(ArrayRef<Demand> Demands, uint32_t AvailableMask, Budget &Budget);
+
+MaxCopiesResult maxPackableCopies(ArrayRef<Demand> FixedDemands,
+                                  ArrayRef<Demand> ComponentDemands,
+                                  uint32_t AvailableMask, unsigned UpperBound,
+                                  Budget &Budget);
+
+} // namespace RISCVVSPacking
 
 enum class RISCVVectorSchedStage {
   PreSched,

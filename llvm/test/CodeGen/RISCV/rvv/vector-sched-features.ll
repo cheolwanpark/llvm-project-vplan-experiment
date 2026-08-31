@@ -98,6 +98,31 @@
 ; RUN:   -riscv-vsched-feature-output=%t.pipeline.jsonl \
 ; RUN:   -debug-pass=Structure %s 2>&1 \
 ; RUN:   | FileCheck %s --check-prefix=PIPELINE
+; RUN: %python -c "import subprocess; subprocess.run(['llc','-O3','-mtriple=riscv64','-mattr=+v','-filetype=null','-riscv-vsched-feature-output=' + r'%t.m1-reduction.jsonl','-riscv-vsched-only-func=m1_reduction_overlap',r'%s'],check=True,timeout=10)"
+; RUN: %python -c "import json; rows=[json.loads(x) for x in open(r'%t.m1-reduction.jsonl')]; pre,post=rows[:2]; print(len(rows),all(r['packing_exact'] is True for r in (pre,post)),all(not r['packing_budget_exhausted'] for r in (pre,post)),max(r['packing_search_states'] for r in (pre,post)) < 10000,all(r['resident_chain_bound_under_overlap_allocator']==31 for r in (pre,post)))" \
+; RUN:   | FileCheck %s --check-prefix=M1-REDUCTION
+; RUN: llc -O3 -mtriple=riscv64 -mattr=+v -filetype=null \
+; RUN:   -riscv-vsched-feature-output=%t.m1-reduction-repeat.jsonl \
+; RUN:   -riscv-vsched-only-func=m1_reduction_overlap %s
+; RUN: cmp %t.m1-reduction.jsonl %t.m1-reduction-repeat.jsonl
+; RUN: llc -O3 -mtriple=riscv64 -mattr=+v -filetype=null \
+; RUN:   -riscv-vsched-feature-output=%t.m1-reduction-detailed.jsonl \
+; RUN:   -riscv-vsched-only-func=m1_reduction_overlap \
+; RUN:   -riscv-vsched-emit-instructions -riscv-vsched-emit-edges \
+; RUN:   -riscv-vsched-trace-picks %s
+; RUN: %python -c "import json; keys=['packing_exact','packing_budget_exhausted','packing_search_states','resident_chain_upper_bound_allocator','resident_chain_bound_under_overlap_allocator']; a=[json.loads(x) for x in open(r'%t.m1-reduction.jsonl')][:2]; b=[json.loads(x) for x in open(r'%t.m1-reduction-detailed.jsonl')][:2]; print([[r[k] for k in keys] for r in a]==[[r[k] for k in keys] for r in b])" \
+; RUN:   | FileCheck %s --check-prefix=M1-FLAGS
+; RUN: llc -O3 -mtriple=riscv64 -mattr=+v -filetype=null \
+; RUN:   -riscv-vsched-packing-state-budget=1 \
+; RUN:   -riscv-vsched-feature-output=%t.budget-a.jsonl \
+; RUN:   -riscv-vsched-only-func=m8_nov0_recurrence %s
+; RUN: llc -O3 -mtriple=riscv64 -mattr=+v -filetype=null \
+; RUN:   -riscv-vsched-packing-state-budget=1 \
+; RUN:   -riscv-vsched-feature-output=%t.budget-b.jsonl \
+; RUN:   -riscv-vsched-only-func=m8_nov0_recurrence %s
+; RUN: cmp %t.budget-a.jsonl %t.budget-b.jsonl
+; RUN: %python -c "import json; r=json.loads(open(r'%t.budget-a.jsonl').readline()); print(r['resident_chain_upper_bound_allocator'] is None,r['resident_chain_upper_bound_allocator_exact'],r['resident_chain_upper_bound_allocator_lower_bound'] <= r['resident_chain_upper_bound_allocator_upper_bound'],r['packing_budget_exhausted'],r['packing_search_states'])" \
+; RUN:   | FileCheck %s --check-prefix=BUDGET
 
 ; REQUIRES: asserts
 
@@ -113,6 +138,9 @@
 ; M8-OVERLAP: 32 4 4 4 True 0 0 0
 ; M8-NOV0: True 4 3
 ; N2M4: True 8 4 4
+; M1-REDUCTION: 4 True True True True
+; M1-FLAGS: True
+; BUDGET: True False True True 1
 
 ; PIPELINE: Rename Disconnected Subregister Components
 ; PIPELINE-NEXT: RISC-V Vector Scheduling Features (pre-schedule)
@@ -243,3 +271,26 @@ loop:
 exit:
   ret target("riscv.vector.tuple", <vscale x 32 x i8>, 2) %next
 }
+
+define float @m1_reduction_overlap(ptr %in, i64 %n) {
+entry:
+  br label %loop
+
+loop:
+  %i = phi i64 [ 0, %entry ], [ %i.next, %loop ]
+  %acc = phi <vscale x 2 x float>
+      [ zeroinitializer, %entry ], [ %acc.next, %loop ]
+  %ptr = getelementptr float, ptr %in, i64 %i
+  %value = load <vscale x 2 x float>, ptr %ptr, align 4
+  %acc.next = fadd <vscale x 2 x float> %acc, %value
+  %i.next = add nuw i64 %i, 1
+  %done = icmp eq i64 %i.next, %n
+  br i1 %done, label %exit, label %loop
+
+exit:
+  %sum = call float @llvm.vector.reduce.fadd.nxv2f32(
+      float 0.0, <vscale x 2 x float> %acc.next)
+  ret float %sum
+}
+
+declare float @llvm.vector.reduce.fadd.nxv2f32(float, <vscale x 2 x float>)

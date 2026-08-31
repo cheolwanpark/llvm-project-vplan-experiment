@@ -40,13 +40,13 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/ManagedStatic.h"
+#include "llvm/Support/MathExtras.h"
 #include "llvm/Support/Mutex.h"
 #include "llvm/Support/SHA256.h"
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <functional>
 #include <limits>
 #include <map>
 #include <numeric>
@@ -99,6 +99,11 @@ static cl::opt<bool> RVVSchedTracePicks(
     cl::desc(
         "Include scheduler pick records in RISC-V scheduling feature JSONL"),
     cl::init(false), cl::Hidden);
+
+static cl::opt<unsigned> RVVSchedPackingStateBudget(
+    "riscv-vsched-packing-state-budget",
+    cl::desc("Maximum exact-packing search states per function and stage"),
+    cl::init(100000), cl::Hidden);
 
 namespace {
 
@@ -697,59 +702,296 @@ static ArrayRef<uint32_t> getCandidateMasks(const MachineFunction &MF,
   return Masks;
 }
 
-static bool canExactlyPack(const MachineFunction &MF,
-                           ArrayRef<const TargetRegisterClass *> RegClasses,
-                           CandidateMaskCache &Cache) {
-  struct Demand {
-    ArrayRef<uint32_t> Candidates;
-    unsigned Footprint = 0;
-  };
-  SmallVector<Demand, 32> Demands;
-  for (const TargetRegisterClass *RC : RegClasses) {
-    ArrayRef<uint32_t> Candidates = getCandidateMasks(MF, RC, Cache);
-    if (Candidates.empty())
-      return false;
-    Demands.push_back({Candidates, allocationUnits(RC)});
-  }
-  llvm::sort(Demands, [](const Demand &A, const Demand &B) {
-    if (A.Candidates.size() != B.Candidates.size())
-      return A.Candidates.size() < B.Candidates.size();
-    return A.Footprint > B.Footprint;
-  });
-  DenseSet<uint64_t> Failed;
-  std::function<bool(unsigned, uint32_t)> Pack = [&](unsigned Index,
-                                                     uint32_t Used) {
-    if (Index == Demands.size())
-      return true;
-    uint64_t State = (uint64_t(Index) << 32) | Used;
-    if (!Failed.insert(State).second)
-      return false;
-    for (uint32_t Candidate : Demands[Index].Candidates)
-      if (!(Candidate & Used) && Pack(Index + 1, Used | Candidate))
-        return true;
-    return false;
-  };
-  return Pack(0, 0);
+} // end anonymous namespace
+
+namespace llvm::RISCVVSPacking {
+namespace {
+
+struct NormalizedDemand {
+  SmallVector<uint32_t, 32> Candidates;
+  unsigned Footprint = 0;
+  unsigned Multiplicity = 0;
+};
+
+static bool sameDemand(const NormalizedDemand &A, const NormalizedDemand &B) {
+  return A.Footprint == B.Footprint && A.Candidates == B.Candidates;
 }
 
-static unsigned
-maxExactlyPackableCopies(const MachineFunction &MF,
-                         ArrayRef<const TargetRegisterClass *> FixedRegClasses,
-                         const RecurrenceComponent &Component,
-                         CandidateMaskCache &Cache, unsigned UpperBound) {
+static SmallVector<NormalizedDemand, 16>
+normalizeDemands(ArrayRef<Demand> Demands, uint32_t AvailableMask) {
+  SmallVector<NormalizedDemand, 16> Normalized;
+  for (const Demand &D : Demands) {
+    if (!D.Multiplicity)
+      continue;
+    NormalizedDemand N;
+    N.Candidates.append(D.Candidates.begin(), D.Candidates.end());
+    llvm::sort(N.Candidates);
+    N.Candidates.erase(llvm::unique(N.Candidates), N.Candidates.end());
+    N.Footprint = D.Footprint;
+    N.Multiplicity = D.Multiplicity;
+    for (uint32_t Candidate : N.Candidates) {
+      assert(Candidate && !(Candidate & ~AvailableMask) &&
+             "invalid exact-packing candidate mask");
+      assert(static_cast<unsigned>(llvm::popcount(Candidate)) == D.Footprint &&
+             "candidate mask does not match allocation footprint");
+    }
+    Normalized.push_back(std::move(N));
+  }
+  llvm::sort(Normalized,
+             [](const NormalizedDemand &A, const NormalizedDemand &B) {
+               if (A.Candidates.size() != B.Candidates.size())
+                 return A.Candidates.size() < B.Candidates.size();
+               if (A.Footprint != B.Footprint)
+                 return A.Footprint > B.Footprint;
+               return std::lexicographical_compare(
+                   A.Candidates.begin(), A.Candidates.end(),
+                   B.Candidates.begin(), B.Candidates.end());
+             });
+  SmallVector<NormalizedDemand, 16> Groups;
+  for (NormalizedDemand &D : Normalized) {
+    if (!Groups.empty() && sameDemand(Groups.back(), D)) {
+      Groups.back().Multiplicity += D.Multiplicity;
+      continue;
+    }
+    Groups.push_back(std::move(D));
+  }
+  return Groups;
+}
+
+class Solver {
+  ArrayRef<NormalizedDemand> Demands;
+  uint32_t AvailableMask;
+  Budget &SearchBudget;
+  SmallVector<uint64_t, 16> SuffixUnits;
+  DenseSet<uint64_t> Failed;
+
+  bool consumeState() {
+    if (SearchBudget.Used >= SearchBudget.Limit) {
+      SearchBudget.Exhausted = true;
+      return false;
+    }
+    ++SearchBudget.Used;
+    return true;
+  }
+
+  bool hasCapacity(unsigned Index, uint32_t Used) const {
+    if (SuffixUnits[Index] >
+        static_cast<unsigned>(llvm::popcount(AvailableMask & ~Used)))
+      return false;
+    for (unsigned I = Index; I != Demands.size(); ++I) {
+      unsigned Usable =
+          llvm::count_if(Demands[I].Candidates, [&](uint32_t Candidate) {
+            return !(Candidate & Used);
+          });
+      if (Usable < Demands[I].Multiplicity)
+        return false;
+    }
+    return true;
+  }
+
+  Status choose(unsigned GroupIndex, unsigned Needed, unsigned NextCandidate,
+                uint32_t Used) {
+    if (!Needed)
+      return pack(GroupIndex + 1, Used);
+    const NormalizedDemand &D = Demands[GroupIndex];
+    if (D.Candidates.size() - NextCandidate < Needed)
+      return Status::Infeasible;
+    unsigned Usable = 0;
+    for (unsigned I = NextCandidate; I != D.Candidates.size(); ++I)
+      Usable += !(D.Candidates[I] & Used);
+    if (Usable < Needed)
+      return Status::Infeasible;
+    uint64_t Required =
+        uint64_t(Needed) * D.Footprint + SuffixUnits[GroupIndex + 1];
+    if (Required > static_cast<unsigned>(llvm::popcount(AvailableMask & ~Used)))
+      return Status::Infeasible;
+    if (!consumeState())
+      return Status::Unknown;
+    for (unsigned I = NextCandidate; I != D.Candidates.size(); ++I) {
+      uint32_t Candidate = D.Candidates[I];
+      if (Candidate & Used)
+        continue;
+      Status S = choose(GroupIndex, Needed - 1, I + 1, Used | Candidate);
+      if (S != Status::Infeasible)
+        return S;
+    }
+    return Status::Infeasible;
+  }
+
+  Status pack(unsigned Index, uint32_t Used) {
+    if (Index == Demands.size())
+      return Status::Feasible;
+    if (!hasCapacity(Index, Used))
+      return Status::Infeasible;
+    uint64_t State = (uint64_t(Index) << 32) | Used;
+    if (Failed.contains(State))
+      return Status::Infeasible;
+    if (!consumeState())
+      return Status::Unknown;
+    Status S = choose(Index, Demands[Index].Multiplicity, 0, Used);
+    if (S == Status::Infeasible)
+      Failed.insert(State);
+    return S;
+  }
+
+public:
+  Solver(ArrayRef<NormalizedDemand> Demands, uint32_t AvailableMask,
+         Budget &SearchBudget)
+      : Demands(Demands), AvailableMask(AvailableMask),
+        SearchBudget(SearchBudget), SuffixUnits(Demands.size() + 1) {
+    for (unsigned I = Demands.size(); I; --I)
+      SuffixUnits[I - 1] = SuffixUnits[I] + uint64_t(Demands[I - 1].Footprint) *
+                                                Demands[I - 1].Multiplicity;
+  }
+
+  Status run() {
+    if (Demands.empty())
+      return Status::Feasible;
+    if (SuffixUnits[0] > static_cast<unsigned>(llvm::popcount(AvailableMask)))
+      return Status::Infeasible;
+    for (const NormalizedDemand &D : Demands)
+      if (D.Candidates.empty() || D.Multiplicity > D.Candidates.size())
+        return Status::Infeasible;
+    return pack(0, 0);
+  }
+};
+
+static uint64_t demandUnits(ArrayRef<Demand> Demands) {
+  return std::accumulate(Demands.begin(), Demands.end(), uint64_t(0),
+                         [](uint64_t Total, const Demand &D) {
+                           return Total +
+                                  uint64_t(D.Footprint) * D.Multiplicity;
+                         });
+}
+
+} // namespace
+
+Result solve(ArrayRef<Demand> Demands, uint32_t AvailableMask, Budget &Budget) {
+  uint64_t StartStates = Budget.Used;
+  SmallVector<NormalizedDemand, 16> Normalized =
+      normalizeDemands(Demands, AvailableMask);
+  Status S = Solver(Normalized, AvailableMask, Budget).run();
+  return Result{S, Budget.Used - StartStates,
+                S == Status::Unknown && Budget.Exhausted};
+}
+
+MaxCopiesResult maxPackableCopies(ArrayRef<Demand> FixedDemands,
+                                  ArrayRef<Demand> ComponentDemands,
+                                  uint32_t AvailableMask, unsigned UpperBound,
+                                  Budget &Budget) {
+  uint64_t FixedUnits = demandUnits(FixedDemands);
+  uint64_t ComponentUnits = demandUnits(ComponentDemands);
+  unsigned AvailableUnits = llvm::popcount(AvailableMask);
+  unsigned High = 0;
+  if (ComponentUnits && FixedUnits < AvailableUnits)
+    High = std::min<uint64_t>(UpperBound,
+                              (AvailableUnits - FixedUnits) / ComponentUnits);
   unsigned Low = 0;
-  unsigned High = UpperBound;
   while (Low < High) {
     unsigned Copies = Low + (High - Low + 1) / 2;
-    SmallVector<const TargetRegisterClass *, 32> Demands(FixedRegClasses);
-    for (unsigned I = 0; I != Copies; ++I)
-      append_range(Demands, Component.RegClasses);
-    if (canExactlyPack(MF, Demands, Cache))
+    SmallVector<Demand, 32> Demands(FixedDemands);
+    for (const Demand &D : ComponentDemands) {
+      Demand Repeated = D;
+      Repeated.Multiplicity *= Copies;
+      Demands.push_back(Repeated);
+    }
+    Result R = solve(Demands, AvailableMask, Budget);
+    if (R.PackingStatus == Status::Unknown)
+      return {Low, High};
+    if (R.PackingStatus == Status::Feasible)
       Low = Copies;
     else
       High = Copies - 1;
   }
-  return Low;
+  return {Low, Low};
+}
+
+} // namespace llvm::RISCVVSPacking
+
+namespace {
+
+static uint32_t getAvailableVectorMask(const MachineFunction &MF) {
+  const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
+  BitVector Allocatable = TRI.getAllocatableSet(MF, &RISCV::VRRegClass);
+  uint32_t Mask = 0;
+  unsigned Bit = 0;
+  for (MCPhysReg Base : RISCV::VRRegClass) {
+    if (Allocatable.test(Base))
+      Mask |= uint32_t(1) << Bit;
+    ++Bit;
+  }
+  return Mask;
+}
+
+static SmallVector<RISCVVSPacking::Demand, 32>
+getPackingDemands(const MachineFunction &MF,
+                  ArrayRef<const TargetRegisterClass *> RegClasses,
+                  CandidateMaskCache &Cache) {
+  SmallVector<RISCVVSPacking::Demand, 32> Demands;
+  for (const TargetRegisterClass *RC : RegClasses)
+    Demands.push_back(
+        {getCandidateMasks(MF, RC, Cache), allocationUnits(RC), 1});
+  return Demands;
+}
+
+static RISCVVSPacking::MaxCopiesResult
+maxExactlyPackableCopies(const MachineFunction &MF,
+                         ArrayRef<const TargetRegisterClass *> FixedRegClasses,
+                         const RecurrenceComponent &Component,
+                         CandidateMaskCache &Cache, uint32_t AvailableMask,
+                         RISCVVSPacking::Budget &Budget, unsigned UpperBound) {
+  SmallVector<RISCVVSPacking::Demand, 32> FixedDemands =
+      getPackingDemands(MF, FixedRegClasses, Cache);
+  SmallVector<RISCVVSPacking::Demand, 8> ComponentDemands =
+      getPackingDemands(MF, Component.RegClasses, Cache);
+  return RISCVVSPacking::maxPackableCopies(FixedDemands, ComponentDemands,
+                                           AvailableMask, UpperBound, Budget);
+}
+
+struct PackingContext {
+  CandidateMaskCache MaskCache;
+  StringMap<RISCVVSPacking::MaxCopiesResult> ResultCache;
+  uint32_t AvailableMask;
+  RISCVVSPacking::Budget SearchBudget;
+
+  explicit PackingContext(const MachineFunction &MF)
+      : AvailableMask(getAvailableVectorMask(MF)),
+        SearchBudget(RVVSchedPackingStateBudget) {}
+};
+
+struct MinPackingBounds {
+  unsigned Lower = std::numeric_limits<unsigned>::max();
+  unsigned Upper = std::numeric_limits<unsigned>::max();
+  bool Applicable = false;
+
+  void include(const RISCVVSPacking::MaxCopiesResult &Result) {
+    Lower = std::min(Lower, Result.LowerBound);
+    Upper = std::min(Upper, Result.UpperBound);
+    Applicable = true;
+  }
+
+  bool isExact() const { return Applicable && Lower == Upper; }
+};
+
+static void setPackingMetric(json::Object &Row, StringRef Name,
+                             const MinPackingBounds &Bounds) {
+  std::string LowerName = (Name + "_lower_bound").str();
+  std::string UpperName = (Name + "_upper_bound").str();
+  std::string ExactName = (Name + "_exact").str();
+  if (!Bounds.Applicable) {
+    Row[Name.str()] = nullptr;
+    Row[LowerName] = nullptr;
+    Row[UpperName] = nullptr;
+    Row[ExactName] = nullptr;
+    return;
+  }
+  Row[LowerName] = static_cast<int64_t>(Bounds.Lower);
+  Row[UpperName] = static_cast<int64_t>(Bounds.Upper);
+  Row[ExactName] = Bounds.isExact();
+  if (Bounds.isExact())
+    Row[Name.str()] = static_cast<int64_t>(Bounds.Lower);
+  else
+    Row[Name.str()] = nullptr;
 }
 
 static SmallVector<TrueEdge, 64>
@@ -949,7 +1191,9 @@ static bool hasDefinitionInLoop(Register Reg, const MachineLoop &Loop,
 static void addLiveStateMetrics(json::Object &Row, MachineFunction &MF,
                                 const MachineLoop &Loop,
                                 ArrayRef<MachineInstr *> Instructions,
-                                LiveIntervals &LIS) {
+                                LiveIntervals &LIS, PackingContext &Packing) {
+  uint64_t PackingStatesAtStart = Packing.SearchBudget.Used;
+  bool PackingUnknown = false;
   SmallVector<VectorVReg, 32> VRegs = getVectorVRegs(MF, Loop, LIS);
   std::map<std::string, unsigned> ClassHistogram;
   std::map<std::string, unsigned> AllocationHistogram;
@@ -963,10 +1207,7 @@ static void addLiveStateMetrics(json::Object &Row, MachineFunction &MF,
   Row["allocation_unit_histogram"] = mapToJSONObject(AllocationHistogram);
   Row["max_allocation_units"] = static_cast<int64_t>(MaxAllocationUnits);
   const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
-  BitVector AllocatableVRs = TRI.getAllocatableSet(MF, &RISCV::VRRegClass);
-  unsigned AllocatorVectorRegisters = 0;
-  for (MCPhysReg Base : RISCV::VRRegClass)
-    AllocatorVectorRegisters += AllocatableVRs.test(Base);
+  unsigned AllocatorVectorRegisters = llvm::popcount(Packing.AvailableMask);
   Row["allocator_vector_register_count"] =
       static_cast<int64_t>(AllocatorVectorRegisters);
 
@@ -1143,14 +1384,13 @@ static void addLiveStateMetrics(json::Object &Row, MachineFunction &MF,
   Row["peak_nonrecurrence_units"] =
       static_cast<int64_t>(PeakNonRecurrenceUnits);
   Row["num_recurrences"] = static_cast<int64_t>(RecurrenceCount);
+  MinPackingBounds ResidentAllocator;
+  MinPackingBounds OverlapAllocator;
   if (RecurrenceCount) {
     Row["state_units_per_recurrence"] =
         static_cast<double>(LoopCarriedUnits) / RecurrenceCount;
     Row["max_state_units_per_recurrence"] = static_cast<int64_t>(MaxStateUnits);
     unsigned ResidentArch = std::numeric_limits<unsigned>::max();
-    unsigned ResidentAllocator = std::numeric_limits<unsigned>::max();
-    CandidateMaskCache MaskCache;
-    StringMap<unsigned> PackingCache;
     auto CachedMaxPack =
         [&](ArrayRef<const TargetRegisterClass *> FixedRegClasses,
             const RecurrenceComponent &Component) {
@@ -1164,34 +1404,36 @@ static void addLiveStateMetrics(json::Object &Row, MachineFunction &MF,
           llvm::sort(ComponentNames);
           std::string Key;
           raw_string_ostream OS(Key);
-          OS << "fixed:";
+          OS << "available:" << Packing.AvailableMask << "|fixed:";
           for (StringRef Name : FixedNames)
             OS << Name << ',';
           OS << "|component:";
           for (StringRef Name : ComponentNames)
             OS << Name << ',';
-          auto It = PackingCache.find(Key);
-          if (It != PackingCache.end())
+          auto It = Packing.ResultCache.find(Key);
+          if (It != Packing.ResultCache.end())
             return It->second;
-          unsigned Result = maxExactlyPackableCopies(
-              MF, FixedRegClasses, Component, MaskCache,
+          RISCVVSPacking::MaxCopiesResult Result = maxExactlyPackableCopies(
+              MF, FixedRegClasses, Component, Packing.MaskCache,
+              Packing.AvailableMask, Packing.SearchBudget,
               32 / std::max(1u, Component.Units));
-          PackingCache[Key] = Result;
+          if (Result.isExact())
+            Packing.ResultCache[Key] = Result;
+          else
+            PackingUnknown = true;
           return Result;
         };
     for (const RecurrenceComponent &Component : Components) {
       unsigned ArchBound = 32 / std::max(1u, Component.Units);
       ResidentArch = std::min(ResidentArch, ArchBound);
-      ResidentAllocator =
-          std::min(ResidentAllocator, CachedMaxPack({}, Component));
+      ResidentAllocator.include(CachedMaxPack({}, Component));
     }
     Row["resident_chain_upper_bound_arch"] = static_cast<int64_t>(ResidentArch);
-    Row["resident_chain_upper_bound_allocator"] =
-        static_cast<int64_t>(ResidentAllocator);
+    setPackingMetric(Row, "resident_chain_upper_bound_allocator",
+                     ResidentAllocator);
 
     if (!ActiveSamples.empty()) {
       unsigned OverlapArch = std::numeric_limits<unsigned>::max();
-      unsigned OverlapAllocator = std::numeric_limits<unsigned>::max();
       for (const ActiveSample &Sample : ActiveSamples) {
         unsigned Remaining = Sample.NonRecurrenceUnits >= 32
                                  ? 0
@@ -1199,8 +1441,7 @@ static void addLiveStateMetrics(json::Object &Row, MachineFunction &MF,
         for (const RecurrenceComponent &Component : Components) {
           unsigned ArchBound = Remaining / std::max(1u, Component.Units);
           OverlapArch = std::min(OverlapArch, ArchBound);
-          OverlapAllocator = std::min(
-              OverlapAllocator,
+          OverlapAllocator.include(
               CachedMaxPack(Sample.NonRecurrenceRegClasses, Component));
         }
       }
@@ -1212,22 +1453,33 @@ static void addLiveStateMetrics(json::Object &Row, MachineFunction &MF,
           static_cast<int64_t>(PeakTotalUnitsWhileRecurrenceLive);
       Row["resident_chain_bound_under_overlap_arch"] =
           static_cast<int64_t>(OverlapArch);
-      Row["resident_chain_bound_under_overlap_allocator"] =
-          static_cast<int64_t>(OverlapAllocator);
+      setPackingMetric(Row, "resident_chain_bound_under_overlap_allocator",
+                       OverlapAllocator);
     }
   } else {
     Row["state_units_per_recurrence"] = nullptr;
     Row["max_state_units_per_recurrence"] = nullptr;
     Row["resident_chain_upper_bound_arch"] = nullptr;
-    Row["resident_chain_upper_bound_allocator"] = nullptr;
+    setPackingMetric(Row, "resident_chain_upper_bound_allocator", {});
   }
   if (ActiveSamples.empty()) {
     Row["min_free_vec_units_while_recurrence_live"] = nullptr;
     Row["p10_free_vec_units_while_recurrence_live"] = nullptr;
     Row["peak_total_units_while_recurrence_live"] = nullptr;
     Row["resident_chain_bound_under_overlap_arch"] = nullptr;
-    Row["resident_chain_bound_under_overlap_allocator"] = nullptr;
+    setPackingMetric(Row, "resident_chain_bound_under_overlap_allocator", {});
   }
+  if (RecurrenceCount) {
+    bool Exact = ResidentAllocator.isExact() &&
+                 (ActiveSamples.empty() || OverlapAllocator.isExact());
+    Row["packing_exact"] = Exact;
+  } else {
+    Row["packing_exact"] = nullptr;
+  }
+  Row["packing_budget_exhausted"] =
+      PackingUnknown && Packing.SearchBudget.Exhausted;
+  Row["packing_search_states"] =
+      static_cast<int64_t>(Packing.SearchBudget.Used - PackingStatesAtStart);
   Row["architectural_vector_budget"] = 32;
 }
 
@@ -1964,6 +2216,9 @@ static bool collectRows(MachineFunction &MF, RISCVVectorSchedStage Stage,
   std::vector<SchedRegionRecord> Regions;
   if (Stage == RISCVVectorSchedStage::PostSched)
     Regions = FeatureDB->getRegions(&MF);
+  std::optional<PackingContext> Packing;
+  if (LIS)
+    Packing.emplace(MF);
 
   unsigned Ordinal = 0;
   for (MachineLoop *Loop : Loops) {
@@ -2002,7 +2257,7 @@ static bool collectRows(MachineFunction &MF, RISCVVectorSchedStage Stage,
     Row["stage_instruction_sequence_hash"] =
         stageInstructionSequenceHash(Instructions, TII, TRI);
     if (LIS) {
-      addLiveStateMetrics(Row, MF, *Loop, Instructions, *LIS);
+      addLiveStateMetrics(Row, MF, *Loop, Instructions, *LIS, *Packing);
       SmallVector<TrueEdge, 64> Edges =
           buildTrueEdges(*Loop, Instructions, *LIS);
       addDFGMetrics(Row, MF, *Loop, Instructions, Edges);
