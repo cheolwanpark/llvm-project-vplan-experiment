@@ -475,6 +475,8 @@ class LoopVectorizationPlanner {
   /// Profitable vector factors.
   SmallVector<VectorizationFactor, 8> ProfitableVFs;
 
+  bool SimplifySelectedFullEVL = false;
+
   /// A builder used to construct the current plan.
   VPBuilder Builder;
 
@@ -487,6 +489,19 @@ class LoopVectorizationPlanner {
   /// TODO: Move to VPlan::cost once the use of LoopVectorizationLegality has
   /// been retired.
   InstructionCost cost(VPlan &Plan, ElementCount VF) const;
+
+  /// Experimental main-loop ranking; the ordinary cost remains authoritative
+  /// for scalar profitability, epilogues, validity and register pressure.
+  std::optional<double> costTPLCD(VPlan &Plan, ElementCount VF,
+                                  InstructionCost LegacyCost, bool Eligible,
+                                  StringRef ExclusionReason = "",
+                                  unsigned ScalarAddressCount = 0,
+                                  bool OrdinaryPressureExcluded = false) const;
+
+  bool hasFullWidthIterations(ElementCount VF) const;
+
+  SmallPtrSet<const VPValue *, 16>
+  getScalarStridedAddresses(VPlan &Plan, ArrayRef<ElementCount> VFs) const;
 
   /// Precompute costs for certain instructions using the legacy cost model. The
   /// function is used to bring up the VPlan-based cost model to initially avoid

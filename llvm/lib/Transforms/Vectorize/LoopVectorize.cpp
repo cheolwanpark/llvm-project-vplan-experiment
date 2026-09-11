@@ -59,6 +59,7 @@
 #include "VPlan.h"
 #include "VPlanAnalysis.h"
 #include "VPlanCFG.h"
+#include "VPlanCostModel.h"
 #include "VPlanHelpers.h"
 #include "VPlanPatternMatch.h"
 #include "VPlanTransforms.h"
@@ -132,6 +133,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/InstructionCost.h"
+#include "llvm/Support/JSON.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/NativeFormatting.h"
 #include "llvm/Support/raw_ostream.h"
@@ -188,6 +190,27 @@ static cl::opt<unsigned> EpilogueVectorizationMinVF(
 
 /// Loops with a known constant trip count below this number are vectorized only
 /// if no scalar iteration overheads are incurred.
+enum class TPLCDMode { Off, Observe, Rank };
+static cl::opt<TPLCDMode> VPlanTPLCD(
+    "vplan-tp-lcd", cl::Hidden, cl::init(TPLCDMode::Off),
+    cl::desc("Experimental main-loop throughput/recurrence ranking"),
+    cl::values(clEnumValN(TPLCDMode::Off, "off", "Use ordinary VPlan costs"),
+               clEnumValN(TPLCDMode::Observe, "observe",
+                          "Only emit JSON costs"),
+               clEnumValN(TPLCDMode::Rank, "rank", "Rank profitable VFs")));
+
+static cl::opt<bool> VPlanTPLCDFMA(
+    "vplan-tp-lcd-fma", cl::Hidden, cl::init(true),
+    cl::desc(
+        "Account for native FMA contraction in experimental TP/LCD costs"));
+static cl::opt<bool> VPlanTPLCDFullEVL(
+    "vplan-tp-lcd-full-evl", cl::Hidden, cl::init(true),
+    cl::desc("Simplify provably full-width EVL iterations for candidate VFs"));
+static cl::opt<bool> VPlanTPLCDStridedAddresses(
+    "vplan-tp-lcd-strided-addresses", cl::Hidden, cl::init(true),
+    cl::desc(
+        "Count proven native-strided addresses as scalar register values"));
+
 static cl::opt<unsigned> TinyTripCountVectorThreshold(
     "vectorizer-min-trip-count", cl::init(16), cl::Hidden,
     cl::desc("Loops with a constant trip count that is smaller than this "
@@ -7010,6 +7033,324 @@ InstructionCost LoopVectorizationPlanner::cost(VPlan &Plan,
   return Cost;
 }
 
+bool LoopVectorizationPlanner::hasFullWidthIterations(ElementCount VF) const {
+  if (!VPlanTPLCDFullEVL || !VF.isScalable() || Hints.getInterleave() != 1 ||
+      !TTI.isVScaleKnownToBeAPowerOfTwo() ||
+      !Legal->isSafeForAnyVectorWidth() || Legal->hasUncountableEarlyExit() ||
+      OrigLoop->getExitingBlock() != OrigLoop->getLoopLatch())
+    return false;
+  auto MaxVScale = getMaxVScale(*OrigLoop->getHeader()->getParent(), TTI);
+  if (!MaxVScale || !*MaxVScale)
+    return false;
+  // This is a proof for every legal vscale, not the estimated tuning width.
+  uint64_t MaxRuntimeVF =
+      uint64_t(VF.getKnownMinValue()) * bit_floor(*MaxVScale);
+  if (MaxRuntimeVF > UINT32_MAX)
+    return false;
+  const SCEV *BTC = PSE.getBackedgeTakenCount();
+  if (isa<SCEVCouldNotCompute>(BTC))
+    return false;
+  ScalarEvolution &SE = *PSE.getSE();
+  const SCEV *TC = SE.getAddExpr(BTC, SE.getOne(BTC->getType()));
+  TC = SE.applyLoopGuards(TC, OrigLoop);
+  if (!SE.isKnownNonZero(TC))
+    return false;
+  return SE.getURemExpr(TC, SE.getConstant(BTC->getType(), MaxRuntimeVF))
+      ->isZero();
+}
+
+SmallPtrSet<const VPValue *, 16>
+LoopVectorizationPlanner::getScalarStridedAddresses(
+    VPlan &Plan, ArrayRef<ElementCount> VFs) const {
+  SmallPtrSet<const VPValue *, 16> Addresses;
+  if (!VPlanTPLCDStridedAddresses || VPlanTPLCD == TPLCDMode::Off)
+    return Addresses;
+  auto *Region = Plan.getVectorLoopRegion();
+  SmallPtrSet<const VPRecipeBase *, 8> NativeMemory;
+  SmallVector<VPValue *> Worklist;
+  for (VPBasicBlock *BB : VPBlockUtils::blocksOnly<VPBasicBlock>(
+           vp_depth_first_shallow(Region->getEntry()))) {
+    for (VPRecipeBase &R : *BB) {
+      auto *M = dyn_cast<VPWidenMemoryRecipe>(&R);
+      if (!M || M->isConsecutive() || M->isReverse())
+        continue;
+      Value *Ptr = getLoadStorePointerOperand(&M->getIngredient());
+      auto *AR = dyn_cast<SCEVAddRecExpr>(PSE.getSCEV(Ptr));
+      if (!AR || AR->getLoop() != OrigLoop || !AR->isAffine() ||
+          !isa<SCEVConstant>(AR->getStepRecurrence(*PSE.getSE())) ||
+          !all_of(VFs, [&](ElementCount VF) {
+            return VF.isVector() &&
+                   TTI.isLegalStridedLoadStore(
+                       VectorType::get(getLoadStoreType(&M->getIngredient()),
+                                       VF),
+                       M->getAlign());
+          }))
+        continue;
+      NativeMemory.insert(M);
+      Worklist.push_back(M->getAddr());
+    }
+  }
+  // First collect only the restricted integer address expression, stopping at
+  // live-ins, scalar recipes and loaded data. Then prune to a closed set of
+  // exclusively address uses, including cycles through induction recipes.
+  while (!Worklist.empty()) {
+    VPValue *V = Worklist.pop_back_val();
+    auto *R = V->getDefiningRecipe();
+    if (!R || R->getRegion() != Region || Addresses.contains(V))
+      continue;
+    bool IsAddress = isa<VPWidenGEPRecipe, VPWidenInductionRecipe>(R);
+    if (auto *W = dyn_cast<VPWidenRecipe>(R))
+      IsAddress = W->getOpcode() == Instruction::Add ||
+                  W->getOpcode() == Instruction::Sub ||
+                  W->getOpcode() == Instruction::Mul ||
+                  W->getOpcode() == Instruction::Shl;
+    if (auto *C = dyn_cast<VPWidenCastRecipe>(R))
+      IsAddress = C->getOpcode() == Instruction::SExt ||
+                  C->getOpcode() == Instruction::ZExt ||
+                  C->getOpcode() == Instruction::Trunc;
+    if (!IsAddress)
+      continue;
+    Addresses.insert(V);
+    append_range(Worklist, R->operands());
+  }
+  bool Changed;
+  do {
+    Changed = false;
+    SmallVector<const VPValue *> ToRemove;
+    for (const VPValue *V : Addresses) {
+      if (all_of(V->users(), [&](const VPUser *U) {
+            auto *R = cast<VPRecipeBase>(U);
+            if (NativeMemory.contains(R))
+              return cast<VPWidenMemoryRecipe>(R)->getAddr() == V &&
+                     (!isa<VPWidenStoreRecipe, VPWidenStoreEVLRecipe>(R) ||
+                      R->getOperand(1) != V);
+            auto *Def = dyn_cast<VPSingleDefRecipe>(R);
+            return (Def && Addresses.contains(Def)) || U->usesFirstLaneOnly(V);
+          }))
+        continue;
+      ToRemove.push_back(V);
+    }
+    for (const VPValue *V : ToRemove)
+      Changed |= Addresses.erase(V);
+  } while (Changed);
+  return Addresses;
+}
+
+/// Identify identities and invariant operations after proving every iteration
+/// has a full EVL. Only all-true merges using that EVL are identities.
+static SmallSetVector<VPRecipeBase *, 8> getFullEVLRecipes(VPlan &Plan) {
+  SmallSetVector<VPRecipeBase *, 8> Result;
+  for (VPBasicBlock *BB : VPBlockUtils::blocksOnly<VPBasicBlock>(
+           vp_depth_first_shallow(Plan.getVectorLoopRegion()->getEntry()))) {
+    for (VPRecipeBase &R : *BB) {
+      auto *EVL = dyn_cast<VPInstruction>(&R);
+      if (!EVL || EVL->getOpcode() != VPInstruction::ExplicitVectorLength)
+        continue;
+      Result.insert(EVL);
+      for (VPUser *U : EVL->users()) {
+        auto *UR = cast<VPRecipeBase>(U);
+        if (UR->isScalarCast())
+          Result.insert(UR);
+        auto *Merge = dyn_cast<VPWidenIntrinsicRecipe>(UR);
+        if (Merge && Merge->getVectorIntrinsicID() == Intrinsic::vp_merge &&
+            Merge->getOperand(3) == EVL &&
+            match(Merge->getOperand(0), VPlanPatternMatch::m_True()))
+          Result.insert(Merge);
+      }
+    }
+  }
+  return Result;
+}
+
+static void simplifyFullEVL(VPlan &Plan) {
+  auto Recipes = getFullEVLRecipes(Plan);
+  if (Recipes.empty())
+    return;
+  VPBasicBlock *Preheader = Plan.getVectorPreheader();
+  VPBuilder Builder(Preheader, Preheader->end());
+  Type *IVTy = Plan.getVectorLoopRegion()->getCanonicalIVType();
+  VPValue *FullEVL = Builder.createScalarZExtOrTrunc(
+      &Plan.getVF(), Type::getInt32Ty(Plan.getContext()), IVTy,
+      DebugLoc::getCompilerGenerated());
+  for (VPRecipeBase *R : Recipes) {
+    if (auto *Merge = dyn_cast<VPWidenIntrinsicRecipe>(R)) {
+      Merge->replaceAllUsesWith(Merge->getOperand(1));
+    } else if (R->isScalarCast()) {
+      R->moveBefore(*Preheader, Preheader->end());
+      continue;
+    } else {
+      cast<VPInstruction>(R)->replaceAllUsesWith(FullEVL);
+    }
+    R->eraseFromParent();
+  }
+  // The EVL-based counter now advances by exactly VF. Reuse the canonical
+  // counter, and let ordinary dead-recipe cleanup remove the old AVL cycle.
+  // Keeping the EVL-PHI marker would incorrectly request AVL canonicalization
+  // after its application-length calculation has become dead.
+  auto *Header = Plan.getVectorLoopRegion()->getEntryBasicBlock();
+  auto *Canonical = Plan.getVectorLoopRegion()->getCanonicalIV();
+  for (VPRecipeBase &R : make_early_inc_range(Header->phis())) {
+    if (auto *IV = dyn_cast<VPEVLBasedIVPHIRecipe>(&R)) {
+      assert(IV->getStartValue() == Canonical->getStartValue());
+      IV->replaceAllUsesWith(Canonical);
+      IV->eraseFromParent();
+    }
+  }
+  auto *Latch = Plan.getVectorLoopRegion()->getExitingBasicBlock();
+  VPRecipeBase *Term = Latch->getTerminator();
+  VPBuilder(Term).createNaryOp(
+      VPInstruction::BranchOnCount,
+      {Canonical->getBackedgeValue(), &Plan.getVectorTripCount()},
+      Term->getDebugLoc());
+  Term->eraseFromParent();
+}
+
+std::optional<double> LoopVectorizationPlanner::costTPLCD(
+    VPlan &Plan, ElementCount VF, InstructionCost LegacyCost, bool Eligible,
+    StringRef ExclusionReason, unsigned ScalarAddressCount,
+    bool OrdinaryPressureExcluded) const {
+  if (VPlanTPLCD == TPLCDMode::Off || VF.isScalar())
+    return std::nullopt;
+
+  VPTPLCDCost Model;
+  InstructionCost FMASavings = 0;
+  InstructionCost FullEVLSavings = 0;
+  unsigned FMAPairs = 0;
+  bool FullWidth = hasFullWidthIterations(VF);
+  if (CM.CostKind != TTI::TCK_RecipThroughput || CM.OptForSize)
+    Model.FallbackReason = "size optimization retains ordinary costs";
+  else if (!LegacyCost.isValid())
+    Model.FallbackReason = "invalid ordinary cost (including loop skeleton)";
+  else if (ForceTargetInstructionCost.getNumOccurrences())
+    Model.FallbackReason = "forced instruction cost has no latency unit";
+  else if (Plan.hasEarlyExit())
+    Model.FallbackReason = "early exit probabilities unsupported";
+  else if (Hints.getInterleave() != 1)
+    Model.FallbackReason = "experimental ranking requires explicit IC=1";
+  else {
+    VPCostContext TPContext(TTI, *CM.TLI, Plan, CM, TTI::TCK_RecipThroughput,
+                            PSE, OrigLoop);
+    InstructionCost Precomputed = precomputeCosts(Plan, VF, TPContext);
+    Precomputed +=
+        TTI.getCFInstrCost(Instruction::Br, TTI::TCK_RecipThroughput);
+    VPCostContext LatencyContext(TTI, *CM.TLI, Plan, CM, TTI::TCK_Latency, PSE,
+                                 OrigLoop);
+    DenseMap<VPRecipeBase *, VPFusedRecipeCost> FusedCosts;
+    if (VPlanTPLCDFMA)
+      FusedCosts = computeVPlanFusedCosts(Plan, VF, TPContext, LatencyContext);
+    FMAPairs = FusedCosts.size() / 2;
+    SmallSetVector<VPRecipeBase *, 8> FullEVLRecipes;
+    if (FullWidth)
+      FullEVLRecipes = getFullEVLRecipes(Plan);
+    Model = computeVPlanTPLCDCost(
+        Plan, VF, Precomputed,
+        [&](VPRecipeBase &R) {
+          InstructionCost Cost = R.cost(VF, TPContext);
+          if (Cost.isValid() && FullEVLRecipes.contains(&R)) {
+            FullEVLSavings += Cost;
+            return InstructionCost(0);
+          }
+          auto I = FusedCosts.find(&R);
+          if (Cost.isValid() && I != FusedCosts.end()) {
+            FMASavings += Cost - I->second.Throughput;
+            return I->second.Throughput;
+          }
+          return Cost;
+        },
+        [&](VPRecipeBase &R) {
+          if (FullEVLRecipes.contains(&R))
+            return InstructionCost(0);
+          auto I = FusedCosts.find(&R);
+          if (I != FusedCosts.end())
+            return I->second.Latency;
+          return computeVPlanRecipeLatency(R, VF, LatencyContext);
+        });
+
+    // Ordinary VPlan costing already checked the preheader and exit. Its sum
+    // must be partitioned exactly once, with the same precompute/skip policy.
+    if (Model.FallbackReason.empty() && Model.Memory + Model.Compute +
+                                                Model.Other + FMASavings +
+                                                FullEVLSavings !=
+                                            LegacyCost)
+      Model.FallbackReason = "throughput partition differs from ordinary cost";
+
+    // Def-use edges do not express memory recurrences. LAA may omit proven
+    // independent pairs, but a recorded dependence needs an explicit proof.
+    const auto &DC = Legal->getLAI()->getDepChecker();
+    const auto *Deps = DC.getDependences();
+    if (!Deps)
+      Model.FallbackReason = "memory dependence enumeration unavailable";
+    else {
+      for (const auto &D : *Deps) {
+        if (D.Type == MemoryDepChecker::Dependence::NoDep)
+          continue;
+        Instruction *Src = D.getSource(DC), *Dst = D.getDestination(DC);
+        Value *SrcPtr = getLoadStorePointerOperand(Src);
+        Value *DstPtr = getLoadStorePointerOperand(Dst);
+        // A lexically forward access to precisely the same per-iteration
+        // address is independent across vector iterations. Other forward
+        // dependences may still carry a nonzero iteration distance.
+        if (D.Type == MemoryDepChecker::Dependence::Forward && SrcPtr &&
+            DstPtr &&
+            PSE.getSE()->getSCEV(SrcPtr) == PSE.getSE()->getSCEV(DstPtr))
+          continue;
+        Model.FallbackReason = "memory-carried or unresolved dependence";
+        break;
+      }
+    }
+  }
+
+  unsigned RuntimeVF = estimateElementCount(VF, CM.getVScaleForTuning());
+  const Function &F = *OrigLoop->getHeader()->getParent();
+  auto CostJSON = [](InstructionCost C) -> json::Value {
+    return C.isValid() ? json::Value(C.getValue()) : json::Value(nullptr);
+  };
+  std::string Dominant;
+  if (auto *R = Model.Recurrence.Recurrence) {
+    VPSlotTracker Slots(&Plan);
+    if (auto *V = dyn_cast<VPSingleDefRecipe>(R))
+      Dominant = Slots.getOrCreateName(V);
+  }
+  bool Supported = Model.FallbackReason.empty();
+  json::Object Record{
+      {"kind", "candidate"},
+      {"target", F.getParent()->getTargetTriple().str()},
+      {"cpu", F.getFnAttribute("target-cpu").getValueAsString()},
+      {"function", F.getName()},
+      {"loop", OrigLoop->getHeader()->getName()},
+      {"vf", VF.getKnownMinValue()},
+      {"scalable", VF.isScalable()},
+      {"runtime_vf", RuntimeVF},
+      {"legacy_cost", CostJSON(LegacyCost)},
+      {"memory_tp", CostJSON(Model.Memory)},
+      {"compute_tp", CostJSON(Model.Compute)},
+      {"other_tp", CostJSON(Model.Other)},
+      {"memory_recipes", Model.MemoryRecipes},
+      {"compute_recipes", Model.ComputeRecipes},
+      {"other_recipes", Model.OtherRecipes},
+      {"zero_cost_recipes", Model.ZeroCostRecipes},
+      {"fma_pairs", FMAPairs},
+      {"fma_savings_tp", CostJSON(FMASavings)},
+      {"full_width_iterations", FullWidth},
+      {"full_evl_savings_tp", CostJSON(FullEVLSavings)},
+      {"tp",
+       Supported ? json::Value(Model.throughput()) : json::Value(nullptr)},
+      {"lcd",
+       Supported ? json::Value(Model.Recurrence.Cycles) : json::Value(nullptr)},
+      {"dominant_recurrence", Dominant},
+      {"recurrence_distance", Model.Recurrence.Distance},
+      {"final_score", Supported ? json::Value(Model.loopScore() / RuntimeVF)
+                                : json::Value(nullptr)},
+      {"eligible", Eligible},
+      {"exclusion_reason", ExclusionReason},
+      {"scalar_address_register_recipes", ScalarAddressCount},
+      {"ordinary_pressure_excluded", OrdinaryPressureExcluded},
+      {"fallback_reason", Model.FallbackReason}};
+  errs() << "VPLAN-TP-LCD " << json::Value(std::move(Record)) << '\n';
+  return Supported ? std::optional<double>(Model.loopScore() / RuntimeVF)
+                   : std::nullopt;
+}
+
 #ifndef NDEBUG
 /// Return true if the original loop \ TheLoop contains any instructions that do
 /// not have corresponding recipes in \p Plan and are not marked to be ignored
@@ -7152,8 +7493,15 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
     return VectorizationFactor::Disabled();
   // If there is a single VPlan with a single VF, return it directly.
   VPlan &FirstPlan = *VPlans[0];
-  if (VPlans.size() == 1 && size(FirstPlan.vectorFactors()) == 1)
+  if (VPlans.size() == 1 && size(FirstPlan.vectorFactors()) == 1) {
+    ElementCount VF = *FirstPlan.vectorFactors().begin();
+    if (VPlanTPLCD != TPLCDMode::Off && VF.isVector()) {
+      auto Score = costTPLCD(FirstPlan, VF, cost(FirstPlan, VF), true);
+      SimplifySelectedFullEVL =
+          Score && VPlanTPLCD == TPLCDMode::Rank && hasFullWidthIterations(VF);
+    }
     return {*FirstPlan.vectorFactors().begin(), 0, 0};
+  }
 
   LLVM_DEBUG(dbgs() << "LV: Computing best VF using cost kind: "
                     << (CM.CostKind == TTI::TCK_RecipThroughput
@@ -7174,6 +7522,9 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
   LLVM_DEBUG(dbgs() << "LV: Scalar loop costs: " << ScalarCost << ".\n");
   VectorizationFactor ScalarFactor(ScalarVF, ScalarCost, ScalarCost);
   VectorizationFactor BestFactor = ScalarFactor;
+  std::optional<VectorizationFactor> ModelBest;
+  double ModelBestScore = std::numeric_limits<double>::infinity();
+  bool AllEligibleModelsSupported = true;
 
   bool ForceVectorization = Hints.getForce() == LoopVectorizeHints::FK_Enabled;
   if (ForceVectorization) {
@@ -7192,6 +7543,12 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
           return CM.shouldConsiderRegPressureForVF(VF);
         }))
       RUs = calculateRegisterUsageForPlan(*P, VFs, TTI, CM.ValuesToIgnore);
+
+    auto ScalarAddresses = getScalarStridedAddresses(*P, VFs);
+    SmallVector<VPRegisterUsage, 8> ModelRUs;
+    if (!RUs.empty() && !ScalarAddresses.empty())
+      ModelRUs = calculateRegisterUsageForPlan(*P, VFs, TTI, CM.ValuesToIgnore,
+                                               &ScalarAddresses);
 
     for (unsigned I = 0; I < VFs.size(); I++) {
       ElementCount VF = VFs[I];
@@ -7216,18 +7573,48 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
       InstructionCost Cost = cost(*P, VF);
       VectorizationFactor CurrentFactor(VF, Cost, ScalarCost);
 
-      if (CM.shouldConsiderRegPressureForVF(VF) &&
-          RUs[I].exceedsMaxNumRegs(TTI, ForceTargetNumVectorRegs)) {
+      bool PressureExcluded =
+          CM.shouldConsiderRegPressureForVF(VF) &&
+          RUs[I].exceedsMaxNumRegs(TTI, ForceTargetNumVectorRegs);
+      bool ModelPressureExcluded =
+          ModelRUs.empty() ? PressureExcluded
+                           : CM.shouldConsiderRegPressureForVF(VF) &&
+                                 ModelRUs[I].exceedsMaxNumRegs(
+                                     TTI, ForceTargetNumVectorRegs);
+      if (PressureExcluded) {
         LLVM_DEBUG(dbgs() << "LV(REG): Not considering vector loop of width "
                           << VF << " because it uses too many registers\n");
-        continue;
       }
 
-      if (isMoreProfitable(CurrentFactor, BestFactor, P->hasScalarTail()))
+      if (!PressureExcluded &&
+          isMoreProfitable(CurrentFactor, BestFactor, P->hasScalarTail()))
         BestFactor = CurrentFactor;
 
+      // Scalar profitability remains in the ordinary cost units. The model
+      // ranks only eligible vector candidates; downstream costs and epilogue
+      // selection retain those ordinary units as well.
+      bool Profitable =
+          isMoreProfitable(CurrentFactor, ScalarFactor, P->hasScalarTail());
+      bool Eligible = !ModelPressureExcluded && Cost.isValid() &&
+                      (ForceVectorization || Profitable);
+      auto Score = costTPLCD(*P, VF, Cost, Eligible,
+                             ModelPressureExcluded ? "register pressure"
+                             : Eligible ? ""
+                                        : "ordinary scalar profitability",
+                             ScalarAddresses.size(), PressureExcluded);
+      if (Eligible && VPlanTPLCD != TPLCDMode::Off) {
+        AllEligibleModelsSupported &= Score.has_value();
+        if (Score && (*Score < ModelBestScore ||
+                      (*Score == ModelBestScore && ModelBest &&
+                       estimateElementCount(VF, CM.getVScaleForTuning()) <
+                           estimateElementCount(ModelBest->Width,
+                                                CM.getVScaleForTuning())))) {
+          ModelBest = CurrentFactor;
+          ModelBestScore = *Score;
+        }
+      }
       // If profitable add it to ProfitableVF list.
-      if (isMoreProfitable(CurrentFactor, ScalarFactor, P->hasScalarTail()))
+      if (Profitable && !PressureExcluded)
         ProfitableVFs.push_back(CurrentFactor);
     }
   }
@@ -7274,6 +7661,28 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
          "when vectorizing, the scalar cost must be computed.");
 #endif
 
+  // Never mix ordinary and TP/LCD units when any eligible candidate needs a
+  // fallback. The assertions above still verify the ordinary decision.
+  bool UseModel =
+      VPlanTPLCD == TPLCDMode::Rank && ModelBest && AllEligibleModelsSupported;
+  if (UseModel) {
+    BestFactor = *ModelBest;
+    SimplifySelectedFullEVL = hasFullWidthIterations(BestFactor.Width);
+  }
+  if (VPlanTPLCD != TPLCDMode::Off) {
+    json::Object Record{
+        {"kind", "selection"},
+        {"function", OrigLoop->getHeader()->getParent()->getName()},
+        {"loop", OrigLoop->getHeader()->getName()},
+        {"vf", BestFactor.Width.getKnownMinValue()},
+        {"scalable", BestFactor.Width.isScalable()},
+        {"used_model", UseModel},
+        {"fallback_reason",
+         AllEligibleModelsSupported
+             ? ""
+             : "unsupported eligible candidate; ordinary ranking"}};
+    errs() << "VPLAN-TP-LCD " << json::Value(std::move(Record)) << '\n';
+  }
   LLVM_DEBUG(dbgs() << "LV: Selecting VF: " << BestFactor.Width << ".\n");
   return BestFactor;
 }
@@ -7390,6 +7799,10 @@ DenseMap<const SCEV *, Value *> LoopVectorizationPlanner::executePlan(
          "Trying to execute plan with unsupported VF");
   assert(BestVPlan.hasUF(BestUF) &&
          "Trying to execute plan with unsupported UF");
+  // Delay mutation until execution has fixed the main-loop VF/UF. Other VFs
+  // and epilogue selection must continue to see the original shared plan.
+  if (SimplifySelectedFullEVL && !VectorizingEpilogue && BestUF == 1)
+    simplifyFullEVL(BestVPlan);
   if (BestVPlan.hasEarlyExit())
     ++LoopsEarlyExitVectorized;
   // TODO: Move to VPlan transform stage once the transition to the VPlan-based

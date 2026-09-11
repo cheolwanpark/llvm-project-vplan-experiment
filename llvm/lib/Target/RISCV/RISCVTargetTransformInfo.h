@@ -229,6 +229,10 @@ public:
                            VectorType *ValTy, std::optional<FastMathFlags> FMF,
                            TTI::TargetCostKind CostKind) const override;
 
+  InstructionCost
+  getInstructionCost(const User *U, ArrayRef<const Value *> Operands,
+                     TTI::TargetCostKind CostKind) const override;
+
   InstructionCost getMemoryOpCost(
       unsigned Opcode, Type *Src, Align Alignment, unsigned AddressSpace,
       TTI::TargetCostKind CostKind,

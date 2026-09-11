@@ -18,11 +18,130 @@
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/PatternMatch.h"
+#include <limits>
 
 using namespace llvm;
 using namespace VPlanPatternMatch;
 
 #define DEBUG_TYPE "vplan"
+
+VPRecurrenceLatency llvm::computeVPlanRecurrenceLatency(
+    VPlan &Plan, function_ref<InstructionCost(VPRecipeBase &)> GetLatency) {
+  VPRecurrenceLatency Result;
+  auto Fail = [&](StringRef Reason) {
+    Result.FallbackReason = Reason.str();
+    return Result;
+  };
+  VPRegionBlock *Region = Plan.getVectorLoopRegion();
+  if (!Region)
+    return Fail("no-vector-loop-region");
+
+  SmallVector<VPRecipeBase *> Recipes;
+  DenseMap<const VPRecipeBase *, unsigned> Index;
+  for (VPBlockBase *B : vp_depth_first_shallow(Region->getEntry())) {
+    // Replication/control-flow probabilities and nested iteration distances
+    // need a separate model. Do not silently flatten those regions.
+    auto *BB = dyn_cast<VPBasicBlock>(B);
+    if (!BB)
+      return Fail("nested-or-replicated-region");
+    for (VPRecipeBase &R : *BB) {
+      Index[&R] = Recipes.size();
+      Recipes.push_back(&R);
+    }
+  }
+
+  struct Edge {
+    unsigned To;
+    unsigned Distance;
+  };
+  const unsigned N = Recipes.size();
+  SmallVector<SmallVector<Edge, 4>> Successors(N);
+  SmallVector<unsigned> InDegree(N, 0), Roots;
+  SmallVector<double> Latencies;
+  auto AddEdge = [&](unsigned From, unsigned To, unsigned Distance) {
+    Successors[From].push_back({To, Distance});
+    if (!Distance)
+      ++InDegree[To];
+  };
+  auto AddOperand = [&](VPValue *V, unsigned To, unsigned Distance) {
+    auto I = Index.find(V->getDefiningRecipe());
+    if (I != Index.end())
+      AddEdge(I->second, To, Distance);
+  };
+
+  for (unsigned I = 0; I != N; ++I) {
+    VPRecipeBase *R = Recipes[I];
+    InstructionCost Latency = GetLatency(*R);
+    if (!Latency.isValid() || Latency < 0)
+      return Fail("unsupported-or-invalid-recipe-latency");
+    Latencies.push_back(Latency.getValue());
+
+    // Widened inductions synthesize their own backedge; their accessor is
+    // deliberately unreachable. Operand 1 is the step, not the backedge.
+    if (auto *IV = dyn_cast<VPWidenInductionRecipe>(R)) {
+      Roots.push_back(I);
+      AddEdge(I, I, 1);
+      AddOperand(IV->getStepValue(), I, 0);
+      continue;
+    }
+
+    bool IsHeaderPhi = R->getParent() == Region->getEntryBasicBlock() &&
+                       isa<VPHeaderPHIRecipe, VPPhi, VPWidenPHIRecipe>(R);
+    if (IsHeaderPhi) {
+      if (R->getNumOperands() != 2)
+        return Fail("unsupported-header-phi-arity");
+      Roots.push_back(I);
+      AddOperand(R->getOperand(1), I, 1);
+      continue;
+    }
+    for (VPValue *Op : R->operands())
+      AddOperand(Op, I, 0);
+  }
+
+  // A topological order for same-iteration edges. Backedges never participate
+  // here, so mutual PHIs can form distance-two or distance-three recurrences.
+  SmallVector<unsigned> Order;
+  for (unsigned I = 0; I != N; ++I)
+    if (!InDegree[I])
+      Order.push_back(I);
+  for (unsigned I = 0; I != Order.size(); ++I)
+    for (Edge E : Successors[Order[I]])
+      if (!E.Distance && !--InDegree[E.To])
+        Order.push_back(E.To);
+  if (Order.size() != N)
+    return Fail("same-iteration-dependency-cycle");
+
+  constexpr unsigned MaxDistance = 3;
+  const double Unreachable = -std::numeric_limits<double>::infinity();
+  for (unsigned Root : Roots) {
+    SmallVector<double> Times((MaxDistance + 1) * N, Unreachable);
+    Times[Root] = 0;
+    for (unsigned D = 0; D <= MaxDistance; ++D) {
+      for (unsigned I : Order) {
+        double Time = Times[D * N + I];
+        if (Time == Unreachable)
+          continue;
+        for (Edge E : Successors[I]) {
+          if (D + E.Distance > MaxDistance)
+            continue;
+          double &Next = Times[(D + E.Distance) * N + E.To];
+          Next = std::max(Next, Time + Latencies[E.To]);
+        }
+      }
+      // An independent long chain is unreachable from Root. In particular,
+      // a load-fed splice can have a backedge without a closed recurrence.
+      if (D && Times[D * N + Root] != Unreachable) {
+        double Cycles = Times[D * N + Root] / D;
+        if (Cycles > Result.Cycles) {
+          Result.Cycles = Cycles;
+          Result.Recurrence = Recipes[Root];
+          Result.Distance = D;
+        }
+      }
+    }
+  }
+  return Result;
+}
 
 VPTypeAnalysis::VPTypeAnalysis(const VPlan &Plan) : Ctx(Plan.getContext()) {
   if (auto LoopRegion = Plan.getVectorLoopRegion()) {
@@ -400,7 +519,8 @@ bool VPRegisterUsage::exceedsMaxNumRegs(const TargetTransformInfo &TTI,
 
 SmallVector<VPRegisterUsage, 8> llvm::calculateRegisterUsageForPlan(
     VPlan &Plan, ArrayRef<ElementCount> VFs, const TargetTransformInfo &TTI,
-    const SmallPtrSetImpl<const Value *> &ValuesToIgnore) {
+    const SmallPtrSetImpl<const Value *> &ValuesToIgnore,
+    const SmallPtrSetImpl<const VPValue *> *ScalarAddresses) {
   // Each 'key' in the map opens a new interval. The values
   // of the map are the index of the 'last seen' usage of the
   // VPValue that is the key.
@@ -541,6 +661,13 @@ SmallVector<VPRegisterUsage, 8> llvm::calculateRegisterUsageForPlan(
           continue;
 
         if (VFs[J].isScalar() ||
+            (ScalarAddresses && ScalarAddresses->contains(VPV)) ||
+            // An explicit scalar definition stays scalar even if a widened
+            // recipe consumes it. For example, a widened induction consumes
+            // the scalar EVL without reporting a scalar-only use.
+            (ScalarAddresses && isa<VPInstruction>(VPV) &&
+             (cast<VPInstruction>(VPV)->isSingleScalar() ||
+              cast<VPInstruction>(VPV)->isVectorToScalar())) ||
             isa<VPCanonicalIVPHIRecipe, VPReplicateRecipe, VPDerivedIVRecipe,
                 VPEVLBasedIVPHIRecipe, VPScalarIVStepsRecipe>(VPV) ||
             (isa<VPInstruction>(VPV) && vputils::onlyScalarValuesUsed(VPV)) ||

@@ -1155,16 +1155,15 @@ public:
   /// directly by the opcode.
   static unsigned getNumOperandsForOpcode(unsigned Opcode);
 
+  /// Returns true if execution can emit a scalar when only lane zero is used.
+  bool canGenerateScalarForFirstLane() const;
+
 private:
   typedef unsigned char OpcodeTy;
   OpcodeTy Opcode;
 
   /// An optional name that can be used for the generated IR instruction.
   std::string Name;
-
-  /// Returns true if we can generate a scalar for the first lane only if
-  /// needed.
-  bool canGenerateScalarForFirstLane() const;
 
   /// Utility methods serving execute(): generates a single vector instance of
   /// the modeled instruction. \returns the generated value. . In some cases an

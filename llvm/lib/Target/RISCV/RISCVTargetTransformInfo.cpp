@@ -24,6 +24,97 @@ using namespace llvm::PatternMatch;
 
 #define DEBUG_TYPE "riscvtti"
 
+namespace {
+enum class TPLCDProfile { None, XiangShan, Saturn };
+
+static cl::opt<TPLCDProfile> VectorTPLCDProfile(
+    "riscv-tp-lcd-profile", cl::Hidden, cl::init(TPLCDProfile::None),
+    cl::desc("Experimental cycle-like vector costs for TP/LCD ranking"),
+    cl::values(clEnumValN(TPLCDProfile::None, "none",
+                          "Preserve existing costs"),
+               clEnumValN(TPLCDProfile::XiangShan, "xiangshan",
+                          "XiangShan software tuning profile"),
+               clEnumValN(TPLCDProfile::Saturn, "saturn",
+                          "Unvalidated Saturn software tuning profile")));
+
+// Explicit, independent software profiles, not hardware descriptions or
+// absolute-cycle predictions. XiangShan uses report-based relative calibration;
+// Saturn retains the unvalidated initial assumptions.
+struct VectorTPLCDTuning {
+  unsigned BeatBits;
+  unsigned LatencyStartup;
+  unsigned MemoryBeatBits;
+  unsigned SlideStartup;
+  unsigned SlideQuadraticCost;
+  bool DataIndexStartup;
+};
+
+static cl::opt<unsigned> TPLCDMemoryBeatBits(
+    "riscv-tp-lcd-memory-beat-bits", cl::Hidden, cl::init(0),
+    cl::desc(
+        "Override experimental profile memory beat width (0 uses profile)"));
+static cl::opt<unsigned>
+    TPLCDSlideStartup("riscv-tp-lcd-slide-startup", cl::Hidden, cl::init(0),
+                      cl::desc("Override experimental slide startup cost"));
+static cl::opt<unsigned> TPLCDSlideQuadraticCost(
+    "riscv-tp-lcd-slide-quadratic-cost", cl::Hidden, cl::init(0),
+    cl::desc(
+        "Experimental slide cost per squared reference beat (0 is linear)"));
+static cl::opt<unsigned> TPLCDLatencyStartup(
+    "riscv-tp-lcd-latency-startup", cl::Hidden, cl::init(0),
+    cl::desc("Override experimental vector dependency latency startup"));
+static cl::opt<bool> TPLCDDataIndexStartup(
+    "riscv-tp-lcd-data-index-startup", cl::Hidden, cl::init(false),
+    cl::desc("Include startup for memory with a data-loaded GEP index"));
+
+static unsigned getTPLCDLatencyStartup(const VectorTPLCDTuning &Tune) {
+  return TPLCDLatencyStartup.getNumOccurrences() ? TPLCDLatencyStartup
+                                                 : Tune.LatencyStartup;
+}
+
+static const VectorTPLCDTuning *getTPLCDTuning() {
+  static constexpr VectorTPLCDTuning XiangShan{128, 5, 256, 8, 3, true};
+  static constexpr VectorTPLCDTuning Saturn{128, 3, 128, 0, 0, false};
+  switch (VectorTPLCDProfile) {
+  case TPLCDProfile::None:
+    return nullptr;
+  case TPLCDProfile::XiangShan:
+    return &XiangShan;
+  case TPLCDProfile::Saturn:
+    return &Saturn;
+  }
+  llvm_unreachable("invalid TP/LCD profile");
+}
+
+static InstructionCost getTPLCDPrimitiveCost(const VectorTPLCDTuning &Tune,
+                                             MVT VT, unsigned VScale,
+                                             TTI::TargetCostKind Kind,
+                                             bool IsMemory = false,
+                                             bool IsSlide = false) {
+  uint64_t Bits = VT.getSizeInBits().getKnownMinValue();
+  if (VT.isScalableVector())
+    Bits *= VScale;
+  unsigned BeatBits = IsMemory ? (TPLCDMemoryBeatBits ? TPLCDMemoryBeatBits
+                                                      : Tune.MemoryBeatBits)
+                               : Tune.BeatBits;
+  uint64_t Beats = divideCeil(Bits, BeatBits);
+  unsigned Quadratic = TPLCDSlideQuadraticCost.getNumOccurrences()
+                           ? TPLCDSlideQuadraticCost
+                           : Tune.SlideQuadraticCost;
+  if (IsSlide && Quadratic) {
+    unsigned ReferenceBits =
+        TPLCDMemoryBeatBits ? TPLCDMemoryBeatBits : Tune.MemoryBeatBits;
+    Beats = divideCeil(Bits, ReferenceBits);
+    unsigned Startup = TPLCDSlideStartup.getNumOccurrences()
+                           ? TPLCDSlideStartup
+                           : Tune.SlideStartup;
+    return Startup + Beats * Beats * Quadratic +
+           (Kind == TTI::TCK_Latency ? getTPLCDLatencyStartup(Tune) : 0);
+  }
+  return Beats + (Kind == TTI::TCK_Latency ? getTPLCDLatencyStartup(Tune) : 0);
+}
+} // namespace
+
 static cl::opt<unsigned> RVVRegisterWidthLMUL(
     "riscv-v-register-bit-width-lmul",
     cl::desc(
@@ -58,6 +149,26 @@ RISCVTTIImpl::getRISCVInstructionCost(ArrayRef<unsigned> OpCodes, MVT VT,
     return LMULCost * NumInstr;
   InstructionCost Cost = 0;
   for (auto Op : OpCodes) {
+    if (const auto *Tune = getTPLCDTuning()) {
+      switch (Op) {
+      case RISCV::VFADD_VV:
+      case RISCV::VFMUL_VV:
+      case RISCV::VFMADD_VV:
+        Cost += getTPLCDPrimitiveCost(
+            *Tune, VT, getVScaleForTuning().value_or(1), CostKind);
+        continue;
+      case RISCV::VSLIDEUP_VI:
+      case RISCV::VSLIDEDOWN_VI:
+      case RISCV::VSLIDEUP_VX:
+      case RISCV::VSLIDEDOWN_VX:
+        Cost += getTPLCDPrimitiveCost(
+            *Tune, VT, getVScaleForTuning().value_or(1), CostKind,
+            /*IsMemory=*/false, /*IsSlide=*/true);
+        continue;
+      default:
+        break;
+      }
+    }
     switch (Op) {
     case RISCV::VRGATHER_VI:
       Cost += TLI->getVRGatherVICost(VT);
@@ -1065,14 +1176,17 @@ RISCVTTIImpl::getMemIntrinsicInstrCost(const MemIntrinsicCostAttributes &MICA,
 InstructionCost
 RISCVTTIImpl::getMaskedMemoryOpCost(const MemIntrinsicCostAttributes &MICA,
                                     TTI::TargetCostKind CostKind) const {
-  unsigned Opcode = MICA.getID() == Intrinsic::masked_load ? Instruction::Load
-                                                           : Instruction::Store;
+  unsigned Opcode = MICA.getID() == Intrinsic::masked_load ||
+                            MICA.getID() == Intrinsic::vp_load
+                        ? Instruction::Load
+                        : Instruction::Store;
   Type *Src = MICA.getDataType();
   Align Alignment = MICA.getAlignment();
   unsigned AddressSpace = MICA.getAddressSpace();
 
   if (!isLegalMaskedLoadStore(Src, Alignment) ||
-      CostKind != TTI::TCK_RecipThroughput)
+      (CostKind != TTI::TCK_RecipThroughput &&
+       !(getTPLCDTuning() && CostKind == TTI::TCK_Latency)))
     return BaseT::getMemIntrinsicInstrCost(MICA, CostKind);
 
   return getMemoryOpCost(Opcode, Src, Alignment, AddressSpace, CostKind);
@@ -1184,7 +1298,9 @@ RISCVTTIImpl::getGatherScatterOpCost(const MemIntrinsicCostAttributes &MICA,
   unsigned Opcode = IsLoad ? Instruction::Load : Instruction::Store;
   Type *DataTy = MICA.getDataType();
   Align Alignment = MICA.getAlignment();
-  if (CostKind != TTI::TCK_RecipThroughput)
+  const auto *Tune = getTPLCDTuning();
+  if (CostKind != TTI::TCK_RecipThroughput &&
+      !(Tune && CostKind == TTI::TCK_Latency))
     return BaseT::getMemIntrinsicInstrCost(MICA, CostKind);
 
   if ((Opcode == Instruction::Load &&
@@ -1198,6 +1314,23 @@ RISCVTTIImpl::getGatherScatterOpCost(const MemIntrinsicCostAttributes &MICA,
   // know exactly what VL will be.
   auto &VTy = *cast<VectorType>(DataTy);
   unsigned NumLoads = getEstimatedVLFor(&VTy);
+  bool HasLoadedIndex = false;
+  if (Tune &&
+      (TPLCDDataIndexStartup.getNumOccurrences() ? TPLCDDataIndexStartup
+                                                 : Tune->DataIndexStartup)) {
+    if (auto *GEP = dyn_cast_or_null<GEPOperator>(MICA.getPointer())) {
+      for (const Value *Index : GEP->indices()) {
+        while (auto *Cast = dyn_cast<CastInst>(Index)) {
+          if (!Cast->isIntegerCast())
+            break;
+          Index = Cast->getOperand(0);
+        }
+        HasLoadedIndex |= isa<LoadInst>(Index);
+      }
+    }
+  }
+  if (Tune && (CostKind == TTI::TCK_Latency || HasLoadedIndex))
+    return getTPLCDLatencyStartup(*Tune) + NumLoads * TTI::TCC_Basic;
   return NumLoads * TTI::TCC_Basic;
 }
 
@@ -2195,6 +2328,21 @@ RISCVTTIImpl::getStoreImmCost(Type *Ty, TTI::OperandValueInfo OpInfo,
   return getConstantPoolLoadCost(Ty, CostKind);
 }
 
+InstructionCost
+RISCVTTIImpl::getInstructionCost(const User *U,
+                                 ArrayRef<const Value *> Operands,
+                                 TTI::TargetCostKind CostKind) const {
+  // The generic instruction dispatcher returns a constant load latency before
+  // reaching getMemoryOpCost. Keep experimental primitive and instruction
+  // queries in the same units, without changing the default dispatcher.
+  if (getTPLCDTuning() && CostKind == TTI::TCK_Latency)
+    if (auto *LI = dyn_cast<LoadInst>(U); LI && LI->getType()->isVectorTy())
+      return getMemoryOpCost(Instruction::Load, LI->getType(), LI->getAlign(),
+                             LI->getPointerAddressSpace(), CostKind,
+                             {TTI::OK_AnyValue, TTI::OP_None}, LI);
+  return BaseT::getInstructionCost(U, Operands, CostKind);
+}
+
 InstructionCost RISCVTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
                                               Align Alignment,
                                               unsigned AddressSpace,
@@ -2212,6 +2360,14 @@ InstructionCost RISCVTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
     Cost += getStoreImmCost(Src, OpInfo, CostKind);
 
   std::pair<InstructionCost, MVT> LT = getTypeLegalizationCost(Src);
+
+  if (const auto *Tune = getTPLCDTuning();
+      Tune && Src->isVectorTy() && LT.second.isVector() &&
+      (CostKind == TTI::TCK_RecipThroughput || CostKind == TTI::TCK_Latency))
+    return Cost + LT.first * getTPLCDPrimitiveCost(
+                                 *Tune, LT.second,
+                                 getVScaleForTuning().value_or(1), CostKind,
+                                 /*IsMemory=*/true);
 
   InstructionCost BaseCost = [&]() {
     InstructionCost Cost = LT.first;
@@ -2591,8 +2747,12 @@ InstructionCost RISCVTTIImpl::getArithmeticInstrCost(
     TTI::OperandValueInfo Op1Info, TTI::OperandValueInfo Op2Info,
     ArrayRef<const Value *> Args, const Instruction *CxtI) const {
 
-  // TODO: Handle more cost kinds.
-  if (CostKind != TTI::TCK_RecipThroughput)
+  bool TunedFP = getTPLCDTuning() && Ty->isFPOrFPVectorTy() &&
+                 (Opcode == Instruction::FAdd || Opcode == Instruction::FSub ||
+                  Opcode == Instruction::FMul);
+  // Other operations retain their existing fallback for non-throughput kinds.
+  if (CostKind != TTI::TCK_RecipThroughput &&
+      !(TunedFP && CostKind == TTI::TCK_Latency))
     return BaseT::getArithmeticInstrCost(Opcode, Ty, CostKind, Op1Info, Op2Info,
                                          Args, CxtI);
 
@@ -2710,7 +2870,7 @@ InstructionCost RISCVTTIImpl::getArithmeticInstrCost(
   // We use BasicTTIImpl to calculate scalar costs, which assumes floating point
   // ops are twice as expensive as integer ops. Do the same for vectors so
   // scalar floating point ops aren't cheaper than their vector equivalents.
-  if (Ty->isFPOrFPVectorTy())
+  if (Ty->isFPOrFPVectorTy() && !TunedFP)
     InstrCost *= 2;
   return CastCost + ConstantMatCost + LT.first * InstrCost;
 }

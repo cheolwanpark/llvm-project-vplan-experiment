@@ -12,7 +12,10 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/STLFunctionalExtras.h"
 #include "llvm/IR/Type.h"
+#include "llvm/Support/InstructionCost.h"
+#include <string>
 
 namespace llvm {
 
@@ -69,6 +72,24 @@ public:
 void collectEphemeralRecipesForVPlan(VPlan &Plan,
                                      DenseSet<VPRecipeBase *> &EphRecipes);
 
+/// Result of the bounded, closed-recurrence latency analysis. An unsupported
+/// graph or invalid latency has an explicit reason, rather than a zero LCD.
+struct VPRecurrenceLatency {
+  double Cycles = 0;
+  const VPRecipeBase *Recurrence = nullptr;
+  unsigned Distance = 0;
+  std::string FallbackReason;
+};
+
+/// Analyze def-use and header backedges without modifying or cloning the plan.
+/// Latency is an operand-to-result approximation; for a widened induction it
+/// must describe its implicit update. Only paths returning to the same header
+/// value, at distances 1..3, constrain the result. Longer cycles can be missed.
+/// Memory-carried dependencies are not represented: the caller must check
+/// their support independently, using loop-access analysis.
+LLVM_ABI_FOR_TEST VPRecurrenceLatency computeVPlanRecurrenceLatency(
+    VPlan &Plan, function_ref<InstructionCost(VPRecipeBase &)> GetLatency);
+
 /// A struct that represents some properties of the register usage
 /// of a loop.
 struct VPRegisterUsage {
@@ -90,9 +111,13 @@ struct VPRegisterUsage {
 /// by calculating the highest number of values that are live at a single
 /// location as a rough estimate. Returns the register usage for each VF in \p
 /// VFs.
+/// When ScalarAddresses is provided, count those proven address values and
+/// explicitly scalar VPInstruction definitions as scalar register values.
+/// The default path preserves the ordinary register-pressure estimate.
 SmallVector<VPRegisterUsage, 8> calculateRegisterUsageForPlan(
     VPlan &Plan, ArrayRef<ElementCount> VFs, const TargetTransformInfo &TTI,
-    const SmallPtrSetImpl<const Value *> &ValuesToIgnore);
+    const SmallPtrSetImpl<const Value *> &ValuesToIgnore,
+    const SmallPtrSetImpl<const VPValue *> *ScalarAddresses = nullptr);
 
 } // end namespace llvm
 
