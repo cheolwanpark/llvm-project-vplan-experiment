@@ -1,0 +1,22 @@
+{
+  "compiler": "/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin/clang-22",
+  "compiler_sha256": "e409371f82f976695e509a47be830e7762685ab8c33a43918ba7bd54a0e3d20e",
+  "compiler_version": "clang version 22.1.8 (https://github.com/llvm/llvm-project.git ca7933e47d3a3451d81e72ac174dcb5aa28b59d1)\nTarget: unknown\nThread model: posix\nInstalledDir: /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin\nBuild config: +assertions\n",
+  "start_sha": "ca7933e47d3a3451d81e72ac174dcb5aa28b59d1",
+  "diff_sha256": "73ce7f2bdff3e9c23cc512087ca5f2bab97f1d914b5b22f43735fc83fd2e7169",
+  "new_source_sha256": {
+    "llvm/lib/Transforms/Vectorize/VPlanCostModel.h": "819481e620aa0732f07848603175fa1921da55ffc59c695329489975fd6eecd3",
+    "llvm/lib/Transforms/Vectorize/VPlanCostModel.cpp": "7b7fd722986698377be8b346bb372158103dd37d146e1ce0f53c828b5ddc6009"
+  },
+  "profile": "saturn",
+  "model": "rank",
+  "extra_llvm": [],
+  "scores_only": false,
+  "validation_informed": true,
+  "collector_sha256": "29c873b4b43a6136fdcbfd9b8e3457a081305874dc480912cfe57dbddbfe6bed",
+  "evaluation_policy_sha256": "b5a1ba4ce800f21c8afdf78b5670e9a8a94d1e5ee2e16d4f59b857e6fb9199c0",
+  "measurements_sha256": "d52dd2b5c489ea1bbf7aef3f33052694521fc7952d83342331a0af6548b45b3c",
+  "baseline_provenance_sha256": "3cda634e963057a69522ed0fd126ddd98887aafaf52f59dce65c071bc1e35056",
+  "measurement": "none; Saturn software coverage only",
+  "saturn": "software profile only; hardware and measurements unknown"
+}

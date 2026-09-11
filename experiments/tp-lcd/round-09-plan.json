@@ -1,0 +1,12 @@
+{
+  "round":9,
+  "status":"planned before implementation",
+  "validation_informed":true,
+  "parent":"round-08-data-index",
+  "problem":"Current computeMaxVF chooses tail policy from the largest candidate, as its source FIXME acknowledges. Thus automatic VF4 retains EVL/merge overhead even when the trip count is divisible by every legal runtime VF4; forced VF4 already proves no tail. This is a concrete candidate/code-shape mismatch, not a new hardware fitting parameter.",
+  "change":"When scalar evolution proves the trip count is a multiple of candidate VF times the architectural/function maximum power-of-two vscale, with IC1 and no bounded memory dependence or early exit, recognize full-width EVL iterations. Cost full-width all-true vp.merge as identity, hoist invariant EVL/casts, and perform the same semantic simplification on the actually selected plan. No VPlan cloning or code-generation unrolling, and no use of tuning vscale2 as an exact width.",
+  "scope":"Explicit experimental flag; off/observe modes preserve code. Larger candidates and unknown/nonmultiple trip counts keep EVL. Register pressure remains unchanged in this round.",
+  "new_numeric_parameters":0,
+  "expected_audit":"Check whole-suite selection and generated code, including possible scalar/pressure tradeoffs. Actual s1111 VF16 is currently pressure-excluded despite its pristine forced assembly having no spills; any follow-up pressure change needs its own proof and negative tests. Do not bypass pressure to improve metrics.",
+  "evaluation":"On/off full-suite compiler records and negative proof tests; retain regressions. New code is unmeasured and must be compared against same-VF forced artifacts."
+}

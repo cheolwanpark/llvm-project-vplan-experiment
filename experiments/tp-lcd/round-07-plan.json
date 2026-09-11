@@ -1,0 +1,14 @@
+{
+  "round":7,
+  "status":"planned before rule changes",
+  "validation_informed":true,
+  "parent":"round-06-latency-best-full",
+  "retained_latency_startup":5,
+  "residual":"s4112's indexed memory scaling is still too flat (VF4/VF2 .77273 vs .59483, VF8/VF2 .75 vs .56330). Existing indexed throughput is pure per-lane cost and has no fixed initiation component; both gather and scatter must be re-evaluated, including s1111 strided-store lowering.",
+  "hypothesis":"Add the already selected common startup to non-contiguous memory throughput, retaining existing per-lane/access-address costs. This is an explicit software hypothesis; it is not a measured physical latency/throughput equality. It uses no new numerical parameter and does not model vsetvli or spill cost.",
+  "search":{"indexed_startup":[false,true]},
+  "fixed":{"memory_beat_bits":256,"fp_beat_bits":128,"slide_startup":8,"slide_quadratic_cost":3,"latency_startup":5,"fma_accounting":true},
+  "new_numeric_parameters":0,
+  "selection_policy":"Retain only if overall core relative error improves without losing ranking/regret targets or additional-group quality. Report actual selection/code-shape differences. Do not optimize the tiny P90 boundary in isolation.",
+  "evaluation":"Full suite scoring plus IR/allocator/assembly/workaround artifacts. No new measurements."
+}

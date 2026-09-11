@@ -1,0 +1,25 @@
+{
+  "compiler": "/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin/clang-22",
+  "compiler_sha256": "5c2a123ab9238756ad1a240348008b6ac33e9caf589c8cd0f74f6bf46cb80623",
+  "compiler_version": "clang version 22.1.8 (https://github.com/llvm/llvm-project.git ca7933e47d3a3451d81e72ac174dcb5aa28b59d1)\nTarget: unknown\nThread model: posix\nInstalledDir: /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin\nBuild config: +assertions\n",
+  "start_sha": "ca7933e47d3a3451d81e72ac174dcb5aa28b59d1",
+  "diff_sha256": "182dc8229ec902170902f1c45fa6e5ecfad5af751f81ffaa191385ad9cece77f",
+  "new_source_sha256": {
+    "llvm/lib/Transforms/Vectorize/VPlanCostModel.h": "40ef8ba651fbcd0de579c9c8769bdbbcbe954848af3bcc6f813262bc41a1950d",
+    "llvm/lib/Transforms/Vectorize/VPlanCostModel.cpp": "b31d2a6af9fb496fae269f596d266b809f2e636b1c3c894cef4237570b4ce6e5"
+  },
+  "profile": "xiangshan",
+  "model": "rank",
+  "extra_llvm": [
+    "-riscv-tp-lcd-memory-beat-bits=256",
+    "-riscv-tp-lcd-slide-startup=8",
+    "-riscv-tp-lcd-slide-quadratic-cost=3",
+    "-riscv-tp-lcd-latency-startup=5",
+    "-riscv-tp-lcd-data-index-startup=true"
+  ],
+  "scores_only": false,
+  "validation_informed": true,
+  "baseline_provenance_sha256": "3cda634e963057a69522ed0fd126ddd98887aafaf52f59dce65c071bc1e35056",
+  "measurement": "none; historical XiangShan calibration only",
+  "saturn": "software profile only; hardware and measurements unknown"
+}

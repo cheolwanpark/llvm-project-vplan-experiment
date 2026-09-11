@@ -1,0 +1,47 @@
+{
+  "status": "parameters frozen after round11, before final recollection",
+  "validation_informed": true,
+  "best_round": "round-11-scalar-evl",
+  "profiles": {
+    "xiangshan": {
+      "fp_beat_bits": 128,
+      "latency_startup": 5,
+      "memory_beat_bits": 256,
+      "slide_startup": 8,
+      "slide_quadratic_cost": 3,
+      "data_index_startup": true
+    },
+    "saturn": {
+      "fp_beat_bits": 128,
+      "latency_startup": 3,
+      "memory_beat_bits": 128,
+      "slide_startup": 0,
+      "slide_quadratic_cost": 0,
+      "data_index_startup": false
+    }
+  },
+  "numeric_fields_per_profile": 5,
+  "tuned_numeric_fields": 4,
+  "held_fixed_numeric_fields": [
+    "fp_beat_bits"
+  ],
+  "rules": [
+    "single-use contractable native FMA",
+    "full EVL proof using maximum legal vscale",
+    "affine exclusive strided address GPR accounting with explicit scalar EVL"
+  ],
+  "default_model": "off",
+  "default_profile": "none",
+  "enabled_model_defaults": {
+    "fma": true,
+    "full_evl": true,
+    "strided_addresses": true
+  },
+  "constraints": [
+    "report-only historical calibration",
+    "new binary unmeasured",
+    "Saturn software only",
+    "minimum VLEN128, no exact VLEN assumption"
+  ],
+  "final_validation": "All 36 forced + 9 expanded compiler outputs, Saturn software coverage, model ablations, full artifacts, regression tests. No further parameter tuning."
+}

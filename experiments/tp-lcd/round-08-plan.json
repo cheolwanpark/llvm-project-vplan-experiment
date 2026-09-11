@@ -1,0 +1,13 @@
+{
+  "round":8,
+  "status":"planned before rule changes",
+  "validation_informed":true,
+  "parent":"round-06-latency-best-full",
+  "rejected_trial":"round-07-indexed-startup",
+  "hypothesis":"Distinguish a data-loaded GEP index (possibly through integer casts) from affine induction indices, using original IR passed through existing MemIntrinsicCostAttributes. Apply the existing startup only to that proven data-indexed memory operation. This targets the documented common indexed-memory residual without penalizing affine strided stores. It is a software cost hypothesis, not hardware evidence.",
+  "rule_scope":"GEP index directly defined by a load after stripping integer casts; other forms keep existing cost. Applies to either loads or stores. No kernel/function/source names, new scalar evolution analysis, or new TTI API.",
+  "new_numeric_parameters":0,
+  "fixed":{"memory_beat_bits":256,"fp_beat_bits":128,"slide_startup":8,"slide_quadratic_cost":3,"latency_startup":5,"fma_accounting":true},
+  "evaluation":"Full suite with rule on/off; verify off matches retained round06 scores, keep code-shape comparisons, and report actual automatic limitation separately. No new cycles.",
+  "correctness_audit":"Also tighten scalar classification to recipe execution capability rather than merely first-lane uses; use data-layout pointer widths in latency helper. These must have no effect on the existing suite, checked by the off ablation."
+}

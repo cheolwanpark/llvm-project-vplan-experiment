@@ -1,0 +1,62 @@
+{
+  "kernel": "gesummv-l00",
+  "mode": 2,
+  "vf": 2,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "3f39e71b9a63918941a95b14fc855a2c94d7d4f1457596dac63198952ee3f6d3",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vl1re32.v": 3,
+          "vfmacc.vv": 2,
+          "add": 3,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvl1re32.v\tv10, (a4)\n\tvl1re32.v\tv11, (a2)\n\tvl1re32.v\tv12, (a1)\n\tvfmacc.vv\tv9, v11, v10\n\tadd\ta1, a1, a0\n\tadd\ta2, a2, a0\n\tvfmacc.vv\tv8, v12, v11\n\tadd\ta4, a4, a0\n\tbne\ta1, a3, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m1"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 4,
+      "compute_tp": 2,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "ir<%y.021>",
+      "eligible": true,
+      "exclusion_reason": "",
+      "fallback_reason": "",
+      "final_score": 1.5,
+      "fma_pairs": 2,
+      "fma_savings_tp": 2,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 6,
+      "legacy_cost": 9,
+      "loop": "for.body",
+      "memory_recipes": 3,
+      "memory_tp": 3,
+      "other_recipes": 12,
+      "other_tp": 2,
+      "recurrence_distance": 1,
+      "runtime_vf": 4,
+      "scalable": true,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 5,
+      "vf": 2,
+      "zero_cost_recipes": 14
+    }
+  ],
+  "workaround_applied": 2,
+  "scheduled_extractions_moved": 2,
+  "allocation_dump_present": true
+}

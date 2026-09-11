@@ -1,0 +1,60 @@
+{
+  "kernel": "s125",
+  "mode": 16,
+  "vf": 16,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "9258cca9b4ba182ece4faf82893cf2fb61aae04c2b7ed6438f54a60663e6a0cf",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vsetvli": 1,
+          "sh2add": 4,
+          "vle32.v": 3,
+          "sub": 1,
+          "vfmadd.vv": 1,
+          "vse32.v": 1,
+          "add": 1,
+          "bnez": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvsetvli\ta2, a1, e32, m8, ta, ma\n\tsh2add\ta3, a0, a6\n\tvle32.v\tv8, (a3)\n\tsh2add\ta3, a0, a7\n\tvle32.v\tv16, (a3)\n\tsh2add\ta3, a0, a5\n\tvle32.v\tv24, (a3)\n\tsh2add\ta3, a0, a4\n\tsub\ta1, a1, a2\n\tvfmadd.vv\tv24, v16, v8\n\tvse32.v\tv24, (a3)\n\tadd\ta0, a0, a2\n\tbnez\ta1, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m8"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 2,
+      "compute_tp": 16,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "vp<%avl>",
+      "eligible": true,
+      "fallback_reason": "",
+      "final_score": 1.09375,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 3,
+      "legacy_cost": 51,
+      "loop": "for.body",
+      "memory_recipes": 4,
+      "memory_tp": 32,
+      "other_recipes": 18,
+      "other_tp": 3,
+      "recurrence_distance": 1,
+      "runtime_vf": 32,
+      "scalable": true,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 35,
+      "vf": 16,
+      "zero_cost_recipes": 17
+    }
+  ]
+}

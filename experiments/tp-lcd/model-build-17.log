@@ -1,0 +1,5 @@
+[1/5] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanAnalysis.cpp.o
+[2/5] Linking CXX static library lib/libLLVMVectorize.a
+[3/5] Linking CXX executable bin/clang-22
+[4/5] Creating executable symlink bin/clang
+[5/5] Linking CXX executable bin/opt

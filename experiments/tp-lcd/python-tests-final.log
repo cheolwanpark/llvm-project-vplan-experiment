@@ -1,0 +1,22 @@
+test_hot_loop_excludes_exit_reduction (test_collect_baseline.BaselineParserTests.test_hot_loop_excludes_exit_reduction) ... ok
+test_invalid_cost_preserved (test_collect_baseline.BaselineParserTests.test_invalid_cost_preserved) ... ok
+test_repeated_cost_or_multiple_loops_rejected (test_collect_baseline.BaselineParserTests.test_repeated_cost_or_multiple_loops_rejected) ... ok
+test_select_function_and_single_cost_evaluation (test_collect_baseline.BaselineParserTests.test_select_function_and_single_cost_evaluation) ... ok
+test_duplicate_candidate_rejected (test_evaluate.EvaluationTests.test_duplicate_candidate_rejected) ... ok
+test_interpolated_p90 (test_evaluate.EvaluationTests.test_interpolated_p90) ... ok
+test_missing_candidate_invalidates_aggregate (test_evaluate.EvaluationTests.test_missing_candidate_invalidates_aggregate) ... ok
+test_missing_measurement_and_invalid_cost (test_evaluate.EvaluationTests.test_missing_measurement_and_invalid_cost) ... ok
+test_near_tie_excluded_only_from_primary_ranking (test_evaluate.EvaluationTests.test_near_tie_excluded_only_from_primary_ranking) ... ok
+test_outside_actual_selection_and_distinct_argmin (test_evaluate.EvaluationTests.test_outside_actual_selection_and_distinct_argmin) ... ok
+test_perfect_and_useful_denominator (test_evaluate.EvaluationTests.test_perfect_and_useful_denominator) ... ok
+test_predicted_tie_is_wrong_and_selects_small_vf (test_evaluate.EvaluationTests.test_predicted_tie_is_wrong_and_selects_small_vf) ... ok
+test_saturn_cannot_reuse_xiangshan_measurements (test_evaluate.EvaluationTests.test_saturn_cannot_reuse_xiangshan_measurements) ... ok
+test_zero_lcd_scale_is_undefined (test_evaluate.EvaluationTests.test_zero_lcd_scale_is_undefined) ... ok
+test_control_and_vector_state_hazards_rejected (test_workaround_adapter.WorkaroundAdapterTests.test_control_and_vector_state_hazards_rejected) ... ok
+test_fp_register_hazard_rejected (test_workaround_adapter.WorkaroundAdapterTests.test_fp_register_hazard_rejected) ... ok
+test_two_scheduled_independent_extractions (test_workaround_adapter.WorkaroundAdapterTests.test_two_scheduled_independent_extractions) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.006s
+
+OK

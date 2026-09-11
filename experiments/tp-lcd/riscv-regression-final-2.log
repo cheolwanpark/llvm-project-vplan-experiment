@@ -1,0 +1,247 @@
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find lli in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-objcopy in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-strip in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-install-name-tool in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-bitcode-strip in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find split-file in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find dsymutil in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find lli in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find lli-child-target in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-ar in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-addr2line in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-bcanalyzer in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-bitcode-strip in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cas in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cgdata in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cov in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-ctxprof-util in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cxxdump in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cvtres in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-debuginfod-find in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-debuginfo-analyzer in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-diff in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-dwarfdump in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-dwarfutil in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-dwp in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-dlltool in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-exegesis in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-extract in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-ir2vec in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-isel-fuzzer in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-ifs in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-install-name-tool in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-jitlink in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-opt-fuzzer in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-lib in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-lto in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-lto2 in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-mc in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-mca in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-modextract in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-nm in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-objcopy in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-objdump in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-otool in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-pdbutil in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-profdata in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-profgen in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-ranlib in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-rc in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-readelf in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-rtdyld in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-sim in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-size in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-split in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-stress in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-strings in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-strip in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-readtapi in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-undname in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-windres in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-c-test in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cxxfilt in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-xray in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find yaml2obj in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find obj2yaml in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find yaml-bench in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find verify-uselistorder in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find bugpoint in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-symbolizer in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find sancov in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find sanstats in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-remarkutil in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+-- Testing: 169 tests, 8 workers --
+PASS: LLVM :: Analysis/CostModel/RISCV/arith-int.ll (1 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/cast-half.ll (2 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/cast-sat.ll (3 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tp-lcd-ranking.ll (4 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/arith-fp.ll (5 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/fround.ll (6 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-and-i1.ll (7 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tp-lcd-full-evl.ll (8 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-reduction.ll (9 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/reg-usage.ll (10 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-insertelement.ll (11 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/tp-lcd-profile.ll (12 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/strided-accesses.ll (13 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-shuffle.ll (14 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/shuffle-permute.ll (15 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-extractelement.ll (16 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/interleaved-accesses.ll (17 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/partial-reduce-dot-product.ll (18 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/veclib-function-calls.ll (19 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/shuffle-exact-vlen.ll (20 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/lmul.ll (21 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/scalable-gather.ll (22 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/vp-intrinsics.ll (23 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/scalable-scatter.ll (24 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/splice.ll (25 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-bin-unary-ops-args.ll (26 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-intermediate-store.ll (27 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/bf16.ll (28 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-cond-reduction.ll (29 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-inloop-reduction.ll (30 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/vplan-vp-intrinsics-reduction.ll (31 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/shuffle-broadcast.ll (32 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/riscv-vector-reverse.ll (33 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-xor.ll (34 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/inloop-reduction.ll (35 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-scalable-fp.ll (36 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/riscv-unroll.ll (37 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-interleave.ll (38 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/uniform-load-store.ll (39 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/f16.ll (40 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-scalable-int.ll (41 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/fminimumnum.ll (42 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-min.ll (43 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-select.ll (44 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-add.ll (45 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/ordered-reduction.ll (46 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/interleaved-masked-access.ll (47 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/fixed-vector-scatter.ll (48 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-and.ll (49 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-fmul.ll (50 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-max.ll (51 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/shuffle-insert.ll (52 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/shuffle-transpose.ll (53 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-fminimum.ll (54 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/shuffle-select.ll (55 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-fixed-order-recurrence.ll (56 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-fmaximum.ll (57 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-or.ll (58 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-cast-intrinsics.ll (59 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/shuffle-insert_subvector.ll (60 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/reduce-fadd.ll (61 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-call-intrinsics.ll (62 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/vplan-vp-intrinsics.ll (63 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/constant-pool.ll (64 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/logicalop.ll (65 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-fcmp-f16.ll (66 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/fshl_fshr.ll (67 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/divrem.ll (68 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/shuffle-extract_subvector.ll (69 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/shuffle-reverse.ll (70 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/cttz_elts.ll (71 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-gather-scatter.ll (72 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/reductions.ll (73 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/fp-trig-log-exp.ll (74 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/int-bit-manip.ll (75 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-no-masking.ll (76 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/reg-usage-prune-vf.ll (77 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-cmp.ll (78 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-load-store.ll (79 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-vectorextract.ll (80 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/gather-scatter-cost.ll (81 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/cmp.ll (82 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/fixed-vector-gather.ll (83 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/masked_gather_scatter.ll (84 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/truncate-to-minimal-bitwidth-cost.ll (85 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/transform-narrow-interleave-to-widen-memory.ll (86 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-complex-mask.ll (87 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/cast.ll (88 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-cost.ll (89 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-div.ll (90 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-safe-dep-distance.ll (91 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/insertelement.ll (92 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-expandload-compressstore.ll (93 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/cmp-select.ll (94 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/scalable-gather-zve32f.ll (95 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/fp-min-max-abs.ll (96 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/low-trip-count.ll (97 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/vplan-vp-intrinsics-fixed-order-recurrence.ll (98 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-vectorinsert.ll (99 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/reg-usage-f16.ll (100 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/fp-sqrt-pow.ll (101 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/gep.ll (102 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/fca-load-store.ll (103 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/vectorize-vp-intrinsics.ll (104 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/select-cmp-reduction.ll (105 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-iv32.ll (106 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/gep-zero-indices.ll (107 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-reverse-load-store.ll (108 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/evl-compatible-loops.ll (109 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-ordered-reduction.ll (110 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/blocks-with-dead-instructions.ll (111 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-reduction-cost.ll (112 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/shuffle-interleave.ll (113 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/extractelement.ll (114 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/scalable-scatter-zve32f.ll (115 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/abs.ll (116 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/vector-cost-without-v.ll (117 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-masked-loadstore.ll (118 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll (119 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/induction-costs.ll (120 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/pr88802.ll (121 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/reg-usage-bf16.ll (122 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-known-no-overflow.ll (123 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/force-vect-msg.ll (124 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/select-invariant-cond-cost.ll (125 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/interleaved-store-with-gap.ll (126 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/vplan-riscv-vector-reverse.ll (127 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/reg-usage-maxbandwidth.ll (128 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/scalable-basics.ll (129 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/illegal-type.ll (130 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/type-info-cache-evl-crash.ll (131 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/rvv-phi-const.ll (132 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/dbg-tail-folding-by-evl.ll (133 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/blend-any-of-reduction-cost.ll (134 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/pr87378-vpinstruction-or-drop-poison-generating-flags.ll (135 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/pointer-induction.ll (136 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/stepvector.ll (137 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/vf-will-not-generate-any-vector-insts.ll (138 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/int-sat-math.ll (139 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/pointer-induction-rv32.ll (140 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/truncate-to-minimal-bitwidth-evl-crash.ll (141 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/safe-dep-distance.ll (142 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/riscv-interleaved.ll (143 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/short-trip-count.ll (144 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/predicated-costs.ll (145 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/tail-folding-uniform-store.ll (146 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/defaults.ll (147 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/preserve-dbg-loc.ll (148 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/dead-ops-cost.ll (149 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/mask-index-type.ll (150 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/unroll-in-loop-vectorizer.ll (151 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/only-compute-cost-for-vplan-vfs.ll (152 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/int-min-max.ll (153 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/cse.ll (154 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/remark-reductions.ll (155 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/exp.ll (156 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/first-order-recurrence-scalable-vf1.ll (157 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/masked_ldst.ll (158 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/scalable-tailfold.ll (159 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/fixed-vector-insert-subvector.ll (160 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/interleaved-accesses-zve32x.ll (161 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/pr154103.ll (162 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/vector-loop-backedge-elimination-with-evl.ll (163 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/zvl32b.ll (164 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/load-to-trunc.ll (165 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/phi-const.ll (166 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/scalable-vf-hint.ll (167 of 169)
+PASS: LLVM :: Analysis/CostModel/RISCV/active_lane_mask.ll (168 of 169)
+PASS: LLVM :: Transforms/LoopVectorize/RISCV/interleaved-cost.ll (169 of 169)
+
+Testing Time: 5.35s
+
+Total Discovered Tests: 169
+  Passed: 169 (100.00%)

@@ -1,0 +1,67 @@
+[0/1] Re-running CMake...
+-- bolt project is disabled
+-- clang project is enabled
+-- clang-tools-extra project is disabled
+-- compiler-rt project is disabled
+-- cross-project-tests project is disabled
+-- libclc project is disabled
+-- lld project is disabled
+-- lldb project is disabled
+-- mlir project is disabled
+-- openmp project is disabled
+-- polly project is disabled
+-- flang project is disabled
+-- libc project is disabled
+-- Found libtool - /Library/Developer/CommandLineTools/usr/bin/libtool
+-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14 (found suitable version "3.14.6", minimum required is "3.8") found components: Interpreter
+-- LLVM host triple: arm64-apple-darwin25.6.0
+-- Native target AArch64 is not selected; lli will not JIT code
+-- Threads enabled.
+-- Doxygen disabled.
+-- Ninja version: 1.13.2
+-- Found ld64 - /Library/Developer/CommandLineTools/usr/bin/ld-classic
+-- Could NOT find OCaml (missing: OCAMLFIND OCAML_VERSION OCAML_STDLIB_PATH) 
+-- Could NOT find OCaml (missing: OCAMLFIND OCAML_VERSION OCAML_STDLIB_PATH) 
+-- OCaml bindings disabled.
+-- LLVM default target triple: 
+-- Building with -fPIC
+CMake Warning (policy) at cmake/modules/HandleLLVMOptions.cmake:926 (CHECK_C_SOURCE_COMPILES):
+  Policy CMP0219 is not set: Macro invocations preserve backslashes in
+  arguments.  Run "cmake --help-policy CMP0219" for policy details.  Use the
+  cmake_policy command to set the policy and suppress this warning.
+
+  Command "CHECK_C_SOURCE_COMPILES" called with arguments containing
+  backslashes.
+
+  Since the policy is not set, backslashes in the arguments:
+
+   "// \\\n//\nint main(void) {return 0;}"
+
+  will be interpreted as escape sequences for compatibility.
+
+  Set the policy to NEW to instead pass
+
+   "// \\\\\\n//\\nint main(void) {return 0;}"
+
+  so that argument parsing will preserve the original values.
+Call Stack (most recent call first):
+  CMakeLists.txt:1071 (include)
+This warning is for project developers.  Use -Wno-author or -Wno-policy to
+suppress it.
+
+-- Targeting RISCV
+-- Clang version: 22.1.8
+-- Host linker version: 1230.1
+-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14 (found version "3.14.6") found components: Interpreter
+-- Configuring done (4.0s)
+-- Generating done (2.2s)
+-- Build files have been written to: /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main
+[1/10] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanCostModel.cpp.o
+[2/10] Building CXX object unittests/Transforms/Vectorize/CMakeFiles/VectorizeTests.dir/VPlanCostModelTest.cpp.o
+[3/10] Building CXX object unittests/Transforms/Vectorize/CMakeFiles/VectorizeTests.dir/VPlanPatternMatchTest.cpp.o
+[4/10] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/LoopVectorize.cpp.o
+[5/10] Linking CXX static library lib/libLLVMVectorize.a
+[6/10] Linking CXX executable bin/clang-22
+[7/10] Creating executable symlink bin/clang
+[8/10] Linking CXX executable bin/opt
+[9/10] Linking CXX executable unittests/Transforms/Vectorize/VectorizeTests

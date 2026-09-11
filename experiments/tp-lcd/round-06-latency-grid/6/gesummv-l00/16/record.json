@@ -1,0 +1,67 @@
+{
+  "kernel": "gesummv-l00",
+  "mode": 16,
+  "vf": 16,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "82fa766bc720a16b5981cb3ca4b80bb7200001fb2c320119a69375cb139b404b",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vsetvli": 2,
+          "sh2add": 3,
+          "vle32.v": 3,
+          "csrr": 2,
+          "sh3add": 2,
+          "addi": 4,
+          "vs8r.v": 2,
+          "vl8r.v": 2,
+          "vfmacc.vv": 2,
+          "sub": 1,
+          "add": 1,
+          "bnez": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvsetvli\ta5, a1, e8, m2, ta, ma\n\tsh2add\ta2, a0, a6\n\tvle32.v\tv24, (a2)\n\tcsrr\ta2, vlenb\n\tsh3add\ta2, a2, sp\n\taddi\ta2, a2, 16\n\tvs8r.v\tv24, (a2)                       # vscale x 64-byte Folded Spill\n\tsh2add\ta2, a0, a3\n\tvle32.v\tv24, (a2)\n\tsh2add\ta2, a0, a4\n\tvle32.v\tv0, (a2)\n\taddi\ta2, sp, 16\n\tvs8r.v\tv0, (a2)                        # vscale x 64-byte Folded Spill\n\tcsrr\ta2, vlenb\n\tsh3add\ta2, a2, sp\n\taddi\ta2, a2, 16\n\tvl8r.v\tv0, (a2)                        # vscale x 64-byte Folded Reload\n\tvsetvli\tzero, zero, e32, m8, tu, ma\n\tvfmacc.vv\tv16, v24, v0\n\tsub\ta1, a1, a5\n\taddi\ta2, sp, 16\n\tvl8r.v\tv0, (a2)                        # vscale x 64-byte Folded Reload\n\tvfmacc.vv\tv8, v0, v24\n\tadd\ta0, a0, a5\n\tbnez\ta1, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m8"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 6,
+      "compute_tp": 32,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "ir<%y.021>",
+      "eligible": true,
+      "exclusion_reason": "",
+      "fallback_reason": "",
+      "final_score": 1.09375,
+      "fma_pairs": 2,
+      "fma_savings_tp": 16,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 15,
+      "legacy_cost": 63,
+      "loop": "for.body",
+      "memory_recipes": 3,
+      "memory_tp": 12,
+      "other_recipes": 18,
+      "other_tp": 3,
+      "recurrence_distance": 1,
+      "runtime_vf": 32,
+      "scalable": true,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 35,
+      "vf": 16,
+      "zero_cost_recipes": 19
+    }
+  ]
+}

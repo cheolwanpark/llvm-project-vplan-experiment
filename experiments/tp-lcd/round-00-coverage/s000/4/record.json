@@ -1,0 +1,57 @@
+{
+  "kernel": "s000",
+  "mode": 4,
+  "vf": 4,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "bd9fbfab5ac1e827280f8c3ed20d47a566c3e61b2838b2830bafefa68d1ebff0",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vl2re32.v": 1,
+          "vfadd.vf": 1,
+          "vs2r.v": 1,
+          "add": 2,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvl2re32.v\tv8, (a2)\n\tvfadd.vf\tv8, v8, fa5\n\tvs2r.v\tv8, (a1)\n\tadd\ta1, a1, a0\n\tadd\ta2, a2, a0\n\tbne\ta1, a3, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m2"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 1,
+      "compute_tp": 2,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "vp<%3>",
+      "eligible": true,
+      "fallback_reason": "",
+      "final_score": 0.75,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 1,
+      "legacy_cost": 8,
+      "loop": "for.body",
+      "memory_recipes": 2,
+      "memory_tp": 4,
+      "other_recipes": 8,
+      "other_tp": 2,
+      "recurrence_distance": 1,
+      "runtime_vf": 8,
+      "scalable": true,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 6,
+      "vf": 4,
+      "zero_cost_recipes": 8
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+[1/7] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanCostModel.cpp.o
+[2/7] Linking CXX static library lib/libLLVMVectorize.a
+[3/7] Building CXX object lib/Target/RISCV/CMakeFiles/LLVMRISCVCodeGen.dir/RISCVTargetTransformInfo.cpp.o
+[4/7] Linking CXX static library lib/libLLVMRISCVCodeGen.a
+[5/7] Linking CXX executable bin/clang-22
+[6/7] Creating executable symlink bin/clang
+[7/7] Linking CXX executable bin/opt

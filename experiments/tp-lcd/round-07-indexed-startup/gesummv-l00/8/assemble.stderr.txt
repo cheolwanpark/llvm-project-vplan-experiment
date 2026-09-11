@@ -1,0 +1,1 @@
+clang-22: warning: argument unused during compilation: '-mcmodel=medany' [-Wunused-command-line-argument]

@@ -1,0 +1,66 @@
+{
+  "kernel": "s4112",
+  "mode": 2,
+  "vf": 2,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "c03de8e9c644da76b4b11cc78dbb4fcc6d8c772435925bf432ae2f9610f942e5",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vl1re32.v": 2,
+          "vwmulsu.vx": 1,
+          "vluxei64.v": 1,
+          "vfmacc.vf": 1,
+          "vs1r.v": 1,
+          "add": 2,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvl1re32.v\tv10, (a3)\n\tvwmulsu.vx\tv8, v10, t0\n\tvluxei64.v\tv10, (a4), v8\n\tvl1re32.v\tv8, (a2)\n\tvfmacc.vf\tv8, fa5, v10\n\tvs1r.v\tv8, (a2)\n\tadd\ta2, a2, a0\n\tadd\ta3, a3, a0\n\tbne\ta2, a5, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m1"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 3,
+      "compute_tp": 4,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "vp<%3>",
+      "eligible": true,
+      "exclusion_reason": "",
+      "fallback_reason": "",
+      "final_score": 4,
+      "fma_pairs": 0,
+      "fma_savings_tp": 0,
+      "full_evl_savings_tp": 0,
+      "full_width_iterations": true,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 1,
+      "legacy_cost": 20,
+      "loop": "for.body",
+      "memory_recipes": 4,
+      "memory_tp": 14,
+      "ordinary_pressure_excluded": false,
+      "other_recipes": 10,
+      "other_tp": 2,
+      "recurrence_distance": 1,
+      "runtime_vf": 4,
+      "scalable": true,
+      "scalar_address_register_recipes": 0,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 16,
+      "vf": 2,
+      "zero_cost_recipes": 10
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "decision":"reject and remove blanket indexed-startup rule",
+  "core_relative_gm_before":1.1454368536403983,
+  "core_relative_gm_after":1.1532163141062994,
+  "core_relative_p90_before":1.3034042388656588,
+  "core_relative_p90_after":1.3063325322658448,
+  "core_non_tie_before":0.9487179487179487,
+  "core_non_tie_after":0.9743589743589743,
+  "reason":"It improves one ranking direction but worsens relative scale overall, especially conflating data-indexed memory with affine strided-store lowering. No improvement to actual automatic worst regret. Retain trial artifacts; remove unsupported extra complexity.",
+  "validation_informed":true
+}

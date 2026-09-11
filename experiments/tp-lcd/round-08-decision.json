@@ -1,0 +1,16 @@
+{
+  "decision":"retain data-index distinction provisionally",
+  "core_forced_regret_gm":1.0151122480048456,
+  "core_forced_regret_worst":1.0931166540392083,
+  "core_non_tie_accuracy":0.9487179487179487,
+  "core_relative_gm":1.1185016643179515,
+  "core_relative_p90":1.2467425065414282,
+  "additional_relative_gm":1.1067038280348176,
+  "additional_relative_p90":1.1886717703879097,
+  "additional_non_tie_accuracy":1.0,
+  "core_actual_regret_gm":1.0287677159884299,
+  "core_actual_regret_worst":1.161080002841178,
+  "off_ablation":"all prior round06 forced scores reproduced exactly",
+  "remaining_failure":"actual GESUMMV VF8 selection; goal not complete",
+  "validation_informed":true
+}

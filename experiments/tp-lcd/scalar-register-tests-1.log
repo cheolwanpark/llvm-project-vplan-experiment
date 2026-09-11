@@ -1,0 +1,135 @@
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find lli in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-objcopy in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-strip in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-install-name-tool in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-bitcode-strip in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find split-file in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find dsymutil in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find lli in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find lli-child-target in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-ar in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-addr2line in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-bcanalyzer in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-bitcode-strip in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cas in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cgdata in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cov in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-ctxprof-util in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cxxdump in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cvtres in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-debuginfod-find in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-debuginfo-analyzer in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-diff in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-dwarfdump in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-dwarfutil in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-dwp in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-dlltool in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-exegesis in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-extract in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-ir2vec in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-isel-fuzzer in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-ifs in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-install-name-tool in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-jitlink in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-opt-fuzzer in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-lib in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-lto in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-lto2 in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-mc in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-mca in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-modextract in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-nm in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-objcopy in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-objdump in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-otool in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-pdbutil in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-profdata in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-profgen in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-ranlib in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-rc in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-readelf in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-rtdyld in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-sim in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-size in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-split in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-stress in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-strings in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-strip in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-readtapi in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-undname in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-windres in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-c-test in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-cxxfilt in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-xray in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find yaml2obj in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find obj2yaml in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find yaml-bench in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find verify-uselistorder in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find bugpoint in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-symbolizer in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find sancov in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find sanstats in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+llvm-lit: /Users/cheolwanpark/Documents/project/llvm-project/llvm/utils/lit/lit/llvm/subst.py:126: note: Did not find llvm-remarkutil in /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin
+-- Testing: 1 tests, 1 workers --
+FAIL: LLVM :: Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll (1 of 1)
+******************** TEST 'LLVM :: Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll' FAILED ********************
+Exit Code: 1
+
+Command Output (stdout):
+--
+# RUN: at line 1
+/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin/opt /Users/cheolwanpark/Documents/project/llvm-project/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll -disable-output -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -scalable-vectorization=on -riscv-v-register-bit-width-lmul=8 -riscv-tp-lcd-profile=xiangshan -vplan-tp-lcd=rank -vplan-tp-lcd-strided-addresses=true 2>&1 | /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin/FileCheck /Users/cheolwanpark/Documents/project/llvm-project/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll --check-prefix=ON
+# executed command: /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin/opt /Users/cheolwanpark/Documents/project/llvm-project/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll -disable-output -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -scalable-vectorization=on -riscv-v-register-bit-width-lmul=8 -riscv-tp-lcd-profile=xiangshan -vplan-tp-lcd=rank -vplan-tp-lcd-strided-addresses=true
+# note: command had no output on stdout or stderr
+# error: command failed with exit status: -6
+# executed command: /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin/FileCheck /Users/cheolwanpark/Documents/project/llvm-project/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll --check-prefix=ON
+# .---command stderr------------
+# | /Users/cheolwanpark/Documents/project/llvm-project/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll:11:7: error: ON: expected string not found in input
+# | ; ON: "eligible":false{{.*}}"exclusion_reason":"register pressure"{{.*}}"function":"vector_index_use"{{.*}}"scalar_address_register_recipes":1{{.*}}"vf":16
+# |       ^
+# | <stdin>:5:572: note: scanning from here
+# | VPLAN-TP-LCD {"compute_recipes":7,"compute_tp":56,"cpu":"","dominant_recurrence":"vp<%avl>","eligible":true,"exclusion_reason":"","fallback_reason":"","final_score":2.8125,"fma_pairs":1,"fma_savings_tp":8,"full_evl_savings_tp":0,"full_width_iterations":false,"function":"address_only","kind":"candidate","lcd":3,"legacy_cost":154,"loop":"loop","memory_recipes":4,"memory_tp":72,"ordinary_pressure_excluded":true,"other_recipes":18,"other_tp":18,"recurrence_distance":1,"runtime_vf":32,"scalable":true,"scalar_address_register_recipes":3,"target":"riscv64","tp":90,"vf":16,"zero_cost_recipes":18}
+# |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ^
+# | 
+# | Input file: <stdin>
+# | Check file: /Users/cheolwanpark/Documents/project/llvm-project/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll
+# | 
+# | -dump-input=help explains the following input dump.
+# | 
+# | Input was:
+# | <<<<<<
+# |           1: VPLAN-TP-LCD {"compute_recipes":7,"compute_tp":6,"cpu":"","dominant_recurrence":"vp<%avl>","eligible":true,"exclusion_reason":"","fallback_reason":"","final_score":4.5,"fma_pairs":1,"fma_savings_tp":1,"full_evl_savings_tp":0,"full_width_iterations":false,"function":"address_only","kind":"candidate","lcd":3,"legacy_cost":16,"loop":"loop","memory_recipes":4,"memory_tp":6,"ordinary_pressure_excluded":false,"other_recipes":18,"other_tp":3,"recurrence_distance":1,"runtime_vf":2,"scalable":true,"scalar_address_register_recipes":3,"target":"riscv64","tp":9,"vf":1,"zero_cost_recipes":18} 
+# |           2: VPLAN-TP-LCD {"compute_recipes":7,"compute_tp":7,"cpu":"","dominant_recurrence":"vp<%avl>","eligible":true,"exclusion_reason":"","fallback_reason":"","final_score":3.25,"fma_pairs":1,"fma_savings_tp":1,"full_evl_savings_tp":0,"full_width_iterations":false,"function":"address_only","kind":"candidate","lcd":3,"legacy_cost":21,"loop":"loop","memory_recipes":4,"memory_tp":9,"ordinary_pressure_excluded":false,"other_recipes":18,"other_tp":4,"recurrence_distance":1,"runtime_vf":4,"scalable":true,"scalar_address_register_recipes":3,"target":"riscv64","tp":13,"vf":2,"zero_cost_recipes":18} 
+# |           3: VPLAN-TP-LCD {"compute_recipes":7,"compute_tp":14,"cpu":"","dominant_recurrence":"vp<%avl>","eligible":true,"exclusion_reason":"","fallback_reason":"","final_score":3,"fma_pairs":1,"fma_savings_tp":2,"full_evl_savings_tp":0,"full_width_iterations":false,"function":"address_only","kind":"candidate","lcd":3,"legacy_cost":40,"loop":"loop","memory_recipes":4,"memory_tp":18,"ordinary_pressure_excluded":false,"other_recipes":18,"other_tp":6,"recurrence_distance":1,"runtime_vf":8,"scalable":true,"scalar_address_register_recipes":3,"target":"riscv64","tp":24,"vf":4,"zero_cost_recipes":18} 
+# |           4: VPLAN-TP-LCD {"compute_recipes":7,"compute_tp":28,"cpu":"","dominant_recurrence":"vp<%avl>","eligible":true,"exclusion_reason":"","fallback_reason":"","final_score":2.875,"fma_pairs":1,"fma_savings_tp":4,"full_evl_savings_tp":0,"full_width_iterations":false,"function":"address_only","kind":"candidate","lcd":3,"legacy_cost":78,"loop":"loop","memory_recipes":4,"memory_tp":36,"ordinary_pressure_excluded":false,"other_recipes":18,"other_tp":10,"recurrence_distance":1,"runtime_vf":16,"scalable":true,"scalar_address_register_recipes":3,"target":"riscv64","tp":46,"vf":8,"zero_cost_recipes":18} 
+# |           5: VPLAN-TP-LCD {"compute_recipes":7,"compute_tp":56,"cpu":"","dominant_recurrence":"vp<%avl>","eligible":true,"exclusion_reason":"","fallback_reason":"","final_score":2.8125,"fma_pairs":1,"fma_savings_tp":8,"full_evl_savings_tp":0,"full_width_iterations":false,"function":"address_only","kind":"candidate","lcd":3,"legacy_cost":154,"loop":"loop","memory_recipes":4,"memory_tp":72,"ordinary_pressure_excluded":true,"other_recipes":18,"other_tp":18,"recurrence_distance":1,"runtime_vf":32,"scalable":true,"scalar_address_register_recipes":3,"target":"riscv64","tp":90,"vf":16,"zero_cost_recipes":18} 
+# | check:11                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                X~~~~~~~~~~~~~~~~~~~~~~~~ error: no match found
+# |           6: VPLAN-TP-LCD {"fallback_reason":"","function":"address_only","kind":"selection","loop":"loop","scalable":true,"used_model":true,"vf":16} 
+# | check:11     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# |           7: Assertion failed: (isHandleInSync() && "invalid iterator access!"), function increment, file SmallPtrSet.h, line 305. 
+# | check:11     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# |           8: PLEASE submit a bug report to https://github.com/llvm/llvm-project/issues/ and include the crash backtrace and instructions to reproduce the bug. 
+# | check:11     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# |           9: Stack dump: 
+# | check:11     ~~~~~~~~~~~~
+# |          10: 0. Program arguments: /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin/opt /Users/cheolwanpark/Documents/project/llvm-project/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll -disable-output -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -scalable-vectorization=on -riscv-v-register-bit-width-lmul=8 -riscv-tp-lcd-profile=xiangshan -vplan-tp-lcd=rank -vplan-tp-lcd-strided-addresses=true 
+# | check:11     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# |           .
+# |           .
+# |           .
+# | >>>>>>
+# `-----------------------------
+# error: command failed with exit status: 1
+
+--
+
+********************
+********************
+Failed Tests (1):
+  LLVM :: Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll
+
+
+Testing Time: 0.28s
+
+Total Discovered Tests: 1
+  Failed: 1 (100.00%)

@@ -1,0 +1,14 @@
+{
+  "round": 3,
+  "status": "planned before parameter changes",
+  "validation_informed": true,
+  "parent": "round-02-initial-full",
+  "residual": "Continuous-memory kernels have overly flat VF2-normalized scaling; initial core relative error GM 1.42958/P90 1.81490. s000 predicted VF4/VF2 .75 vs historical .38361, s125 .83333 vs .56761.",
+  "hypothesis": "Memory has a wider effective throughput beat than FP. Existing single beat width forced these capacities equal without evidence.",
+  "change": "Separate memory beat width; retain 128-bit FP/slide beat and latency startup 3. No startup or nonlinear slide changes in this trial.",
+  "search": {"memory_beat_bits": [128, 256]},
+  "new_free_parameters": 1,
+  "parameters_per_profile": 3,
+  "software_assumptions_only": true,
+  "evaluation": "All 36 forced and 9 actual expanded selections; core and additional group separately; compare code shape to pristine and initial model. Retain failed trials. No new cycles."
+}

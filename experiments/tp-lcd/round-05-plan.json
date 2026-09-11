@@ -1,0 +1,14 @@
+{
+  "round": 5,
+  "status": "planned before rule and parameter changes",
+  "validation_informed": true,
+  "parent": "round-04-fma",
+  "residual": "Jacobi predicted VF16/VF8 is .9375 versus historical 1.45738, with no spill in pristine or current Jacobi. Its load-fed splice is correctly not a closed recurrence. Thus this residual cannot be repaired by inventing LCD or a spill penalty.",
+  "hypothesis": "A common nonlinear slide throughput rule may approximate the observed permutation scaling: per primitive slide cost = slide_startup + slide_quadratic_cost * ceil(runtime legalized bits / memory_reference_beat_bits)^2. Reference width is a software normalization, not a claimed slide datapath. Latency adds the existing profile latency startup. Linear rule remains an explicit ablation when quadratic cost is zero.",
+  "search": {"slide_startup":[4,8,12,16],"slide_quadratic_cost":[1,2,3,4]},
+  "fixed": {"memory_reference_beat_bits":256,"fp_beat_bits":128,"latency_startup":3,"fma_accounting":true},
+  "new_numeric_parameters":2,
+  "parameters_per_profile":5,
+  "selection_policy": "Prefer configurations selecting Jacobi VF8 in both forced-score argmin and actual automatic search, then minimize core relative error GM. Retain other kernel/group metrics, failed trials and direction/gap errors. No exact-cycle fitting.",
+  "evaluation": "Each grid point runs all 36 forced and 9 expanded compiler scoring/assembly commands. The retained candidate is recollected with optimized IR, allocator dumps, workaround assembly and objects. No new measurements."
+}

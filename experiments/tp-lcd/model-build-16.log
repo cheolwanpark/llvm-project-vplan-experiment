@@ -1,0 +1,204 @@
+[1/5] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanAnalysis.cpp.o
+FAILED: [code=1] lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanAnalysis.cpp.o 
+/usr/bin/clang++ -D_DEBUG -D_GLIBCXX_ASSERTIONS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/lib/Transforms/Vectorize -I/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize -I/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/include -I/Users/cheolwanpark/Documents/project/llvm-project/llvm/include -fPIC -fvisibility-inlines-hidden -Werror=date-time -Werror=unguarded-availability-new -Wall -Wextra -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -pedantic -Wno-long-long -Wc++98-compat-extra-semi -Wimplicit-fallthrough -Wcovered-switch-default -Wno-noexcept-type -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Wsuggest-override -Wstring-conversion -Wno-pass-failed -Wmisleading-indentation -Wctad-maybe-unsupported -fdiagnostics-color -O2 -DNDEBUG -std=c++17 -arch arm64 -UNDEBUG -fno-exceptions -funwind-tables -fno-rtti -MD -MT lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanAnalysis.cpp.o -MF lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanAnalysis.cpp.o.d -o lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanAnalysis.cpp.o -c /Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/VPlanAnalysis.cpp
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/VPlanAnalysis.cpp:702:22: error: invalid operands to binary expression ('raw_ostream' and 'llvm::VPValue')
+  701 |               dbgs() << "  " << (ScalarAddresses->contains(V) ? "address " : "")
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  702 |                      << *V << '\n';
+      |                      ^  ~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/Debug.h:114:53: note: expanded from macro 'LLVM_DEBUG'
+  114 | #define LLVM_DEBUG(...) DEBUG_WITH_TYPE(DEBUG_TYPE, __VA_ARGS__)
+      |                                                     ^~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/Debug.h:75:7: note: expanded from macro 'DEBUG_WITH_TYPE'
+   75 |       __VA_ARGS__;                                                             \
+      |       ^~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:827:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const indent' for 2nd argument
+  827 | inline raw_ostream &operator<<(raw_ostream &OS, const indent &Indent) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:842:23: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'std::nullopt_t' for 2nd argument
+  842 | LLVM_ABI raw_ostream &operator<<(raw_ostream &OS, std::nullopt_t);
+      |                       ^                           ~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/Type.h:499:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const Type' for 2nd argument
+  499 | inline raw_ostream &operator<<(raw_ostream &OS, const Type &T) {
+      |                     ^                           ~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/InstructionCost.h:276:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const InstructionCost' for 2nd argument
+  276 | inline raw_ostream &operator<<(raw_ostream &OS, const InstructionCost &V) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/VPlanValue.h:179:32: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const VPRecipeBase' for 2nd argument
+  179 | LLVM_ABI_FOR_TEST raw_ostream &operator<<(raw_ostream &OS,
+      |                                ^
+  180 |                                           const VPRecipeBase &R);
+      |                                           ~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/ADT/Twine.h:544:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const Twine' for 2nd argument
+  544 | inline raw_ostream &operator<<(raw_ostream &OS, const Twine &RHS) {
+      |                     ^                           ~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/ADT/APInt.h:2184:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const APInt' for 2nd argument
+ 2184 | inline raw_ostream &operator<<(raw_ostream &OS, const APInt &I) {
+      |                     ^                           ~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/ADT/FloatingPointMode.h:64:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'RoundingMode' for 2nd argument
+   64 | inline raw_ostream &operator << (raw_ostream &OS, RoundingMode RM) {
+      |                     ^                             ~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/ADT/FloatingPointMode.h:189:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'DenormalMode' for 2nd argument
+  189 | inline raw_ostream& operator<<(raw_ostream &OS, DenormalMode Mode) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/ADT/FloatingPointMode.h:286:23: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'FPClassTest' for 2nd argument
+  286 | LLVM_ABI raw_ostream &operator<<(raw_ostream &OS, FPClassTest Mask);
+      |                       ^                           ~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/ADT/APFloat.h:1648:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const APFloat' for 2nd argument
+ 1648 | inline raw_ostream &operator<<(raw_ostream &OS, const APFloat &V) {
+      |                     ^                           ~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/Value.h:900:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const Value' for 2nd argument
+  900 | inline raw_ostream &operator<<(raw_ostream &OS, const Value &V) {
+      |                     ^                           ~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/ModRef.h:57:23: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'ModRefInfo' for 2nd argument
+   57 | LLVM_ABI raw_ostream &operator<<(raw_ostream &OS, ModRefInfo MR);
+      |                       ^                           ~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/ModRef.h:304:23: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'MemoryEffects' (aka 'MemoryEffectsBase<IRMemLocation>') for 2nd argument
+  304 | LLVM_ABI raw_ostream &operator<<(raw_ostream &OS, MemoryEffects RMRB);
+      |                       ^                           ~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/ModRef.h:353:23: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'CaptureComponents' for 2nd argument
+  353 | LLVM_ABI raw_ostream &operator<<(raw_ostream &OS, CaptureComponents CC);
+      |                       ^                           ~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/ModRef.h:442:23: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'CaptureInfo' for 2nd argument
+  442 | LLVM_ABI raw_ostream &operator<<(raw_ostream &OS, CaptureInfo Info);
+      |                       ^                           ~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/FMF.h:136:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'FastMathFlags' for 2nd argument
+  136 | inline raw_ostream &operator<<(raw_ostream &O, FastMathFlags FMF) {
+      |                     ^                          ~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/Metadata.h:171:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const Metadata' for 2nd argument
+  171 | inline raw_ostream &operator<<(raw_ostream &OS, const Metadata &MD) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/DebugProgramInstruction.h:230:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const DbgRecord' for 2nd argument
+  230 | inline raw_ostream &operator<<(raw_ostream &OS, const DbgRecord &R) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/DebugProgramInstruction.h:690:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const DbgMarker' for 2nd argument
+  690 | inline raw_ostream &operator<<(raw_ostream &OS, const DbgMarker &Marker) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/InstrTypes.h:1005:23: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'CmpInst::Predicate' for 2nd argument
+ 1005 | LLVM_ABI raw_ostream &operator<<(raw_ostream &OS, CmpInst::Predicate Pred);
+      |                       ^                           ~~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/ConstantRange.h:620:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const ConstantRange' for 2nd argument
+  620 | inline raw_ostream &operator<<(raw_ostream &OS, const ConstantRange &CR) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Analysis/MemoryLocation.h:203:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'LocationSize' for 2nd argument
+  203 | inline raw_ostream &operator<<(raw_ostream &OS, LocationSize Size) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/ADT/APSInt.h:365:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const APSInt' for 2nd argument
+  365 | inline raw_ostream &operator<<(raw_ostream &OS, const APSInt &I) {
+      |                     ^                           ~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Analysis/ScalarEvolution.h:197:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const SCEV' for 2nd argument
+  197 | inline raw_ostream &operator<<(raw_ostream &OS, const SCEV &S) {
+      |                     ^                           ~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Analysis/ScalarEvolution.h:252:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const SCEVPredicate' for 2nd argument
+  252 | inline raw_ostream &operator<<(raw_ostream &OS, const SCEVPredicate &P) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/BranchProbability.h:215:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'BranchProbability' for 2nd argument
+  215 | inline raw_ostream &operator<<(raw_ostream &OS, BranchProbability Prob) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/Comdat.h:72:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const Comdat' for 2nd argument
+   72 | inline raw_ostream &operator<<(raw_ostream &OS, const Comdat &C) {
+      |                     ^                           ~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/VersionTuple.h:190:23: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const VersionTuple' for 2nd argument
+  190 | LLVM_ABI raw_ostream &operator<<(raw_ostream &Out, const VersionTuple &V);
+      |                       ^                            ~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/Module.h:1069:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const Module' for 2nd argument
+ 1069 | inline raw_ostream &operator<<(raw_ostream &O, const Module &M) {
+      |                     ^                          ~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/VPlan.h:4631:21: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const VPlan' for 2nd argument
+ 4631 | inline raw_ostream &operator<<(raw_ostream &OS, const VPlan &Plan) {
+      |                     ^                           ~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/ADT/BitmaskEnum.h:172:13: note: candidate template ignored: deduced conflicting types for parameter 'E' ('raw_ostream' vs. 'llvm::VPValue')
+  172 | constexpr E operator<<(E LHS, E RHS) {
+      |             ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:427:1: note: candidate template ignored: requirement '!std::is_reference_v<llvm::raw_ostream &>' was not satisfied [with OStream = raw_ostream &, T = llvm::VPValue]
+  427 | operator<<(OStream &&OS, const T &Value) {
+      | ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:846:14: note: candidate template ignored: could not match 'std::optional<T>' against 'llvm::VPValue'
+  846 | raw_ostream &operator<<(raw_ostream &OS, const std::optional<T> &O) {
+      |              ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/TypeSize.h:427:1: note: candidate template ignored: could not match 'details::FixedOrScalableQuantity<LeafTy, ScalarTy>' against 'llvm::VPValue'
+  427 | operator<<(raw_ostream &OS,
+      | ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/DiagnosticInfo.h:653:1: note: candidate template ignored: requirement 'std::is_base_of_v<llvm::DiagnosticInfoOptimizationBase, llvm::raw_ostream>' was not satisfied [with RemarkT = raw_ostream &]
+  653 | operator<<(RemarkT &&R,
+      | ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/DiagnosticInfo.h:664:1: note: candidate template ignored: requirement 'std::is_base_of_v<llvm::DiagnosticInfoOptimizationBase, llvm::raw_ostream>' was not satisfied [with RemarkT = raw_ostream &]
+  664 | operator<<(RemarkT &&R,
+      | ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/DiagnosticInfo.h:675:1: note: candidate template ignored: requirement 'std::is_base_of_v<llvm::DiagnosticInfoOptimizationBase, llvm::raw_ostream>' was not satisfied [with RemarkT = raw_ostream &]
+  675 | operator<<(RemarkT &&R,
+      | ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/IR/DiagnosticInfo.h:686:1: note: candidate template ignored: requirement 'std::is_base_of_v<llvm::DiagnosticInfoOptimizationBase, llvm::raw_ostream>' was not satisfied [with RemarkT = raw_ostream &]
+  686 | operator<<(RemarkT &&R,
+      | ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/GenericDomTree.h:169:14: note: candidate template ignored: could not match 'const DomTreeNodeBase<NodeT> *' against 'llvm::VPValue'
+  169 | raw_ostream &operator<<(raw_ostream &O, const DomTreeNodeBase<NodeT> *Node) {
+      |              ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:204:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'char' for 1st argument
+  204 |   raw_ostream &operator<<(char C) {
+      |                ^          ~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:211:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'unsigned char' for 1st argument
+  211 |   raw_ostream &operator<<(unsigned char C) {
+      |                ^          ~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:218:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'signed char' for 1st argument
+  218 |   raw_ostream &operator<<(signed char C) {
+      |                ^          ~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:225:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'StringRef' for 1st argument
+  225 |   raw_ostream &operator<<(StringRef Str) {
+      |                ^          ~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:254:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const char *' for 1st argument
+  254 |   raw_ostream &operator<<(const char *Str) {
+      |                ^          ~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:261:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const std::string' (aka 'const basic_string<char>') for 1st argument
+  261 |   raw_ostream &operator<<(const std::string &Str) {
+      |                ^          ~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:266:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const std::string_view' (aka 'const basic_string_view<char>') for 1st argument
+  266 |   raw_ostream &operator<<(const std::string_view &Str) {
+      |                ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:270:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const SmallVectorImpl<char>' for 1st argument
+  270 |   raw_ostream &operator<<(const SmallVectorImpl<char> &Str) {
+      |                ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:274:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'unsigned long' for 1st argument
+  274 |   raw_ostream &operator<<(unsigned long N);
+      |                ^          ~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:275:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'long' for 1st argument
+  275 |   raw_ostream &operator<<(long N);
+      |                ^          ~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:276:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'unsigned long long' for 1st argument
+  276 |   raw_ostream &operator<<(unsigned long long N);
+      |                ^          ~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:277:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'long long' for 1st argument
+  277 |   raw_ostream &operator<<(long long N);
+      |                ^          ~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:278:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const void *' for 1st argument; remove *
+  278 |   raw_ostream &operator<<(const void *P);
+      |                ^          ~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:280:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'unsigned int' for 1st argument
+  280 |   raw_ostream &operator<<(unsigned int N) {
+      |                ^          ~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:284:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'int' for 1st argument
+  284 |   raw_ostream &operator<<(int N) {
+      |                ^          ~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:288:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'double' for 1st argument
+  288 |   raw_ostream &operator<<(double N);
+      |                ^          ~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:294:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'Colors' for 1st argument
+  294 |   raw_ostream &operator<<(Colors C);
+      |                ^          ~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:308:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const format_object_base' for 1st argument
+  308 |   raw_ostream &operator<<(const format_object_base &Fmt);
+      |                ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:311:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const FormattedString' for 1st argument
+  311 |   raw_ostream &operator<<(const FormattedString &);
+      |                ^          ~~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:314:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const FormattedNumber' for 1st argument
+  314 |   raw_ostream &operator<<(const FormattedNumber &);
+      |                ^          ~~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:317:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const formatv_object_base' for 1st argument
+  317 |   raw_ostream &operator<<(const formatv_object_base &);
+      |                ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Support/raw_ostream.h:320:16: note: candidate function not viable: no known conversion from 'llvm::VPValue' to 'const FormattedBytes' for 1st argument
+  320 |   raw_ostream &operator<<(const FormattedBytes &);
+      |                ^          ~~~~~~~~~~~~~~~~~~~~~~
+1 error generated.
+ninja: build stopped: subcommand failed.

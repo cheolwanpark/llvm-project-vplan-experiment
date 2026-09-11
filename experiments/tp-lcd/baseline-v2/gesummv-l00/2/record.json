@@ -1,0 +1,33 @@
+{
+  "kernel": "gesummv-l00",
+  "mode": 2,
+  "actual_vf": 2,
+  "scalable": true,
+  "source_sha256": "3f64e3fdfb2a1c5a3350dc6b52c9d5483585749c0a88e6261d1ae1aa854f9a14",
+  "assembly_sha256": "f105043e6eefba973f87b03c3244e7eb2074849f5549ccf580b984e1ad0eb0a7",
+  "shape": {
+    "body_sha256": "3f39e71b9a63918941a95b14fc855a2c94d7d4f1457596dac63198952ee3f6d3",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vl1re32.v": 3,
+          "vfmacc.vv": 2,
+          "add": 3,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvl1re32.v\tv10, (a4)\n\tvl1re32.v\tv11, (a2)\n\tvl1re32.v\tv12, (a1)\n\tvfmacc.vv\tv9, v11, v10\n\tadd\ta1, a1, a0\n\tadd\ta2, a2, a0\n\tvfmacc.vv\tv8, v12, v11\n\tadd\ta4, a4, a0\n\tbne\ta1, a3, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m1"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "workaround_applied": 2,
+  "scheduled_extractions_moved": 2,
+  "register_allocation_frame_lines": [],
+  "register_allocation_observed": true,
+  "visited": []
+}

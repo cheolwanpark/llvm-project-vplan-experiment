@@ -1,0 +1,69 @@
+{
+  "kernel": "s1111",
+  "mode": 2,
+  "vf": 2,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "8d87292ccd3e63416c7b85ab4d8d80e216cb3e29d2fa174b6bf1ed1a6a243e47",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vl1re32.v": 3,
+          "add": 4,
+          "vfadd.vv": 3,
+          "vfmul.vv": 1,
+          "vfmadd.vv": 1,
+          "vsse32.v": 1,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvl1re32.v\tv8, (a4)\n\tvl1re32.v\tv9, (a3)\n\tvl1re32.v\tv10, (a2)\n\tadd\ta2, a2, a0\n\tadd\ta3, a3, a0\n\tadd\ta4, a4, a0\n\tvfadd.vv\tv11, v10, v10\n\tvfmul.vv\tv11, v9, v11\n\tvfadd.vv\tv9, v9, v8\n\tvfadd.vv\tv9, v9, v10\n\tvfmadd.vv\tv9, v8, v11\n\tvsse32.v\tv9, (a5), a7\n\tadd\ta5, a5, a6\n\tbne\ta2, t0, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m1"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 7,
+      "compute_tp": 7,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "vp<%3>",
+      "eligible": true,
+      "exclusion_reason": "",
+      "fallback_reason": "",
+      "final_score": 3,
+      "fma_pairs": 1,
+      "fma_savings_tp": 1,
+      "full_evl_savings_tp": 0,
+      "full_width_iterations": true,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 1,
+      "legacy_cost": 20,
+      "loop": "for.body",
+      "memory_recipes": 4,
+      "memory_tp": 9,
+      "ordinary_pressure_excluded": false,
+      "other_recipes": 12,
+      "other_tp": 3,
+      "recurrence_distance": 1,
+      "runtime_vf": 4,
+      "scalable": true,
+      "scalar_address_register_recipes": 0,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 12,
+      "vf": 2,
+      "zero_cost_recipes": 13
+    }
+  ],
+  "workaround_applied": 0,
+  "scheduled_extractions_moved": 0,
+  "allocation_dump_present": true
+}

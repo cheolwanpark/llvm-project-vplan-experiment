@@ -1,0 +1,11 @@
+{
+  "round":10,
+  "status":"planned before implementation",
+  "validation_informed":true,
+  "parent":"round-09b-full-evl",
+  "problem":"Full-width simplification makes actual GESUMMV select VF4, but s1111 now ties VF4/VF8 and correctly breaks the tie toward VF4. s1111 VF16 is excluded by a 56-vector-register estimate although its preserved forced assembly has no spills and emits a native strided store. GESUMMV VF16's 40-register estimate corresponds to real spills and must remain excluded.",
+  "hypothesis":"Account for scalar address formation in register pressure when existing scalar evolution proves a constant affine stride, TTI confirms native strided memory is legal for every candidate in the plan, and the address chain has no vector data uses. Count these values as scalar registers, not zero registers. Keep ordinary pressure separately for legacy checks; use the proven adjustment only for experimental ranking.",
+  "proof_scope":"Only widened GEP/integer address arithmetic/integer casts/induction recipes inside the same loop. Recursively prune any value with an unproved vector use. Loaded/indexed pointers and additional data uses remain vector. No blanket pressure override, no removal of accumulator/data registers, no new numeric fields.",
+  "followup_cleanup":"Full-width loop execution may use the ordinary canonical branch so the now-dead AVL counter can disappear; preserve the same proof and main-loop-only scope.",
+  "evaluation":"Full suite on/off, scalar-use and extra-vector-use negative tests, forced/automatic code shape and post-allocation spill audit. New automatic code is unmeasured; retain comparability differences."
+}

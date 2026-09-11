@@ -1,0 +1,17 @@
+[1/17] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanConstruction.cpp.o
+[2/17] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlan.cpp.o
+[3/17] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanCostModel.cpp.o
+[4/17] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanPredicator.cpp.o
+[5/17] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/LoopVectorize.cpp.o
+[6/17] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanRecipes.cpp.o
+[7/17] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanUnroll.cpp.o
+[8/17] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanTransforms.cpp.o
+[9/17] Linking CXX static library lib/libLLVMVectorize.a
+[10/17] Building CXX object unittests/Transforms/Vectorize/CMakeFiles/VectorizeTests.dir/VPlanCostModelTest.cpp.o
+[11/17] Building CXX object lib/Target/RISCV/CMakeFiles/LLVMRISCVCodeGen.dir/RISCVTargetTransformInfo.cpp.o
+[12/17] Linking CXX static library lib/libLLVMRISCVCodeGen.a
+[13/17] Building CXX object unittests/Transforms/Vectorize/CMakeFiles/VectorizeTests.dir/VPlanPatternMatchTest.cpp.o
+[14/17] Linking CXX executable bin/clang-22
+[15/17] Creating executable symlink bin/clang
+[16/17] Linking CXX executable bin/opt
+[17/17] Linking CXX executable unittests/Transforms/Vectorize/VectorizeTests

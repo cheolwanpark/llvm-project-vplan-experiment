@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "status": "fixed before compiler baseline or tuning",
+  "measurement_source": "inputs/measured.csv",
+  "measurement_field": "raw_roi_cycles",
+  "useful_iterations": 131072,
+  "vfs": [2, 4, 8, 16],
+  "runtime_vscale": 2,
+  "core": ["s000", "s125", "s311", "s1111", "s4112", "jacobi-2d-imper-l00", "gesummv-l00"],
+  "validation_informed": ["bicg-l01", "gemver-l00"],
+  "near_tie_max_over_min": 1.03,
+  "predicted_tie_on_measured_non_tie": "incorrect",
+  "score_selection_tie_break": "smaller VF",
+  "automatic_selection": "actual compiler result, separate from score argmin",
+  "p90": "linear interpolation at (n-1)*0.9",
+  "missing_or_invalid": "report coverage and undefined affected aggregate; never silently exclude",
+  "zero_reference_score": "relative scale undefined; no epsilon substitution",
+  "targets": {
+    "regret_geomean_max": 1.05,
+    "regret_worst_max": 1.15,
+    "non_tie_accuracy_min": 0.9,
+    "relative_error_geomean_max": 1.15,
+    "relative_error_p90_max": 1.3
+  },
+  "exposure_history": "Prior seven-kernel tuning and post-freeze BiCG/GEMVER evaluation are known. All new model changes are validation-informed; no blind validation claim.",
+  "saturn": "Independent software profile required; hardware configuration and measured calibration unverified and deferred."
+}

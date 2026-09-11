@@ -1,0 +1,1426 @@
+[
+  {
+    "startup": 4,
+    "quadratic": 1,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s4-q1",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0151122480048456,
+      "regret_worst": 1.0931166540392083,
+      "all_pair_accuracy": 0.8809523809523809,
+      "non_tie_pair_accuracy": 0.9230769230769231,
+      "relative_error_geomean": 1.2085581920877302,
+      "relative_error_p90": 1.33144018724387
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0287677159884299,
+      "regret_worst": 1.161080002841178,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 4,
+    "quadratic": 2,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s4-q2",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0151122480048456,
+      "regret_worst": 1.0931166540392083,
+      "all_pair_accuracy": 0.9047619047619048,
+      "non_tie_pair_accuracy": 0.9487179487179487,
+      "relative_error_geomean": 1.21314013647413,
+      "relative_error_p90": 1.3394004427167694
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0287677159884299,
+      "regret_worst": 1.161080002841178,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 4,
+    "quadratic": 3,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s4-q3",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 4,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0626165522370865,
+      "regret_worst": 1.3773285853271495,
+      "all_pair_accuracy": 0.8809523809523809,
+      "non_tie_pair_accuracy": 0.9230769230769231,
+      "relative_error_geomean": 1.2240962097654922,
+      "relative_error_p90": 1.3394004427167694
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 4,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.076911056452182,
+      "regret_worst": 1.3773285853271495,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 4,
+    "quadratic": 4,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s4-q4",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 4,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0626165522370865,
+      "regret_worst": 1.3773285853271495,
+      "all_pair_accuracy": 0.8809523809523809,
+      "non_tie_pair_accuracy": 0.9230769230769231,
+      "relative_error_geomean": 1.232839086662853,
+      "relative_error_p90": 1.4593531825452584
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 4,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.076911056452182,
+      "regret_worst": 1.3773285853271495,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 8,
+    "quadratic": 1,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s8-q1",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 16,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.071227484097515,
+      "regret_worst": 1.457382236537608,
+      "all_pair_accuracy": 0.8571428571428571,
+      "non_tie_pair_accuracy": 0.8974358974358975,
+      "relative_error_geomean": 1.2119339294883085,
+      "relative_error_p90": 1.3394004427167694
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 16,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0856378240781233,
+      "regret_worst": 1.457382236537608,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 8,
+    "quadratic": 2,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s8-q2",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0151122480048456,
+      "regret_worst": 1.0931166540392083,
+      "all_pair_accuracy": 0.8809523809523809,
+      "non_tie_pair_accuracy": 0.9230769230769231,
+      "relative_error_geomean": 1.2042966703310147,
+      "relative_error_p90": 1.33144018724387
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0287677159884299,
+      "regret_worst": 1.161080002841178,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 8,
+    "quadratic": 3,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s8-q3",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0151122480048456,
+      "regret_worst": 1.0931166540392083,
+      "all_pair_accuracy": 0.9047619047619048,
+      "non_tie_pair_accuracy": 0.9487179487179487,
+      "relative_error_geomean": 1.2007239093155728,
+      "relative_error_p90": 1.33144018724387
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0287677159884299,
+      "regret_worst": 1.161080002841178,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 8,
+    "quadratic": 4,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s8-q4",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0151122480048456,
+      "regret_worst": 1.0931166540392083,
+      "all_pair_accuracy": 0.9047619047619048,
+      "non_tie_pair_accuracy": 0.9487179487179487,
+      "relative_error_geomean": 1.21130579586309,
+      "relative_error_p90": 1.33144018724387
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0287677159884299,
+      "regret_worst": 1.161080002841178,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 12,
+    "quadratic": 1,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s12-q1",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 16,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.071227484097515,
+      "regret_worst": 1.457382236537608,
+      "all_pair_accuracy": 0.8571428571428571,
+      "non_tie_pair_accuracy": 0.8974358974358975,
+      "relative_error_geomean": 1.2261978631638357,
+      "relative_error_p90": 1.3394004427167694
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 16,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0856378240781233,
+      "regret_worst": 1.457382236537608,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 12,
+    "quadratic": 2,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s12-q2",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0151122480048456,
+      "regret_worst": 1.0931166540392083,
+      "all_pair_accuracy": 0.8809523809523809,
+      "non_tie_pair_accuracy": 0.9230769230769231,
+      "relative_error_geomean": 1.2103482729373258,
+      "relative_error_p90": 1.3394004427167694
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0287677159884299,
+      "regret_worst": 1.161080002841178,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 12,
+    "quadratic": 3,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s12-q3",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0151122480048456,
+      "regret_worst": 1.0931166540392083,
+      "all_pair_accuracy": 0.8809523809523809,
+      "non_tie_pair_accuracy": 0.9230769230769231,
+      "relative_error_geomean": 1.2050090596444334,
+      "relative_error_p90": 1.33144018724387
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0287677159884299,
+      "regret_worst": 1.161080002841178,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 12,
+    "quadratic": 4,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s12-q4",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0151122480048456,
+      "regret_worst": 1.0931166540392083,
+      "all_pair_accuracy": 0.9047619047619048,
+      "non_tie_pair_accuracy": 0.9487179487179487,
+      "relative_error_geomean": 1.2011673847748852,
+      "relative_error_p90": 1.33144018724387
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0287677159884299,
+      "regret_worst": 1.161080002841178,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 16,
+    "quadratic": 1,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s16-q1",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 16,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.071227484097515,
+      "regret_worst": 1.457382236537608,
+      "all_pair_accuracy": 0.8571428571428571,
+      "non_tie_pair_accuracy": 0.8974358974358975,
+      "relative_error_geomean": 1.24010584190149,
+      "relative_error_p90": 1.3394004427167694
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 16,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0856378240781233,
+      "regret_worst": 1.457382236537608,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 16,
+    "quadratic": 2,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s16-q2",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 16,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.071227484097515,
+      "regret_worst": 1.457382236537608,
+      "all_pair_accuracy": 0.8571428571428571,
+      "non_tie_pair_accuracy": 0.8974358974358975,
+      "relative_error_geomean": 1.2237154025430732,
+      "relative_error_p90": 1.3394004427167694
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 16,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0856378240781233,
+      "regret_worst": 1.457382236537608,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 16,
+    "quadratic": 3,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s16-q3",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0151122480048456,
+      "regret_worst": 1.0931166540392083,
+      "all_pair_accuracy": 0.8809523809523809,
+      "non_tie_pair_accuracy": 0.9230769230769231,
+      "relative_error_geomean": 1.2110857029585211,
+      "relative_error_p90": 1.3394004427167694
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0287677159884299,
+      "regret_worst": 1.161080002841178,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  },
+  {
+    "startup": 16,
+    "quadratic": 4,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-05-slide-grid/s16-q4",
+    "core_max_tp_lcd": {
+      "group": "core",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 16,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 4
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "42/42",
+      "relative_coverage": "21/21",
+      "regret_geomean": 1.0151122480048456,
+      "regret_worst": 1.0931166540392083,
+      "all_pair_accuracy": 0.8809523809523809,
+      "non_tie_pair_accuracy": 0.9230769230769231,
+      "relative_error_geomean": 1.2054073627482214,
+      "relative_error_p90": 1.33144018724387
+    },
+    "core_automatic": {
+      "group": "core",
+      "mode": "automatic",
+      "selections": {
+        "s000": 16,
+        "s125": 16,
+        "s311": 16,
+        "s1111": 8,
+        "s4112": 16,
+        "jacobi-2d-imper-l00": 8,
+        "gesummv-l00": 8
+      },
+      "issues": [],
+      "selection_coverage": "7/7",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0287677159884299,
+      "regret_worst": 1.161080002841178,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    },
+    "validation_informed_max_tp_lcd": {
+      "group": "validation_informed",
+      "mode": "max_tp_lcd",
+      "selections": {
+        "bicg-l01": 4,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "12/12",
+      "relative_coverage": "6/6",
+      "regret_geomean": 1.0323424181315806,
+      "regret_worst": 1.065730868273759,
+      "all_pair_accuracy": 0.8333333333333334,
+      "non_tie_pair_accuracy": 0.9090909090909091,
+      "relative_error_geomean": 1.131718573153826,
+      "relative_error_p90": 1.2036677931301372
+    },
+    "validation_informed_automatic": {
+      "group": "validation_informed",
+      "mode": "automatic",
+      "selections": {
+        "bicg-l01": 16,
+        "gemver-l00": 16
+      },
+      "issues": [],
+      "selection_coverage": "2/2",
+      "pair_coverage": "not applicable",
+      "relative_coverage": "not applicable",
+      "regret_geomean": 1.0,
+      "regret_worst": 1.0,
+      "all_pair_accuracy": null,
+      "non_tie_pair_accuracy": null,
+      "relative_error_geomean": null,
+      "relative_error_p90": null
+    }
+  }
+]

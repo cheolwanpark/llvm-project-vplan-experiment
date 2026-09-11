@@ -1,0 +1,36 @@
+{
+  "kernel": "s1111",
+  "mode": 4,
+  "actual_vf": 4,
+  "scalable": true,
+  "source_sha256": "4aa2e36fa8d4c857db6177579c26737640de72e1c39a0c7bfd22fc13312d1ae3",
+  "assembly_sha256": "3914b6f2661422bf780ca202b7ce9c587e4839c9cc7bd18262daf32990a2936f",
+  "shape": {
+    "body_sha256": "32511176638e84a264411a8656f13ec64c6c13aaadc14b41fdea6cb6adedb581",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vl2re32.v": 3,
+          "add": 4,
+          "vfadd.vv": 3,
+          "vfmul.vv": 1,
+          "vfmadd.vv": 1,
+          "vsse32.v": 1,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvl2re32.v\tv8, (a4)\n\tvl2re32.v\tv10, (a3)\n\tvl2re32.v\tv12, (a2)\n\tadd\ta2, a2, a1\n\tadd\ta3, a3, a1\n\tadd\ta4, a4, a1\n\tvfadd.vv\tv14, v12, v12\n\tvfmul.vv\tv14, v10, v14\n\tvfadd.vv\tv10, v10, v8\n\tvfadd.vv\tv10, v10, v12\n\tvfmadd.vv\tv10, v8, v14\n\tvsse32.v\tv10, (a5), a7\n\tadd\ta5, a5, a6\n\tbne\ta2, t0, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m2"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "workaround_applied": 0,
+  "scheduled_extractions_moved": 0,
+  "register_allocation_frame_lines": [],
+  "register_allocation_observed": true,
+  "visited": []
+}

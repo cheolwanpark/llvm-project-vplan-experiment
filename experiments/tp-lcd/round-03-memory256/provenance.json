@@ -1,0 +1,21 @@
+{
+  "compiler": "/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin/clang-22",
+  "compiler_sha256": "8834dd9a3646836932a1e370a987d0914edf5ea092c831ef1fffcbb002931b50",
+  "compiler_version": "clang version 22.1.8 (https://github.com/llvm/llvm-project.git ca7933e47d3a3451d81e72ac174dcb5aa28b59d1)\nTarget: unknown\nThread model: posix\nInstalledDir: /Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin\nBuild config: +assertions\n",
+  "start_sha": "ca7933e47d3a3451d81e72ac174dcb5aa28b59d1",
+  "diff_sha256": "9c0d840bbee71cb56654fec18af851f726be4571045fc39edd47fb5bbcf528eb",
+  "new_source_sha256": {
+    "llvm/lib/Transforms/Vectorize/VPlanCostModel.h": "166dfc5b873f35f42ae8e012888ba91e721194dad3fcf41bea41d4013a09868f",
+    "llvm/lib/Transforms/Vectorize/VPlanCostModel.cpp": "77f55dcacf3dbfd234274412f27baccb127b7138a64b0ba0778babcaf8f43268"
+  },
+  "profile": "xiangshan",
+  "model": "rank",
+  "extra_llvm": [
+    "-riscv-tp-lcd-memory-beat-bits=256"
+  ],
+  "scores_only": false,
+  "validation_informed": true,
+  "baseline_provenance_sha256": "3cda634e963057a69522ed0fd126ddd98887aafaf52f59dce65c071bc1e35056",
+  "measurement": "none; historical XiangShan calibration only",
+  "saturn": "software profile only; hardware and measurements unknown"
+}

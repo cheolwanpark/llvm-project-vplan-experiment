@@ -1,0 +1,13 @@
+[
+  "experiments/tp-lcd/parameter_search.py",
+  "--plan",
+  "experiments/tp-lcd/round-06-plan.json",
+  "--out",
+  "experiments/tp-lcd/round-06-latency-grid",
+  "--parameter",
+  "latency_startup",
+  "--flag=-riscv-tp-lcd-latency-startup",
+  "--fixed-llvm=-riscv-tp-lcd-memory-beat-bits=256",
+  "--fixed-llvm=-riscv-tp-lcd-slide-startup=8",
+  "--fixed-llvm=-riscv-tp-lcd-slide-quadratic-cost=3"
+]

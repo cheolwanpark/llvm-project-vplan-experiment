@@ -1,0 +1,147 @@
+VPLAN-TP-LCD {"compute_recipes":6,"compute_tp":14,"cpu":"xiangshan-kunminghu","dominant_recurrence":"vp<%4>","eligible":true,"fallback_reason":"","final_score":2.125,"function":"selected_kernel","kind":"candidate","lcd":1,"legacy_cost":22,"loop":"for.body","memory_recipes":5,"memory_tp":5,"other_recipes":18,"other_tp":3,"recurrence_distance":1,"runtime_vf":8,"scalable":true,"target":"riscv64-unknown-unknown-elf","tp":17,"vf":4,"zero_cost_recipes":17}
+/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/inputs/application_kernels.c:67:5: remark: vectorized loop (vectorization width: vscale x 4, interleaved count: 1) [-Rpass=loop-vectorize]
+   67 |     for (int j = 1; j <= APP_LOOP_SIZE; ++j)
+      |     ^
+# *** IR Dump After Virtual Register Rewriter (virtregrewriter) ***:
+# Machine code for function selected_kernel: NoPHIs, TracksLiveness, TiedOpsRewritten, TracksDebugUserValues
+
+0B	bb.0.entry:
+	  successors: %bb.1(0x80000000); %bb.1(100.00%)
+
+16B	  INLINEASM &"" [sideeffect] [mayload] [maystore] [attdialect], !94, debug-location !93; experiments/tp-lcd/inputs/application_kernels.c:63:5
+32B	  %52:gpr = AUIPC target-flags(riscv-pcrel-hi) @a, pre-instr-symbol <mcsymbol .Lpcrel_hi6>, debug-location !95; experiments/tp-lcd/inputs/application_kernels.c:68:33
+80B	  %18:gpr = PseudoReadVLENB
+288B	  %27:gpr = LUI 1
+400B	  %53:gpr = AUIPC target-flags(riscv-pcrel-hi) @c + 4, pre-instr-symbol <mcsymbol .Lpcrel_hi7>
+432B	  %54:gpr = AUIPC target-flags(riscv-pcrel-hi) @b + 4, pre-instr-symbol <mcsymbol .Lpcrel_hi8>
+448B	  %69:gpr = ADDI %52:gpr, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi6>, debug-location !95; experiments/tp-lcd/inputs/application_kernels.c:68:33
+464B	  %20:gpr = exact SRLI %18:gpr, 1
+480B	  %28:gpr = SUB %27:gpr, %20:gpr, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+496B	  %29:gpr = DIVU %28:gpr, %20:gpr, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+512B	  %17:fpr32 = FLW %69:gpr, 4, debug-location !95 :: (dereferenceable load (s32) from `ptr getelementptr inbounds nuw (i8, ptr @a, i64 4)`, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:33
+528B	  %21:gpr = ADDI %20:gpr, -1, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+544B	  %25:gpr = ADD_UW %21:gpr, $x0, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+560B	  %26:gprnox0 = ADDI %25:gpr, 1, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+576B	  renamable $v10 = PseudoVFMV_S_FPR32 undef renamable $v10(tied-def 0), %17:fpr32, -1, 5, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+592B	  renamable $v11 = INIT_UNDEF debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+608B	  early-clobber renamable $v8m2 = PseudoVSLIDEUP_VX_M2 undef renamable $v8m2(tied-def 0), killed renamable $v10m2, %25:gpr, %26:gprnox0, 5, 3, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+640B	  %55:gpr = AUIPC target-flags(riscv-pcrel-hi) @output, pre-instr-symbol <mcsymbol .Lpcrel_hi9>
+656B	  %19:gpr = exact SRLI %18:gpr, 3
+672B	  %30:gpr = nuw nsw SLLI %29:gpr, 4, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+688B	  %31:gpr = nuw nsw ADDI %30:gpr, 16, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+704B	  %32:gpr = MUL %31:gpr, %19:gpr, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+752B	  %48:gpr = LUI 255181
+768B	  %1:gpr = SLLI %18:gpr, 1, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+784B	  %67:gpr = ADDI %53:gpr, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi7>
+800B	  %66:gpr = ADDI %54:gpr, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi8>
+816B	  %68:gpr = ADDI %55:gpr, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi9>
+832B	  %49:gpr = ADDI %48:gpr, -819
+848B	  %39:gpr = ADDI %20:gpr, -1
+864B	  %2:gpr = ADD %69:gpr, %32:gpr, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+880B	  %50:fpr32 = FMV_W_X %49:gpr
+
+976B	bb.1.vector.body:
+	; predecessors: %bb.0, %bb.1
+	  successors: %bb.2(0x04000000), %bb.1(0x7c000000); %bb.2(3.12%), %bb.1(96.88%)
+	  liveins: $v8m2
+1088B	  %36:gpr = ADDI %69:gpr, 8, debug-location !98; experiments/tp-lcd/inputs/application_kernels.c:68:51
+1104B	  renamable $v10m2 = VL2RE32_V %36:gpr, debug-location !98 :: (load (<vscale x 1 x s128>) from %ir.scevgep28, align 8, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:51
+1120B	  renamable $v12m2 = VL2RE32_V %69:gpr, debug-location !97 :: (load (<vscale x 1 x s128>) from %ir.lsr.iv, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:40
+1136B	  renamable $v8m2 = PseudoVSLIDEDOWN_VX_M2 undef renamable $v8m2(tied-def 0), killed renamable $v8m2, %39:gpr, -1, 5, 3
+1216B	  renamable $v14m2 = VL2RE32_V %67:gpr, debug-location !101 :: (load (<vscale x 1 x s128>) from %ir.lsr.iv31, align 4, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:62
+1232B	  early-clobber renamable $v8m2 = PseudoVSLIDEUP_VI_M2 killed renamable $v8m2(tied-def 0), renamable $v10m2, 1, -1, 5, 1
+1248B	  renamable $v8m2 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFADD_VV_M2_E32 undef renamable $v8m2(tied-def 0), killed renamable $v12m2, killed renamable $v8m2, 7, -1, 5, 3, implicit $frm, debug-location !99; experiments/tp-lcd/inputs/application_kernels.c:68:38
+1280B	  renamable $v12m2 = VL2RE32_V %66:gpr, debug-location !103 :: (load (<vscale x 1 x s128>) from %ir.lsr.iv33, align 4, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:69
+1296B	  renamable $v8m2 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFADD_VV_M2_E32 undef renamable $v8m2(tied-def 0), killed renamable $v8m2, renamable $v10m2, 7, -1, 5, 3, implicit $frm, debug-location !100; experiments/tp-lcd/inputs/application_kernels.c:68:49
+1312B	  renamable $v8m2 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFADD_VV_M2_E32 undef renamable $v8m2(tied-def 0), killed renamable $v8m2, killed renamable $v14m2, 7, -1, 5, 3, implicit $frm, debug-location !102; experiments/tp-lcd/inputs/application_kernels.c:68:60
+1376B	  %69:gpr = ADD %69:gpr, %1:gpr, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+1408B	  %67:gpr = ADD %67:gpr, %1:gpr, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+1424B	  renamable $v8m2 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFADD_VV_M2_E32 undef renamable $v8m2(tied-def 0), killed renamable $v8m2, killed renamable $v12m2, 7, -1, 5, 3, implicit $frm, debug-location !104; experiments/tp-lcd/inputs/application_kernels.c:68:67
+1440B	  renamable $v8m2 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFMUL_VFPR32_M2_E32 undef renamable $v8m2(tied-def 0), killed renamable $v8m2, %50:fpr32, 7, -1, 5, 3, implicit $frm, debug-location !105; experiments/tp-lcd/inputs/application_kernels.c:68:30
+1456B	  VS2R_V killed renamable $v8m2, %68:gpr, debug-location !106 :: (store (<vscale x 1 x s128>) into %ir.lsr.iv29, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:23
+1472B	  %68:gpr = ADD %68:gpr, %1:gpr, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+1488B	  %66:gpr = ADD %66:gpr, %1:gpr, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+1568B	  renamable $v8m2 = COPY killed renamable $v10m2
+1584B	  BNE %69:gpr, %2:gpr, %bb.1, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+1600B	  PseudoBR %bb.2, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+
+1616B	bb.2.for.cond.cleanup:
+	; predecessors: %bb.1
+
+1632B	  PseudoRET debug-location !110; experiments/tp-lcd/inputs/application_kernels.c:114:1
+
+# End machine code for function selected_kernel.
+
+# *** IR Dump After Virtual Register Rewriter (virtregrewriter) ***:
+# Machine code for function selected_kernel: NoPHIs, TracksLiveness, NoVRegs, TiedOpsRewritten, TracksDebugUserValues
+
+0B	bb.0.entry:
+	  successors: %bb.1(0x80000000); %bb.1(100.00%)
+
+16B	  INLINEASM &"" [sideeffect] [mayload] [maystore] [attdialect], !94, implicit-def $vl, implicit-def $vtype, debug-location !93; experiments/tp-lcd/inputs/application_kernels.c:63:5
+32B	  renamable $x11 = AUIPC target-flags(riscv-pcrel-hi) @a, pre-instr-symbol <mcsymbol .Lpcrel_hi6>, debug-location !95; experiments/tp-lcd/inputs/application_kernels.c:68:33
+80B	  renamable $x10 = PseudoReadVLENB
+288B	  renamable $x12 = LUI 1
+400B	  renamable $x5 = AUIPC target-flags(riscv-pcrel-hi) @c + 4, pre-instr-symbol <mcsymbol .Lpcrel_hi7>
+432B	  renamable $x6 = AUIPC target-flags(riscv-pcrel-hi) @b + 4, pre-instr-symbol <mcsymbol .Lpcrel_hi8>
+448B	  renamable $x11 = ADDI killed renamable $x11, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi6>, debug-location !95; experiments/tp-lcd/inputs/application_kernels.c:68:33
+464B	  renamable $x16 = exact SRLI renamable $x10, 1
+480B	  renamable $x12 = SUB killed renamable $x12, renamable $x16, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+496B	  renamable $x12 = DIVU killed renamable $x12, renamable $x16, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+512B	  renamable $f15_f = FLW renamable $x11, 4, debug-location !95 :: (dereferenceable load (s32) from `ptr getelementptr inbounds nuw (i8, ptr @a, i64 4)`, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:33
+528B	  renamable $x15 = ADDI renamable $x16, -1, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+544B	  renamable $x15 = ADD_UW killed renamable $x15, $x0, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+560B	  renamable $x17 = ADDI renamable $x15, 1, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+576B	  dead renamable $x13 = PseudoVSETVLIX0 killed $x0, 208, implicit-def $vl, implicit-def $vtype, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+592B	  renamable $v10 = PseudoVFMV_S_FPR32 undef renamable $v10(tied-def 0), killed renamable $f15_f, -1, 5, implicit $vl, implicit $vtype, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+608B	  renamable $v11 = INIT_UNDEF debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+624B	  dead $x0 = PseudoVSETVLI killed renamable $x17, 209, implicit-def $vl, implicit-def $vtype, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+640B	  early-clobber renamable $v8m2 = PseudoVSLIDEUP_VX_M2 undef renamable $v8m2(tied-def 0), killed renamable $v10m2, killed renamable $x15, $noreg, 5, 3, implicit $vl, implicit $vtype, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+672B	  renamable $x14 = AUIPC target-flags(riscv-pcrel-hi) @output, pre-instr-symbol <mcsymbol .Lpcrel_hi9>
+688B	  renamable $x13 = exact SRLI renamable $x10, 3
+704B	  renamable $x12 = nuw nsw SLLI killed renamable $x12, 4, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+720B	  renamable $x12 = nuw nsw ADDI killed renamable $x12, 16, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+736B	  renamable $x7 = MUL killed renamable $x12, killed renamable $x13, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+784B	  renamable $x17 = LUI 255181
+800B	  renamable $x15 = SLLI killed renamable $x10, 1, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+816B	  renamable $x12 = ADDI killed renamable $x5, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi7>
+832B	  renamable $x13 = ADDI killed renamable $x6, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi8>
+848B	  renamable $x14 = ADDI killed renamable $x14, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi9>
+864B	  renamable $x17 = ADDI killed renamable $x17, -819
+880B	  renamable $x16 = ADDI killed renamable $x16, -1
+896B	  renamable $x5 = ADD renamable $x11, killed renamable $x7, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+912B	  renamable $f15_f = FMV_W_X killed renamable $x17
+
+1008B	bb.1.vector.body:
+	; predecessors: %bb.0, %bb.1
+	  successors: %bb.2(0x04000000), %bb.1(0x7c000000); %bb.2(3.12%), %bb.1(96.88%)
+	  liveins: $x5, $x11, $x12, $x13, $x14, $x15, $x16, $f15_f, $v8m2
+1120B	  renamable $x10 = ADDI renamable $x11, 8, debug-location !98; experiments/tp-lcd/inputs/application_kernels.c:68:51
+1136B	  renamable $v10m2 = VL2RE32_V killed renamable $x10, debug-location !98 :: (load (<vscale x 1 x s128>) from %ir.scevgep28, align 8, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:51
+1152B	  renamable $v12m2 = VL2RE32_V renamable $x11, debug-location !97 :: (load (<vscale x 1 x s128>) from %ir.lsr.iv, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:40
+1168B	  dead renamable $x10 = PseudoVSETVLIX0 killed $x0, 209, implicit-def $vl, implicit-def $vtype
+1184B	  renamable $v8m2 = PseudoVSLIDEDOWN_VX_M2 undef renamable $v8m2(tied-def 0), killed renamable $v8m2, renamable $x16, -1, 5, 3, implicit $vl, implicit $vtype
+1264B	  renamable $v14m2 = VL2RE32_V renamable $x12, debug-location !101 :: (load (<vscale x 1 x s128>) from %ir.lsr.iv31, align 4, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:62
+1280B	  early-clobber renamable $v8m2 = PseudoVSLIDEUP_VI_M2 killed renamable $v8m2(tied-def 0), renamable $v10m2, 1, -1, 5, 1, implicit $vl, implicit $vtype
+1296B	  renamable $v8m2 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFADD_VV_M2_E32 undef renamable $v8m2(tied-def 0), killed renamable $v12m2, killed renamable $v8m2, 7, -1, 5, 3, implicit $frm, implicit $vl, implicit $vtype, debug-location !99; experiments/tp-lcd/inputs/application_kernels.c:68:38
+1328B	  renamable $v12m2 = VL2RE32_V renamable $x13, debug-location !103 :: (load (<vscale x 1 x s128>) from %ir.lsr.iv33, align 4, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:69
+1344B	  renamable $v8m2 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFADD_VV_M2_E32 undef renamable $v8m2(tied-def 0), killed renamable $v8m2, renamable $v10m2, 7, -1, 5, 3, implicit $frm, implicit $vl, implicit $vtype, debug-location !100; experiments/tp-lcd/inputs/application_kernels.c:68:49
+1360B	  renamable $v8m2 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFADD_VV_M2_E32 undef renamable $v8m2(tied-def 0), killed renamable $v8m2, killed renamable $v14m2, 7, -1, 5, 3, implicit $frm, implicit $vl, implicit $vtype, debug-location !102; experiments/tp-lcd/inputs/application_kernels.c:68:60
+1424B	  renamable $x11 = ADD killed renamable $x11, renamable $x15, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+1456B	  renamable $x12 = ADD killed renamable $x12, renamable $x15, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+1472B	  renamable $v8m2 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFADD_VV_M2_E32 undef renamable $v8m2(tied-def 0), killed renamable $v8m2, killed renamable $v12m2, 7, -1, 5, 3, implicit $frm, implicit $vl, implicit $vtype, debug-location !104; experiments/tp-lcd/inputs/application_kernels.c:68:67
+1488B	  renamable $v8m2 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFMUL_VFPR32_M2_E32 undef renamable $v8m2(tied-def 0), killed renamable $v8m2, renamable $f15_f, 7, -1, 5, 3, implicit $frm, implicit $vl, implicit $vtype, debug-location !105; experiments/tp-lcd/inputs/application_kernels.c:68:30
+1504B	  VS2R_V killed renamable $v8m2, renamable $x14, debug-location !106 :: (store (<vscale x 1 x s128>) into %ir.lsr.iv29, !tbaa !35); experiments/tp-lcd/inputs/application_kernels.c:68:23
+1520B	  renamable $x14 = ADD killed renamable $x14, renamable $x15, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+1536B	  renamable $x13 = ADD killed renamable $x13, renamable $x15, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+1616B	  renamable $v8m2 = COPY killed renamable $v10m2, implicit $vtype
+1632B	  BNE renamable $x11, renamable $x5, %bb.1, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+1648B	  PseudoBR %bb.2, debug-location !96; experiments/tp-lcd/inputs/application_kernels.c:67:5
+
+1664B	bb.2.for.cond.cleanup:
+	; predecessors: %bb.1
+
+1680B	  PseudoRET debug-location !110; experiments/tp-lcd/inputs/application_kernels.c:114:1
+
+# End machine code for function selected_kernel.
+

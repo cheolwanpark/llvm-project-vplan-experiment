@@ -1,0 +1,30 @@
+[1/7] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanCostModel.cpp.o
+FAILED: [code=1] lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanCostModel.cpp.o 
+/usr/bin/clang++ -D_DEBUG -D_GLIBCXX_ASSERTIONS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/lib/Transforms/Vectorize -I/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize -I/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/include -I/Users/cheolwanpark/Documents/project/llvm-project/llvm/include -fPIC -fvisibility-inlines-hidden -Werror=date-time -Werror=unguarded-availability-new -Wall -Wextra -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -pedantic -Wno-long-long -Wc++98-compat-extra-semi -Wimplicit-fallthrough -Wcovered-switch-default -Wno-noexcept-type -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Wsuggest-override -Wstring-conversion -Wno-pass-failed -Wmisleading-indentation -Wctad-maybe-unsupported -fdiagnostics-color -O2 -DNDEBUG -std=c++17 -arch arm64 -UNDEBUG -fno-exceptions -funwind-tables -fno-rtti -MD -MT lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanCostModel.cpp.o -MF lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanCostModel.cpp.o.d -o lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanCostModel.cpp.o -c /Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/VPlanCostModel.cpp
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/VPlanCostModel.cpp:86:12: error: 'canGenerateScalarForFirstLane' is a private member of 'llvm::VPInstruction'
+   86 |     if (I->canGenerateScalarForFirstLane() &&
+      |            ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/VPlan.h:1167:8: note: declared private here
+ 1167 |   bool canGenerateScalarForFirstLane() const;
+      |        ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/VPlanCostModel.cpp:115:16: error: member access into incomplete type 'const Loop'
+  115 |           Ctx.L->getHeader()->getModule()->getDataLayout().getPointerSizeInBits(
+      |                ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Analysis/IVDescriptors.h:27:7: note: forward declaration of 'llvm::Loop'
+   27 | class Loop;
+      |       ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/VPlanCostModel.cpp:198:14: error: member access into incomplete type 'const Loop'
+  198 |         Ctx.L->getHeader()->getModule()->getDataLayout().getPointerSizeInBits(
+      |              ^
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/include/llvm/Analysis/IVDescriptors.h:27:7: note: forward declaration of 'llvm::Loop'
+   27 | class Loop;
+      |       ^
+3 errors generated.
+[2/7] Building CXX object lib/Target/RISCV/CMakeFiles/LLVMRISCVCodeGen.dir/RISCVTargetTransformInfo.cpp.o
+FAILED: [code=1] lib/Target/RISCV/CMakeFiles/LLVMRISCVCodeGen.dir/RISCVTargetTransformInfo.cpp.o 
+/usr/bin/clang++ -D_DEBUG -D_GLIBCXX_ASSERTIONS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/lib/Target/RISCV -I/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Target/RISCV -I/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/include -I/Users/cheolwanpark/Documents/project/llvm-project/llvm/include -fPIC -fvisibility-inlines-hidden -Werror=date-time -Werror=unguarded-availability-new -Wall -Wextra -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -pedantic -Wno-long-long -Wc++98-compat-extra-semi -Wimplicit-fallthrough -Wcovered-switch-default -Wno-noexcept-type -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Wsuggest-override -Wstring-conversion -Wno-pass-failed -Wmisleading-indentation -Wctad-maybe-unsupported -fdiagnostics-color -O2 -DNDEBUG -std=c++17 -arch arm64 -UNDEBUG -fno-exceptions -funwind-tables -fno-rtti -MD -MT lib/Target/RISCV/CMakeFiles/LLVMRISCVCodeGen.dir/RISCVTargetTransformInfo.cpp.o -MF lib/Target/RISCV/CMakeFiles/LLVMRISCVCodeGen.dir/RISCVTargetTransformInfo.cpp.o.d -o lib/Target/RISCV/CMakeFiles/LLVMRISCVCodeGen.dir/RISCVTargetTransformInfo.cpp.o -c /Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Target/RISCV/RISCVTargetTransformInfo.cpp
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Target/RISCV/RISCVTargetTransformInfo.cpp:1317:56: error: no member named 'getPtr' in 'llvm::MemIntrinsicCostAttributes'
+ 1317 |     if (auto *GEP = dyn_cast_or_null<GEPOperator>(MICA.getPtr())) {
+      |                                                   ~~~~ ^
+1 error generated.
+ninja: build stopped: subcommand failed.

@@ -1,0 +1,3 @@
+/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/inputs/application_kernels.c:84:5: remark: vectorized loop (vectorization width: vscale x 4, interleaved count: 1) [-Rpass=loop-vectorize]
+   84 |     for (int j = 0; j < APP_LOOP_SIZE; ++j) {
+      |     ^

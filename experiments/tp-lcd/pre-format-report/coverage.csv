@@ -1,0 +1,4 @@
+collection,profile,forced,actual_automatic,all_four_vfs_visited,supported_forced,full_assembly_pristine_identical,forced_assembly_pristine_identical,all_allocation_dumps,failures,measured
+final-xiangshan,xiangshan,36,9,True,36,42,36,True,[],False
+final-saturn,saturn,36,9,True,36,43,36,True,[],False
+final-none-observe,none,36,9,True,14,45,36,True,[],False

@@ -1,0 +1,27 @@
+{
+  "report_sha256": "ff1afeac8bed151f4bb2f860765a0fb06fb3143f20c3938f1d37c909f1ce7de4",
+  "files": {
+    "tsvc_kernels.c": "4aa2e36fa8d4c857db6177579c26737640de72e1c39a0c7bfd22fc13312d1ae3",
+    "application_kernels.c": "3f64e3fdfb2a1c5a3350dc6b52c9d5483585749c0a88e6261d1ae1aa854f9a14",
+    "xiangshan_reduction_workaround.py": "168cb386c05391a57de441fcdf1af099eb6e8f68615a1ead5720fa03543a7f5b",
+    "build.py": "2cedd48e7bfa9d97d6035bd27908c7a449acf86cd8d435b1898b64dd0ff9ea5e",
+    "run.py": "f163f1797315498c4762423271c7444479cc5bbc0a86d0415e023e43a3a55656",
+    "Dockerfile": "064cb5bf0f93e6ecec8984775de31702166c947c4fa205c7d49260bb5febf107",
+    "measured.csv": "d52dd2b5c489ea1bbf7aef3f33052694521fc7952d83342331a0af6548b45b3c",
+    "runtime/common/start.c": "d13f712199e30b111fa3d218cd38b38678645da44ebd85b52eec28e264abc61a",
+    "runtime/common/syscalls.c": "7a6c796c22099c54526a325885b7e64c2ad04c53c46970835db8b0d086d8ca39",
+    "runtime/common/stdio.c": "7a15ed4690169573fef52cde75a786546803dcc2326b9214c286ebdc16bd3ed6",
+    "runtime/common/cxx.cpp": "237bb43c419fd3173ffc71ae1172b44de026c74fce603ebb2a5dc9d60e624cf5",
+    "runtime/xiangshan/startup.S": "0dfad36809a3a9b5729a2b90bfc2f752d3001068ad8ff25e80c07e39df4551b1",
+    "runtime/xiangshan/platform.c": "d80be7d71458d9f8bf65bd84449526ebb674bb86af05d322291f4fe6bf1a3012",
+    "runtime/xiangshan/link.ld": "b0439f320b09b234dca24a8721f0c385cd822a3c8de5cd31c8353f4840bde536",
+    "include/sched.h": "6641fc2fcb0149698032a9f9924552123ce2e0ae72eced1ce1e743326a3440e4",
+    "include/sys/resource.h": "4dfd6740ced46b1fb7494d3728d9f751b9109be8665fe97e869efa51fd415dc6",
+    "include/malloc.h": "4c01b81d793f1f947e830525d8f745168521ae077519abbde9d1733324257b38",
+    "licenses/TSVC.txt": "19a1ed5a00c18e907cedcaa7b89cf68b46711d039f49ad30136675656b466d78",
+    "licenses/PolyBench-README.txt": "5660cbc4b885688d3f063699a6b9f4e4ac7eea54924092635830671036b398ff",
+    "licenses/PolyBench-AUTHORS.txt": "068b9b4e966141725cfff58147ac4b0ccc11789506fb6d9bfed86f4ffd961798",
+    "licenses/onnxruntime-MIT.txt": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+    "licenses/XiangShan-MulanPSL-2.0.txt": "0c62f4cddf9b93d11a065fd736584f6711d5a7862fc68696a8a1634b9a275bf7"
+  }
+}

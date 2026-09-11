@@ -1,0 +1,40 @@
+{
+  "kernel": "jacobi-2d-imper-l00",
+  "mode": 4,
+  "actual_vf": 4,
+  "scalable": true,
+  "source_sha256": "3f64e3fdfb2a1c5a3350dc6b52c9d5483585749c0a88e6261d1ae1aa854f9a14",
+  "assembly_sha256": "800dd43587d0a66394fce11e87a631ba2600a6f9829d96a9012386a62a3a4a13",
+  "shape": {
+    "body_sha256": "5b9928d0407d91d5ce314f20093747719b1e46f88db3497336cc3e47f9a0b024",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "addi": 1,
+          "vl2re32.v": 4,
+          "vsetvli": 1,
+          "vslidedown.vx": 1,
+          "vslideup.vi": 1,
+          "vfadd.vv": 4,
+          "add": 4,
+          "vfmul.vf": 1,
+          "vs2r.v": 1,
+          "vmv2r.v": 1,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\taddi\ta0, a1, 8\n\tvl2re32.v\tv10, (a0)\n\tvl2re32.v\tv12, (a1)\n\tvsetvli\ta0, zero, e32, m2, ta, ma\n\tvslidedown.vx\tv8, v8, a6\n\tvl2re32.v\tv14, (a2)\n\tvslideup.vi\tv8, v10, 1\n\tvfadd.vv\tv8, v12, v8\n\tvl2re32.v\tv12, (a3)\n\tvfadd.vv\tv8, v8, v10\n\tvfadd.vv\tv8, v8, v14\n\tadd\ta1, a1, a5\n\tadd\ta2, a2, a5\n\tvfadd.vv\tv8, v8, v12\n\tvfmul.vf\tv8, v8, fa5\n\tvs2r.v\tv8, (a4)\n\tadd\ta4, a4, a5\n\tadd\ta3, a3, a5\n\tvmv2r.v\tv8, v10\n\tbne\ta1, t0, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m1",
+      "m2"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "workaround_applied": 0,
+  "register_allocation_frame_lines": [],
+  "register_allocation_observed": true,
+  "visited": []
+}

@@ -1,0 +1,204 @@
+[==========] Running 80 tests from 13 test suites.
+[----------] Global test environment set-up.
+[----------] 7 tests from VPInstructionTest
+[ RUN      ] VPInstructionTest.insertBefore
+[       OK ] VPInstructionTest.insertBefore (0 ms)
+[ RUN      ] VPInstructionTest.eraseFromParent
+[       OK ] VPInstructionTest.eraseFromParent (0 ms)
+[ RUN      ] VPInstructionTest.moveAfter
+[       OK ] VPInstructionTest.moveAfter (0 ms)
+[ RUN      ] VPInstructionTest.moveBefore
+[       OK ] VPInstructionTest.moveBefore (0 ms)
+[ RUN      ] VPInstructionTest.setOperand
+[       OK ] VPInstructionTest.setOperand (0 ms)
+[ RUN      ] VPInstructionTest.replaceAllUsesWith
+[       OK ] VPInstructionTest.replaceAllUsesWith (0 ms)
+[ RUN      ] VPInstructionTest.releaseOperandsAtDeletion
+[       OK ] VPInstructionTest.releaseOperandsAtDeletion (0 ms)
+[----------] 7 tests from VPInstructionTest (0 ms total)
+
+[----------] 7 tests from VPBasicBlockTest
+[ RUN      ] VPBasicBlockTest.getPlan
+[       OK ] VPBasicBlockTest.getPlan (0 ms)
+[ RUN      ] VPBasicBlockTest.TraversingIteratorTest
+[       OK ] VPBasicBlockTest.TraversingIteratorTest (0 ms)
+[ RUN      ] VPBasicBlockTest.reassociateBlocks
+[       OK ] VPBasicBlockTest.reassociateBlocks (0 ms)
+[ RUN      ] VPBasicBlockTest.splitAtEnd
+[       OK ] VPBasicBlockTest.splitAtEnd (0 ms)
+[ RUN      ] VPBasicBlockTest.print
+[       OK ] VPBasicBlockTest.print (0 ms)
+[ RUN      ] VPBasicBlockTest.printPlanWithVFsAndUFs
+[       OK ] VPBasicBlockTest.printPlanWithVFsAndUFs (0 ms)
+[ RUN      ] VPBasicBlockTest.cloneAndPrint
+[       OK ] VPBasicBlockTest.cloneAndPrint (0 ms)
+[----------] 7 tests from VPBasicBlockTest (0 ms total)
+
+[----------] 22 tests from VPRecipeTest
+[ RUN      ] VPRecipeTest.CastVPInstructionToVPUser
+[       OK ] VPRecipeTest.CastVPInstructionToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPWidenRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPWidenRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPWidenCallRecipeToVPUserAndVPDef
+[       OK ] VPRecipeTest.CastVPWidenCallRecipeToVPUserAndVPDef (0 ms)
+[ RUN      ] VPRecipeTest.CastVPWidenGEPRecipeToVPUserAndVPDef
+[       OK ] VPRecipeTest.CastVPWidenGEPRecipeToVPUserAndVPDef (0 ms)
+[ RUN      ] VPRecipeTest.CastVPWidenCastRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPWidenCastRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPWidenIntrinsicRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPWidenIntrinsicRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPBlendRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPBlendRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPInterleaveRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPInterleaveRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPReplicateRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPReplicateRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPBranchOnMaskRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPBranchOnMaskRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPWidenMemoryRecipeToVPUserAndVPDef
+[       OK ] VPRecipeTest.CastVPWidenMemoryRecipeToVPUserAndVPDef (0 ms)
+[ RUN      ] VPRecipeTest.CastVPInterleaveEVLRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPInterleaveEVLRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPWidenLoadEVLRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPWidenLoadEVLRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPWidenStoreRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPWidenStoreRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPWidenStoreEVLRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPWidenStoreEVLRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.MayHaveSideEffectsAndMayReadWriteMemory
+[       OK ] VPRecipeTest.MayHaveSideEffectsAndMayReadWriteMemory (0 ms)
+[ RUN      ] VPRecipeTest.dumpRecipeInPlan
+[       OK ] VPRecipeTest.dumpRecipeInPlan (8 ms)
+[ RUN      ] VPRecipeTest.dumpRecipeUnnamedVPValuesInPlan
+[       OK ] VPRecipeTest.dumpRecipeUnnamedVPValuesInPlan (5 ms)
+[ RUN      ] VPRecipeTest.dumpRecipeUnnamedVPValuesNotInPlanOrBlock
+[       OK ] VPRecipeTest.dumpRecipeUnnamedVPValuesNotInPlanOrBlock (5 ms)
+[ RUN      ] VPRecipeTest.CastVPReductionRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPReductionRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastVPReductionEVLRecipeToVPUser
+[       OK ] VPRecipeTest.CastVPReductionEVLRecipeToVPUser (0 ms)
+[ RUN      ] VPRecipeTest.CastToVPSingleDefRecipe
+[       OK ] VPRecipeTest.CastToVPSingleDefRecipe (0 ms)
+[----------] 22 tests from VPRecipeTest (21 ms total)
+
+[----------] 1 test from VPDoubleValueDefTest
+[ RUN      ] VPDoubleValueDefTest.traverseUseLists
+[       OK ] VPDoubleValueDefTest.traverseUseLists (0 ms)
+[----------] 1 test from VPDoubleValueDefTest (0 ms total)
+
+[----------] 3 tests from VPlanCostModelTest
+[ RUN      ] VPlanCostModelTest.DomainsAreSummedBeforeTakingMaximum
+[       OK ] VPlanCostModelTest.DomainsAreSummedBeforeTakingMaximum (0 ms)
+[ RUN      ] VPlanCostModelTest.FloatingCompareIsComputeAndReplicateIsOther
+[       OK ] VPlanCostModelTest.FloatingCompareIsComputeAndReplicateIsOther (0 ms)
+[ RUN      ] VPlanCostModelTest.InvalidCostsHaveExplicitFallback
+[       OK ] VPlanCostModelTest.InvalidCostsHaveExplicitFallback (0 ms)
+[----------] 3 tests from VPlanCostModelTest (0 ms total)
+
+[----------] 2 tests from VPDominatorTreeTest
+[ RUN      ] VPDominatorTreeTest.DominanceNoRegionsTest
+[       OK ] VPDominatorTreeTest.DominanceNoRegionsTest (0 ms)
+[ RUN      ] VPDominatorTreeTest.DominanceRegionsTest
+[       OK ] VPDominatorTreeTest.DominanceRegionsTest (0 ms)
+[----------] 2 tests from VPDominatorTreeTest (0 ms total)
+
+[----------] 3 tests from VPlanHCFGTest
+[ RUN      ] VPlanHCFGTest.testBuildHCFGInnerLoop
+[       OK ] VPlanHCFGTest.testBuildHCFGInnerLoop (1 ms)
+[ RUN      ] VPlanHCFGTest.testVPInstructionToVPRecipesInner
+[       OK ] VPlanHCFGTest.testVPInstructionToVPRecipesInner (0 ms)
+[ RUN      ] VPlanHCFGTest.testBuildHCFGInnerLoopMultiExit
+[       OK ] VPlanHCFGTest.testBuildHCFGInnerLoopMultiExit (0 ms)
+[----------] 3 tests from VPlanHCFGTest (1 ms total)
+
+[----------] 2 tests from VPPatternMatchTest
+[ RUN      ] VPPatternMatchTest.ScalarIVSteps
+[       OK ] VPPatternMatchTest.ScalarIVSteps (0 ms)
+[ RUN      ] VPPatternMatchTest.GetElementPtr
+[       OK ] VPPatternMatchTest.GetElementPtr (0 ms)
+[----------] 2 tests from VPPatternMatchTest (0 ms total)
+
+[----------] 9 tests from VPlanRecurrenceTest
+[ RUN      ] VPlanRecurrenceTest.IndependentLongChainDoesNotSetLCD
+[       OK ] VPlanRecurrenceTest.IndependentLongChainDoesNotSetLCD (0 ms)
+[ RUN      ] VPlanRecurrenceTest.MutualPhisUseIterationDistance
+[       OK ] VPlanRecurrenceTest.MutualPhisUseIterationDistance (0 ms)
+[ RUN      ] VPlanRecurrenceTest.IndependentAccumulatorsUseMaximum
+[       OK ] VPlanRecurrenceTest.IndependentAccumulatorsUseMaximum (0 ms)
+[ RUN      ] VPlanRecurrenceTest.DistanceThreeCycle
+[       OK ] VPlanRecurrenceTest.DistanceThreeCycle (0 ms)
+[ RUN      ] VPlanRecurrenceTest.WidenedInductionHasImplicitBackedge
+[       OK ] VPlanRecurrenceTest.WidenedInductionHasImplicitBackedge (0 ms)
+[ RUN      ] VPlanRecurrenceTest.ClosedFirstOrderSplice
+[       OK ] VPlanRecurrenceTest.ClosedFirstOrderSplice (0 ms)
+[ RUN      ] VPlanRecurrenceTest.LoadFedSpliceIsNotClosed
+[       OK ] VPlanRecurrenceTest.LoadFedSpliceIsNotClosed (0 ms)
+[ RUN      ] VPlanRecurrenceTest.UnsupportedAndInvalidHaveReasons
+[       OK ] VPlanRecurrenceTest.UnsupportedAndInvalidHaveReasons (0 ms)
+[ RUN      ] VPlanRecurrenceTest.SameIterationCycleHasReason
+[       OK ] VPlanRecurrenceTest.SameIterationCycleHasReason (0 ms)
+[----------] 9 tests from VPlanRecurrenceTest (0 ms total)
+
+[----------] 12 tests from VPlanSlpTest
+[ RUN      ] VPlanSlpTest.testSlpSimple_2
+[       OK ] VPlanSlpTest.testSlpSimple_2 (0 ms)
+[ RUN      ] VPlanSlpTest.testSlpSimple_3
+[       OK ] VPlanSlpTest.testSlpSimple_3 (0 ms)
+[ RUN      ] VPlanSlpTest.testSlpReuse_1
+[       OK ] VPlanSlpTest.testSlpReuse_1 (0 ms)
+[ RUN      ] VPlanSlpTest.testSlpReuse_2
+[       OK ] VPlanSlpTest.testSlpReuse_2 (0 ms)
+[ RUN      ] VPlanSlpTest.testSlpReorder_1
+[       OK ] VPlanSlpTest.testSlpReorder_1 (0 ms)
+[ RUN      ] VPlanSlpTest.testSlpReorder_2
+[       OK ] VPlanSlpTest.testSlpReorder_2 (0 ms)
+[ RUN      ] VPlanSlpTest.testSlpReorder_3
+[       OK ] VPlanSlpTest.testSlpReorder_3 (0 ms)
+[ RUN      ] VPlanSlpTest.testSlpReorder_4
+[       OK ] VPlanSlpTest.testSlpReorder_4 (0 ms)
+[ RUN      ] VPlanSlpTest.testInstrsInDifferentBBs
+[       OK ] VPlanSlpTest.testInstrsInDifferentBBs (0 ms)
+[ RUN      ] VPlanSlpTest.testInstrsInDifferentBBs2
+[       OK ] VPlanSlpTest.testInstrsInDifferentBBs2 (0 ms)
+[ RUN      ] VPlanSlpTest.testSlpAtomicLoad
+[       OK ] VPlanSlpTest.testSlpAtomicLoad (0 ms)
+[ RUN      ] VPlanSlpTest.testSlpAtomicStore
+[       OK ] VPlanSlpTest.testSlpAtomicStore (0 ms)
+[----------] 12 tests from VPlanSlpTest (2 ms total)
+
+[----------] 2 tests from VPUncountableExitTest
+[ RUN      ] VPUncountableExitTest.FindUncountableExitRecipes
+[       OK ] VPUncountableExitTest.FindUncountableExitRecipes (0 ms)
+[ RUN      ] VPUncountableExitTest.NoUncountableExit
+[       OK ] VPUncountableExitTest.NoUncountableExit (0 ms)
+[----------] 2 tests from VPUncountableExitTest (0 ms total)
+
+[----------] 8 tests from VPVerifierTest
+[ RUN      ] VPVerifierTest.VPInstructionUseBeforeDefSameBB
+[       OK ] VPVerifierTest.VPInstructionUseBeforeDefSameBB (0 ms)
+[ RUN      ] VPVerifierTest.VPInstructionUseBeforeDefDifferentBB
+[       OK ] VPVerifierTest.VPInstructionUseBeforeDefDifferentBB (0 ms)
+[ RUN      ] VPVerifierTest.VPBlendUseBeforeDefDifferentBB
+[       OK ] VPVerifierTest.VPBlendUseBeforeDefDifferentBB (0 ms)
+[ RUN      ] VPVerifierTest.VPPhiIncomingValueDoesntDominateIncomingBlock
+[       OK ] VPVerifierTest.VPPhiIncomingValueDoesntDominateIncomingBlock (0 ms)
+[ RUN      ] VPVerifierTest.DuplicateSuccessorsOutsideRegion
+[       OK ] VPVerifierTest.DuplicateSuccessorsOutsideRegion (0 ms)
+[ RUN      ] VPVerifierTest.DuplicateSuccessorsInsideRegion
+[       OK ] VPVerifierTest.DuplicateSuccessorsInsideRegion (0 ms)
+[ RUN      ] VPVerifierTest.BlockOutsideRegionWithParent
+[       OK ] VPVerifierTest.BlockOutsideRegionWithParent (0 ms)
+[ RUN      ] VPVerifierTest.NonHeaderPHIInHeader
+[       OK ] VPVerifierTest.NonHeaderPHIInHeader (0 ms)
+[----------] 8 tests from VPVerifierTest (2 ms total)
+
+[----------] 2 tests from VPIRVerifierTest
+[ RUN      ] VPIRVerifierTest.testVerifyIRPhiInScalarHeaderVPIRBB
+[       OK ] VPIRVerifierTest.testVerifyIRPhiInScalarHeaderVPIRBB (0 ms)
+[ RUN      ] VPIRVerifierTest.testVerifyIRPhiInExitVPIRBB
+[       OK ] VPIRVerifierTest.testVerifyIRPhiInExitVPIRBB (0 ms)
+[----------] 2 tests from VPIRVerifierTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 80 tests from 13 test suites ran. (31 ms total)
+[  PASSED  ] 80 tests.

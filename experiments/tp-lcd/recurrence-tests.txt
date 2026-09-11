@@ -1,0 +1,27 @@
+Note: Google Test filter = VPlanRecurrenceTest.*
+[==========] Running 9 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 9 tests from VPlanRecurrenceTest
+[ RUN      ] VPlanRecurrenceTest.IndependentLongChainDoesNotSetLCD
+[       OK ] VPlanRecurrenceTest.IndependentLongChainDoesNotSetLCD (0 ms)
+[ RUN      ] VPlanRecurrenceTest.MutualPhisUseIterationDistance
+[       OK ] VPlanRecurrenceTest.MutualPhisUseIterationDistance (0 ms)
+[ RUN      ] VPlanRecurrenceTest.IndependentAccumulatorsUseMaximum
+[       OK ] VPlanRecurrenceTest.IndependentAccumulatorsUseMaximum (0 ms)
+[ RUN      ] VPlanRecurrenceTest.DistanceThreeCycle
+[       OK ] VPlanRecurrenceTest.DistanceThreeCycle (0 ms)
+[ RUN      ] VPlanRecurrenceTest.WidenedInductionHasImplicitBackedge
+[       OK ] VPlanRecurrenceTest.WidenedInductionHasImplicitBackedge (0 ms)
+[ RUN      ] VPlanRecurrenceTest.ClosedFirstOrderSplice
+[       OK ] VPlanRecurrenceTest.ClosedFirstOrderSplice (0 ms)
+[ RUN      ] VPlanRecurrenceTest.LoadFedSpliceIsNotClosed
+[       OK ] VPlanRecurrenceTest.LoadFedSpliceIsNotClosed (0 ms)
+[ RUN      ] VPlanRecurrenceTest.UnsupportedAndInvalidHaveReasons
+[       OK ] VPlanRecurrenceTest.UnsupportedAndInvalidHaveReasons (0 ms)
+[ RUN      ] VPlanRecurrenceTest.SameIterationCycleHasReason
+[       OK ] VPlanRecurrenceTest.SameIterationCycleHasReason (0 ms)
+[----------] 9 tests from VPlanRecurrenceTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 9 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 9 tests.

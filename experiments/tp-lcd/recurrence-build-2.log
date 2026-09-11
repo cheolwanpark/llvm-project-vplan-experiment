@@ -1,0 +1,2 @@
+[1/2] Building CXX object unittests/Transforms/Vectorize/CMakeFiles/VectorizeTests.dir/VPlanRecurrenceTest.cpp.o
+[2/2] Linking CXX executable unittests/Transforms/Vectorize/VectorizeTests

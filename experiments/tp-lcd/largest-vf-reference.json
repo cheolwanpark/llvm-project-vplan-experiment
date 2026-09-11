@@ -1,0 +1,69 @@
+{
+  "description": "Measurement-only largest-VF reference. No compiler result or model prediction.",
+  "measured_sha256": "d52dd2b5c489ea1bbf7aef3f33052694521fc7952d83342331a0af6548b45b3c",
+  "choices": [
+    {
+      "group": "core",
+      "kernel": "s000",
+      "selected_vf": 16,
+      "best_measured_vf": 16,
+      "regret": 1.0
+    },
+    {
+      "group": "core",
+      "kernel": "s125",
+      "selected_vf": 16,
+      "best_measured_vf": 16,
+      "regret": 1.0
+    },
+    {
+      "group": "core",
+      "kernel": "s311",
+      "selected_vf": 16,
+      "best_measured_vf": 16,
+      "regret": 1.0
+    },
+    {
+      "group": "core",
+      "kernel": "s1111",
+      "selected_vf": 16,
+      "best_measured_vf": 16,
+      "regret": 1.0
+    },
+    {
+      "group": "core",
+      "kernel": "s4112",
+      "selected_vf": 16,
+      "best_measured_vf": 8,
+      "regret": 1.0160895012113116
+    },
+    {
+      "group": "core",
+      "kernel": "jacobi-2d-imper-l00",
+      "selected_vf": 16,
+      "best_measured_vf": 8,
+      "regret": 1.457382236537608
+    },
+    {
+      "group": "core",
+      "kernel": "gesummv-l00",
+      "selected_vf": 16,
+      "best_measured_vf": 16,
+      "regret": 1.0
+    },
+    {
+      "group": "validation_informed",
+      "kernel": "bicg-l01",
+      "selected_vf": 16,
+      "best_measured_vf": 16,
+      "regret": 1.0
+    },
+    {
+      "group": "validation_informed",
+      "kernel": "gemver-l00",
+      "selected_vf": 16,
+      "best_measured_vf": 16,
+      "regret": 1.0
+    }
+  ]
+}

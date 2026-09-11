@@ -1,0 +1,2179 @@
+diff --git a/llvm/lib/Target/RISCV/RISCVTargetTransformInfo.cpp b/llvm/lib/Target/RISCV/RISCVTargetTransformInfo.cpp
+index c0119325285c..cc97b9ec6000 100644
+--- a/llvm/lib/Target/RISCV/RISCVTargetTransformInfo.cpp
++++ b/llvm/lib/Target/RISCV/RISCVTargetTransformInfo.cpp
+@@ -24,6 +24,97 @@ using namespace llvm::PatternMatch;
+ 
+ #define DEBUG_TYPE "riscvtti"
+ 
++namespace {
++enum class TPLCDProfile { None, XiangShan, Saturn };
++
++static cl::opt<TPLCDProfile> VectorTPLCDProfile(
++    "riscv-tp-lcd-profile", cl::Hidden, cl::init(TPLCDProfile::None),
++    cl::desc("Experimental cycle-like vector costs for TP/LCD ranking"),
++    cl::values(clEnumValN(TPLCDProfile::None, "none",
++                          "Preserve existing costs"),
++               clEnumValN(TPLCDProfile::XiangShan, "xiangshan",
++                          "XiangShan software tuning profile"),
++               clEnumValN(TPLCDProfile::Saturn, "saturn",
++                          "Unvalidated Saturn software tuning profile")));
++
++// Explicit, independent software profiles, not hardware descriptions or
++// absolute-cycle predictions. XiangShan uses report-based relative calibration;
++// Saturn retains the unvalidated initial assumptions.
++struct VectorTPLCDTuning {
++  unsigned BeatBits;
++  unsigned LatencyStartup;
++  unsigned MemoryBeatBits;
++  unsigned SlideStartup;
++  unsigned SlideQuadraticCost;
++  bool DataIndexStartup;
++};
++
++static cl::opt<unsigned> TPLCDMemoryBeatBits(
++    "riscv-tp-lcd-memory-beat-bits", cl::Hidden, cl::init(0),
++    cl::desc(
++        "Override experimental profile memory beat width (0 uses profile)"));
++static cl::opt<unsigned>
++    TPLCDSlideStartup("riscv-tp-lcd-slide-startup", cl::Hidden, cl::init(0),
++                      cl::desc("Override experimental slide startup cost"));
++static cl::opt<unsigned> TPLCDSlideQuadraticCost(
++    "riscv-tp-lcd-slide-quadratic-cost", cl::Hidden, cl::init(0),
++    cl::desc(
++        "Experimental slide cost per squared reference beat (0 is linear)"));
++static cl::opt<unsigned> TPLCDLatencyStartup(
++    "riscv-tp-lcd-latency-startup", cl::Hidden, cl::init(0),
++    cl::desc("Override experimental vector dependency latency startup"));
++static cl::opt<bool> TPLCDDataIndexStartup(
++    "riscv-tp-lcd-data-index-startup", cl::Hidden, cl::init(false),
++    cl::desc("Include startup for memory with a data-loaded GEP index"));
++
++static unsigned getTPLCDLatencyStartup(const VectorTPLCDTuning &Tune) {
++  return TPLCDLatencyStartup.getNumOccurrences() ? TPLCDLatencyStartup
++                                                 : Tune.LatencyStartup;
++}
++
++static const VectorTPLCDTuning *getTPLCDTuning() {
++  static constexpr VectorTPLCDTuning XiangShan{128, 5, 256, 8, 3, true};
++  static constexpr VectorTPLCDTuning Saturn{128, 3, 128, 0, 0, false};
++  switch (VectorTPLCDProfile) {
++  case TPLCDProfile::None:
++    return nullptr;
++  case TPLCDProfile::XiangShan:
++    return &XiangShan;
++  case TPLCDProfile::Saturn:
++    return &Saturn;
++  }
++  llvm_unreachable("invalid TP/LCD profile");
++}
++
++static InstructionCost getTPLCDPrimitiveCost(const VectorTPLCDTuning &Tune,
++                                             MVT VT, unsigned VScale,
++                                             TTI::TargetCostKind Kind,
++                                             bool IsMemory = false,
++                                             bool IsSlide = false) {
++  uint64_t Bits = VT.getSizeInBits().getKnownMinValue();
++  if (VT.isScalableVector())
++    Bits *= VScale;
++  unsigned BeatBits = IsMemory ? (TPLCDMemoryBeatBits ? TPLCDMemoryBeatBits
++                                                      : Tune.MemoryBeatBits)
++                               : Tune.BeatBits;
++  uint64_t Beats = divideCeil(Bits, BeatBits);
++  unsigned Quadratic = TPLCDSlideQuadraticCost.getNumOccurrences()
++                           ? TPLCDSlideQuadraticCost
++                           : Tune.SlideQuadraticCost;
++  if (IsSlide && Quadratic) {
++    unsigned ReferenceBits =
++        TPLCDMemoryBeatBits ? TPLCDMemoryBeatBits : Tune.MemoryBeatBits;
++    Beats = divideCeil(Bits, ReferenceBits);
++    unsigned Startup = TPLCDSlideStartup.getNumOccurrences()
++                           ? TPLCDSlideStartup
++                           : Tune.SlideStartup;
++    return Startup + Beats * Beats * Quadratic +
++           (Kind == TTI::TCK_Latency ? getTPLCDLatencyStartup(Tune) : 0);
++  }
++  return Beats + (Kind == TTI::TCK_Latency ? getTPLCDLatencyStartup(Tune) : 0);
++}
++} // namespace
++
+ static cl::opt<unsigned> RVVRegisterWidthLMUL(
+     "riscv-v-register-bit-width-lmul",
+     cl::desc(
+@@ -58,6 +149,26 @@ RISCVTTIImpl::getRISCVInstructionCost(ArrayRef<unsigned> OpCodes, MVT VT,
+     return LMULCost * NumInstr;
+   InstructionCost Cost = 0;
+   for (auto Op : OpCodes) {
++    if (const auto *Tune = getTPLCDTuning()) {
++      switch (Op) {
++      case RISCV::VFADD_VV:
++      case RISCV::VFMUL_VV:
++      case RISCV::VFMADD_VV:
++        Cost += getTPLCDPrimitiveCost(
++            *Tune, VT, getVScaleForTuning().value_or(1), CostKind);
++        continue;
++      case RISCV::VSLIDEUP_VI:
++      case RISCV::VSLIDEDOWN_VI:
++      case RISCV::VSLIDEUP_VX:
++      case RISCV::VSLIDEDOWN_VX:
++        Cost += getTPLCDPrimitiveCost(
++            *Tune, VT, getVScaleForTuning().value_or(1), CostKind,
++            /*IsMemory=*/false, /*IsSlide=*/true);
++        continue;
++      default:
++        break;
++      }
++    }
+     switch (Op) {
+     case RISCV::VRGATHER_VI:
+       Cost += TLI->getVRGatherVICost(VT);
+@@ -1065,14 +1176,17 @@ RISCVTTIImpl::getMemIntrinsicInstrCost(const MemIntrinsicCostAttributes &MICA,
+ InstructionCost
+ RISCVTTIImpl::getMaskedMemoryOpCost(const MemIntrinsicCostAttributes &MICA,
+                                     TTI::TargetCostKind CostKind) const {
+-  unsigned Opcode = MICA.getID() == Intrinsic::masked_load ? Instruction::Load
+-                                                           : Instruction::Store;
++  unsigned Opcode = MICA.getID() == Intrinsic::masked_load ||
++                            MICA.getID() == Intrinsic::vp_load
++                        ? Instruction::Load
++                        : Instruction::Store;
+   Type *Src = MICA.getDataType();
+   Align Alignment = MICA.getAlignment();
+   unsigned AddressSpace = MICA.getAddressSpace();
+ 
+   if (!isLegalMaskedLoadStore(Src, Alignment) ||
+-      CostKind != TTI::TCK_RecipThroughput)
++      (CostKind != TTI::TCK_RecipThroughput &&
++       !(getTPLCDTuning() && CostKind == TTI::TCK_Latency)))
+     return BaseT::getMemIntrinsicInstrCost(MICA, CostKind);
+ 
+   return getMemoryOpCost(Opcode, Src, Alignment, AddressSpace, CostKind);
+@@ -1184,7 +1298,9 @@ RISCVTTIImpl::getGatherScatterOpCost(const MemIntrinsicCostAttributes &MICA,
+   unsigned Opcode = IsLoad ? Instruction::Load : Instruction::Store;
+   Type *DataTy = MICA.getDataType();
+   Align Alignment = MICA.getAlignment();
+-  if (CostKind != TTI::TCK_RecipThroughput)
++  const auto *Tune = getTPLCDTuning();
++  if (CostKind != TTI::TCK_RecipThroughput &&
++      !(Tune && CostKind == TTI::TCK_Latency))
+     return BaseT::getMemIntrinsicInstrCost(MICA, CostKind);
+ 
+   if ((Opcode == Instruction::Load &&
+@@ -1198,6 +1314,23 @@ RISCVTTIImpl::getGatherScatterOpCost(const MemIntrinsicCostAttributes &MICA,
+   // know exactly what VL will be.
+   auto &VTy = *cast<VectorType>(DataTy);
+   unsigned NumLoads = getEstimatedVLFor(&VTy);
++  bool HasLoadedIndex = false;
++  if (Tune &&
++      (TPLCDDataIndexStartup.getNumOccurrences() ? TPLCDDataIndexStartup
++                                                 : Tune->DataIndexStartup)) {
++    if (auto *GEP = dyn_cast_or_null<GEPOperator>(MICA.getPointer())) {
++      for (const Value *Index : GEP->indices()) {
++        while (auto *Cast = dyn_cast<CastInst>(Index)) {
++          if (!Cast->isIntegerCast())
++            break;
++          Index = Cast->getOperand(0);
++        }
++        HasLoadedIndex |= isa<LoadInst>(Index);
++      }
++    }
++  }
++  if (Tune && (CostKind == TTI::TCK_Latency || HasLoadedIndex))
++    return getTPLCDLatencyStartup(*Tune) + NumLoads * TTI::TCC_Basic;
+   return NumLoads * TTI::TCC_Basic;
+ }
+ 
+@@ -2195,6 +2328,21 @@ RISCVTTIImpl::getStoreImmCost(Type *Ty, TTI::OperandValueInfo OpInfo,
+   return getConstantPoolLoadCost(Ty, CostKind);
+ }
+ 
++InstructionCost
++RISCVTTIImpl::getInstructionCost(const User *U,
++                                 ArrayRef<const Value *> Operands,
++                                 TTI::TargetCostKind CostKind) const {
++  // The generic instruction dispatcher returns a constant load latency before
++  // reaching getMemoryOpCost. Keep experimental primitive and instruction
++  // queries in the same units, without changing the default dispatcher.
++  if (getTPLCDTuning() && CostKind == TTI::TCK_Latency)
++    if (auto *LI = dyn_cast<LoadInst>(U); LI && LI->getType()->isVectorTy())
++      return getMemoryOpCost(Instruction::Load, LI->getType(), LI->getAlign(),
++                             LI->getPointerAddressSpace(), CostKind,
++                             {TTI::OK_AnyValue, TTI::OP_None}, LI);
++  return BaseT::getInstructionCost(U, Operands, CostKind);
++}
++
+ InstructionCost RISCVTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
+                                               Align Alignment,
+                                               unsigned AddressSpace,
+@@ -2213,6 +2361,14 @@ InstructionCost RISCVTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
+ 
+   std::pair<InstructionCost, MVT> LT = getTypeLegalizationCost(Src);
+ 
++  if (const auto *Tune = getTPLCDTuning();
++      Tune && Src->isVectorTy() && LT.second.isVector() &&
++      (CostKind == TTI::TCK_RecipThroughput || CostKind == TTI::TCK_Latency))
++    return Cost + LT.first * getTPLCDPrimitiveCost(
++                                 *Tune, LT.second,
++                                 getVScaleForTuning().value_or(1), CostKind,
++                                 /*IsMemory=*/true);
++
+   InstructionCost BaseCost = [&]() {
+     InstructionCost Cost = LT.first;
+     if (CostKind != TTI::TCK_RecipThroughput)
+@@ -2591,8 +2747,12 @@ InstructionCost RISCVTTIImpl::getArithmeticInstrCost(
+     TTI::OperandValueInfo Op1Info, TTI::OperandValueInfo Op2Info,
+     ArrayRef<const Value *> Args, const Instruction *CxtI) const {
+ 
+-  // TODO: Handle more cost kinds.
+-  if (CostKind != TTI::TCK_RecipThroughput)
++  bool TunedFP = getTPLCDTuning() && Ty->isFPOrFPVectorTy() &&
++                 (Opcode == Instruction::FAdd || Opcode == Instruction::FSub ||
++                  Opcode == Instruction::FMul);
++  // Other operations retain their existing fallback for non-throughput kinds.
++  if (CostKind != TTI::TCK_RecipThroughput &&
++      !(TunedFP && CostKind == TTI::TCK_Latency))
+     return BaseT::getArithmeticInstrCost(Opcode, Ty, CostKind, Op1Info, Op2Info,
+                                          Args, CxtI);
+ 
+@@ -2710,7 +2870,7 @@ InstructionCost RISCVTTIImpl::getArithmeticInstrCost(
+   // We use BasicTTIImpl to calculate scalar costs, which assumes floating point
+   // ops are twice as expensive as integer ops. Do the same for vectors so
+   // scalar floating point ops aren't cheaper than their vector equivalents.
+-  if (Ty->isFPOrFPVectorTy())
++  if (Ty->isFPOrFPVectorTy() && !TunedFP)
+     InstrCost *= 2;
+   return CastCost + ConstantMatCost + LT.first * InstrCost;
+ }
+diff --git a/llvm/lib/Target/RISCV/RISCVTargetTransformInfo.h b/llvm/lib/Target/RISCV/RISCVTargetTransformInfo.h
+index 6e3895152003..c3fa4601d940 100644
+--- a/llvm/lib/Target/RISCV/RISCVTargetTransformInfo.h
++++ b/llvm/lib/Target/RISCV/RISCVTargetTransformInfo.h
+@@ -229,6 +229,10 @@ public:
+                            VectorType *ValTy, std::optional<FastMathFlags> FMF,
+                            TTI::TargetCostKind CostKind) const override;
+ 
++  InstructionCost
++  getInstructionCost(const User *U, ArrayRef<const Value *> Operands,
++                     TTI::TargetCostKind CostKind) const override;
++
+   InstructionCost getMemoryOpCost(
+       unsigned Opcode, Type *Src, Align Alignment, unsigned AddressSpace,
+       TTI::TargetCostKind CostKind,
+diff --git a/llvm/lib/Transforms/Vectorize/CMakeLists.txt b/llvm/lib/Transforms/Vectorize/CMakeLists.txt
+index 9f4a24221447..d6c4d32b7b91 100644
+--- a/llvm/lib/Transforms/Vectorize/CMakeLists.txt
++++ b/llvm/lib/Transforms/Vectorize/CMakeLists.txt
+@@ -25,6 +25,7 @@ add_llvm_component_library(LLVMVectorize
+   VPlan.cpp
+   VPlanAnalysis.cpp
+   VPlanConstruction.cpp
++  VPlanCostModel.cpp
+   VPlanPredicator.cpp
+   VPlanRecipes.cpp
+   VPlanSLP.cpp
+diff --git a/llvm/lib/Transforms/Vectorize/LoopVectorizationPlanner.h b/llvm/lib/Transforms/Vectorize/LoopVectorizationPlanner.h
+index ddef767f6937..8c669669604e 100644
+--- a/llvm/lib/Transforms/Vectorize/LoopVectorizationPlanner.h
++++ b/llvm/lib/Transforms/Vectorize/LoopVectorizationPlanner.h
+@@ -475,6 +475,8 @@ class LoopVectorizationPlanner {
+   /// Profitable vector factors.
+   SmallVector<VectorizationFactor, 8> ProfitableVFs;
+ 
++  bool SimplifySelectedFullEVL = false;
++
+   /// A builder used to construct the current plan.
+   VPBuilder Builder;
+ 
+@@ -488,6 +490,19 @@ class LoopVectorizationPlanner {
+   /// been retired.
+   InstructionCost cost(VPlan &Plan, ElementCount VF) const;
+ 
++  /// Experimental main-loop ranking; the ordinary cost remains authoritative
++  /// for scalar profitability, epilogues, validity and register pressure.
++  std::optional<double> costTPLCD(VPlan &Plan, ElementCount VF,
++                                  InstructionCost LegacyCost, bool Eligible,
++                                  StringRef ExclusionReason = "",
++                                  unsigned ScalarAddressCount = 0,
++                                  bool OrdinaryPressureExcluded = false) const;
++
++  bool hasFullWidthIterations(ElementCount VF) const;
++
++  SmallPtrSet<const VPValue *, 16>
++  getScalarStridedAddresses(VPlan &Plan, ArrayRef<ElementCount> VFs) const;
++
+   /// Precompute costs for certain instructions using the legacy cost model. The
+   /// function is used to bring up the VPlan-based cost model to initially avoid
+   /// taking different decisions due to inaccuracies in the legacy cost model.
+diff --git a/llvm/lib/Transforms/Vectorize/LoopVectorize.cpp b/llvm/lib/Transforms/Vectorize/LoopVectorize.cpp
+index 77589e06d9c3..7e21a2351cd9 100644
+--- a/llvm/lib/Transforms/Vectorize/LoopVectorize.cpp
++++ b/llvm/lib/Transforms/Vectorize/LoopVectorize.cpp
+@@ -59,6 +59,7 @@
+ #include "VPlan.h"
+ #include "VPlanAnalysis.h"
+ #include "VPlanCFG.h"
++#include "VPlanCostModel.h"
+ #include "VPlanHelpers.h"
+ #include "VPlanPatternMatch.h"
+ #include "VPlanTransforms.h"
+@@ -132,6 +133,7 @@
+ #include "llvm/Support/Debug.h"
+ #include "llvm/Support/ErrorHandling.h"
+ #include "llvm/Support/InstructionCost.h"
++#include "llvm/Support/JSON.h"
+ #include "llvm/Support/MathExtras.h"
+ #include "llvm/Support/NativeFormatting.h"
+ #include "llvm/Support/raw_ostream.h"
+@@ -188,6 +190,27 @@ static cl::opt<unsigned> EpilogueVectorizationMinVF(
+ 
+ /// Loops with a known constant trip count below this number are vectorized only
+ /// if no scalar iteration overheads are incurred.
++enum class TPLCDMode { Off, Observe, Rank };
++static cl::opt<TPLCDMode> VPlanTPLCD(
++    "vplan-tp-lcd", cl::Hidden, cl::init(TPLCDMode::Off),
++    cl::desc("Experimental main-loop throughput/recurrence ranking"),
++    cl::values(clEnumValN(TPLCDMode::Off, "off", "Use ordinary VPlan costs"),
++               clEnumValN(TPLCDMode::Observe, "observe",
++                          "Only emit JSON costs"),
++               clEnumValN(TPLCDMode::Rank, "rank", "Rank profitable VFs")));
++
++static cl::opt<bool> VPlanTPLCDFMA(
++    "vplan-tp-lcd-fma", cl::Hidden, cl::init(true),
++    cl::desc(
++        "Account for native FMA contraction in experimental TP/LCD costs"));
++static cl::opt<bool> VPlanTPLCDFullEVL(
++    "vplan-tp-lcd-full-evl", cl::Hidden, cl::init(true),
++    cl::desc("Simplify provably full-width EVL iterations for candidate VFs"));
++static cl::opt<bool> VPlanTPLCDStridedAddresses(
++    "vplan-tp-lcd-strided-addresses", cl::Hidden, cl::init(true),
++    cl::desc(
++        "Count proven native-strided addresses as scalar register values"));
++
+ static cl::opt<unsigned> TinyTripCountVectorThreshold(
+     "vectorizer-min-trip-count", cl::init(16), cl::Hidden,
+     cl::desc("Loops with a constant trip count that is smaller than this "
+@@ -7010,6 +7033,324 @@ InstructionCost LoopVectorizationPlanner::cost(VPlan &Plan,
+   return Cost;
+ }
+ 
++bool LoopVectorizationPlanner::hasFullWidthIterations(ElementCount VF) const {
++  if (!VPlanTPLCDFullEVL || !VF.isScalable() || Hints.getInterleave() != 1 ||
++      !TTI.isVScaleKnownToBeAPowerOfTwo() ||
++      !Legal->isSafeForAnyVectorWidth() || Legal->hasUncountableEarlyExit() ||
++      OrigLoop->getExitingBlock() != OrigLoop->getLoopLatch())
++    return false;
++  auto MaxVScale = getMaxVScale(*OrigLoop->getHeader()->getParent(), TTI);
++  if (!MaxVScale || !*MaxVScale)
++    return false;
++  // This is a proof for every legal vscale, not the estimated tuning width.
++  uint64_t MaxRuntimeVF =
++      uint64_t(VF.getKnownMinValue()) * bit_floor(*MaxVScale);
++  if (MaxRuntimeVF > UINT32_MAX)
++    return false;
++  const SCEV *BTC = PSE.getBackedgeTakenCount();
++  if (isa<SCEVCouldNotCompute>(BTC))
++    return false;
++  ScalarEvolution &SE = *PSE.getSE();
++  const SCEV *TC = SE.getAddExpr(BTC, SE.getOne(BTC->getType()));
++  TC = SE.applyLoopGuards(TC, OrigLoop);
++  if (!SE.isKnownNonZero(TC))
++    return false;
++  return SE.getURemExpr(TC, SE.getConstant(BTC->getType(), MaxRuntimeVF))
++      ->isZero();
++}
++
++SmallPtrSet<const VPValue *, 16>
++LoopVectorizationPlanner::getScalarStridedAddresses(
++    VPlan &Plan, ArrayRef<ElementCount> VFs) const {
++  SmallPtrSet<const VPValue *, 16> Addresses;
++  if (!VPlanTPLCDStridedAddresses || VPlanTPLCD == TPLCDMode::Off)
++    return Addresses;
++  auto *Region = Plan.getVectorLoopRegion();
++  SmallPtrSet<const VPRecipeBase *, 8> NativeMemory;
++  SmallVector<VPValue *> Worklist;
++  for (VPBasicBlock *BB : VPBlockUtils::blocksOnly<VPBasicBlock>(
++           vp_depth_first_shallow(Region->getEntry()))) {
++    for (VPRecipeBase &R : *BB) {
++      auto *M = dyn_cast<VPWidenMemoryRecipe>(&R);
++      if (!M || M->isConsecutive() || M->isReverse())
++        continue;
++      Value *Ptr = getLoadStorePointerOperand(&M->getIngredient());
++      auto *AR = dyn_cast<SCEVAddRecExpr>(PSE.getSCEV(Ptr));
++      if (!AR || AR->getLoop() != OrigLoop || !AR->isAffine() ||
++          !isa<SCEVConstant>(AR->getStepRecurrence(*PSE.getSE())) ||
++          !all_of(VFs, [&](ElementCount VF) {
++            return VF.isVector() &&
++                   TTI.isLegalStridedLoadStore(
++                       VectorType::get(getLoadStoreType(&M->getIngredient()),
++                                       VF),
++                       M->getAlign());
++          }))
++        continue;
++      NativeMemory.insert(M);
++      Worklist.push_back(M->getAddr());
++    }
++  }
++  // First collect only the restricted integer address expression, stopping at
++  // live-ins, scalar recipes and loaded data. Then prune to a closed set of
++  // exclusively address uses, including cycles through induction recipes.
++  while (!Worklist.empty()) {
++    VPValue *V = Worklist.pop_back_val();
++    auto *R = V->getDefiningRecipe();
++    if (!R || R->getRegion() != Region || Addresses.contains(V))
++      continue;
++    bool IsAddress = isa<VPWidenGEPRecipe, VPWidenInductionRecipe>(R);
++    if (auto *W = dyn_cast<VPWidenRecipe>(R))
++      IsAddress = W->getOpcode() == Instruction::Add ||
++                  W->getOpcode() == Instruction::Sub ||
++                  W->getOpcode() == Instruction::Mul ||
++                  W->getOpcode() == Instruction::Shl;
++    if (auto *C = dyn_cast<VPWidenCastRecipe>(R))
++      IsAddress = C->getOpcode() == Instruction::SExt ||
++                  C->getOpcode() == Instruction::ZExt ||
++                  C->getOpcode() == Instruction::Trunc;
++    if (!IsAddress)
++      continue;
++    Addresses.insert(V);
++    append_range(Worklist, R->operands());
++  }
++  bool Changed;
++  do {
++    Changed = false;
++    SmallVector<const VPValue *> ToRemove;
++    for (const VPValue *V : Addresses) {
++      if (all_of(V->users(), [&](const VPUser *U) {
++            auto *R = cast<VPRecipeBase>(U);
++            if (NativeMemory.contains(R))
++              return cast<VPWidenMemoryRecipe>(R)->getAddr() == V &&
++                     (!isa<VPWidenStoreRecipe, VPWidenStoreEVLRecipe>(R) ||
++                      R->getOperand(1) != V);
++            auto *Def = dyn_cast<VPSingleDefRecipe>(R);
++            return (Def && Addresses.contains(Def)) || U->usesFirstLaneOnly(V);
++          }))
++        continue;
++      ToRemove.push_back(V);
++    }
++    for (const VPValue *V : ToRemove)
++      Changed |= Addresses.erase(V);
++  } while (Changed);
++  return Addresses;
++}
++
++/// Identify identities and invariant operations after proving every iteration
++/// has a full EVL. Only all-true merges using that EVL are identities.
++static SmallSetVector<VPRecipeBase *, 8> getFullEVLRecipes(VPlan &Plan) {
++  SmallSetVector<VPRecipeBase *, 8> Result;
++  for (VPBasicBlock *BB : VPBlockUtils::blocksOnly<VPBasicBlock>(
++           vp_depth_first_shallow(Plan.getVectorLoopRegion()->getEntry()))) {
++    for (VPRecipeBase &R : *BB) {
++      auto *EVL = dyn_cast<VPInstruction>(&R);
++      if (!EVL || EVL->getOpcode() != VPInstruction::ExplicitVectorLength)
++        continue;
++      Result.insert(EVL);
++      for (VPUser *U : EVL->users()) {
++        auto *UR = cast<VPRecipeBase>(U);
++        if (UR->isScalarCast())
++          Result.insert(UR);
++        auto *Merge = dyn_cast<VPWidenIntrinsicRecipe>(UR);
++        if (Merge && Merge->getVectorIntrinsicID() == Intrinsic::vp_merge &&
++            Merge->getOperand(3) == EVL &&
++            match(Merge->getOperand(0), VPlanPatternMatch::m_True()))
++          Result.insert(Merge);
++      }
++    }
++  }
++  return Result;
++}
++
++static void simplifyFullEVL(VPlan &Plan) {
++  auto Recipes = getFullEVLRecipes(Plan);
++  if (Recipes.empty())
++    return;
++  VPBasicBlock *Preheader = Plan.getVectorPreheader();
++  VPBuilder Builder(Preheader, Preheader->end());
++  Type *IVTy = Plan.getVectorLoopRegion()->getCanonicalIVType();
++  VPValue *FullEVL = Builder.createScalarZExtOrTrunc(
++      &Plan.getVF(), Type::getInt32Ty(Plan.getContext()), IVTy,
++      DebugLoc::getCompilerGenerated());
++  for (VPRecipeBase *R : Recipes) {
++    if (auto *Merge = dyn_cast<VPWidenIntrinsicRecipe>(R)) {
++      Merge->replaceAllUsesWith(Merge->getOperand(1));
++    } else if (R->isScalarCast()) {
++      R->moveBefore(*Preheader, Preheader->end());
++      continue;
++    } else {
++      cast<VPInstruction>(R)->replaceAllUsesWith(FullEVL);
++    }
++    R->eraseFromParent();
++  }
++  // The EVL-based counter now advances by exactly VF. Reuse the canonical
++  // counter, and let ordinary dead-recipe cleanup remove the old AVL cycle.
++  // Keeping the EVL-PHI marker would incorrectly request AVL canonicalization
++  // after its application-length calculation has become dead.
++  auto *Header = Plan.getVectorLoopRegion()->getEntryBasicBlock();
++  auto *Canonical = Plan.getVectorLoopRegion()->getCanonicalIV();
++  for (VPRecipeBase &R : make_early_inc_range(Header->phis())) {
++    if (auto *IV = dyn_cast<VPEVLBasedIVPHIRecipe>(&R)) {
++      assert(IV->getStartValue() == Canonical->getStartValue());
++      IV->replaceAllUsesWith(Canonical);
++      IV->eraseFromParent();
++    }
++  }
++  auto *Latch = Plan.getVectorLoopRegion()->getExitingBasicBlock();
++  VPRecipeBase *Term = Latch->getTerminator();
++  VPBuilder(Term).createNaryOp(
++      VPInstruction::BranchOnCount,
++      {Canonical->getBackedgeValue(), &Plan.getVectorTripCount()},
++      Term->getDebugLoc());
++  Term->eraseFromParent();
++}
++
++std::optional<double> LoopVectorizationPlanner::costTPLCD(
++    VPlan &Plan, ElementCount VF, InstructionCost LegacyCost, bool Eligible,
++    StringRef ExclusionReason, unsigned ScalarAddressCount,
++    bool OrdinaryPressureExcluded) const {
++  if (VPlanTPLCD == TPLCDMode::Off || VF.isScalar())
++    return std::nullopt;
++
++  VPTPLCDCost Model;
++  InstructionCost FMASavings = 0;
++  InstructionCost FullEVLSavings = 0;
++  unsigned FMAPairs = 0;
++  bool FullWidth = hasFullWidthIterations(VF);
++  if (CM.CostKind != TTI::TCK_RecipThroughput || CM.OptForSize)
++    Model.FallbackReason = "size optimization retains ordinary costs";
++  else if (!LegacyCost.isValid())
++    Model.FallbackReason = "invalid ordinary cost (including loop skeleton)";
++  else if (ForceTargetInstructionCost.getNumOccurrences())
++    Model.FallbackReason = "forced instruction cost has no latency unit";
++  else if (Plan.hasEarlyExit())
++    Model.FallbackReason = "early exit probabilities unsupported";
++  else if (Hints.getInterleave() != 1)
++    Model.FallbackReason = "experimental ranking requires explicit IC=1";
++  else {
++    VPCostContext TPContext(TTI, *CM.TLI, Plan, CM, TTI::TCK_RecipThroughput,
++                            PSE, OrigLoop);
++    InstructionCost Precomputed = precomputeCosts(Plan, VF, TPContext);
++    Precomputed +=
++        TTI.getCFInstrCost(Instruction::Br, TTI::TCK_RecipThroughput);
++    VPCostContext LatencyContext(TTI, *CM.TLI, Plan, CM, TTI::TCK_Latency, PSE,
++                                 OrigLoop);
++    DenseMap<VPRecipeBase *, VPFusedRecipeCost> FusedCosts;
++    if (VPlanTPLCDFMA)
++      FusedCosts = computeVPlanFusedCosts(Plan, VF, TPContext, LatencyContext);
++    FMAPairs = FusedCosts.size() / 2;
++    SmallSetVector<VPRecipeBase *, 8> FullEVLRecipes;
++    if (FullWidth)
++      FullEVLRecipes = getFullEVLRecipes(Plan);
++    Model = computeVPlanTPLCDCost(
++        Plan, VF, Precomputed,
++        [&](VPRecipeBase &R) {
++          InstructionCost Cost = R.cost(VF, TPContext);
++          if (Cost.isValid() && FullEVLRecipes.contains(&R)) {
++            FullEVLSavings += Cost;
++            return InstructionCost(0);
++          }
++          auto I = FusedCosts.find(&R);
++          if (Cost.isValid() && I != FusedCosts.end()) {
++            FMASavings += Cost - I->second.Throughput;
++            return I->second.Throughput;
++          }
++          return Cost;
++        },
++        [&](VPRecipeBase &R) {
++          if (FullEVLRecipes.contains(&R))
++            return InstructionCost(0);
++          auto I = FusedCosts.find(&R);
++          if (I != FusedCosts.end())
++            return I->second.Latency;
++          return computeVPlanRecipeLatency(R, VF, LatencyContext);
++        });
++
++    // Ordinary VPlan costing already checked the preheader and exit. Its sum
++    // must be partitioned exactly once, with the same precompute/skip policy.
++    if (Model.FallbackReason.empty() && Model.Memory + Model.Compute +
++                                                Model.Other + FMASavings +
++                                                FullEVLSavings !=
++                                            LegacyCost)
++      Model.FallbackReason = "throughput partition differs from ordinary cost";
++
++    // Def-use edges do not express memory recurrences. LAA may omit proven
++    // independent pairs, but a recorded dependence needs an explicit proof.
++    const auto &DC = Legal->getLAI()->getDepChecker();
++    const auto *Deps = DC.getDependences();
++    if (!Deps)
++      Model.FallbackReason = "memory dependence enumeration unavailable";
++    else {
++      for (const auto &D : *Deps) {
++        if (D.Type == MemoryDepChecker::Dependence::NoDep)
++          continue;
++        Instruction *Src = D.getSource(DC), *Dst = D.getDestination(DC);
++        Value *SrcPtr = getLoadStorePointerOperand(Src);
++        Value *DstPtr = getLoadStorePointerOperand(Dst);
++        // A lexically forward access to precisely the same per-iteration
++        // address is independent across vector iterations. Other forward
++        // dependences may still carry a nonzero iteration distance.
++        if (D.Type == MemoryDepChecker::Dependence::Forward && SrcPtr &&
++            DstPtr &&
++            PSE.getSE()->getSCEV(SrcPtr) == PSE.getSE()->getSCEV(DstPtr))
++          continue;
++        Model.FallbackReason = "memory-carried or unresolved dependence";
++        break;
++      }
++    }
++  }
++
++  unsigned RuntimeVF = estimateElementCount(VF, CM.getVScaleForTuning());
++  const Function &F = *OrigLoop->getHeader()->getParent();
++  auto CostJSON = [](InstructionCost C) -> json::Value {
++    return C.isValid() ? json::Value(C.getValue()) : json::Value(nullptr);
++  };
++  std::string Dominant;
++  if (auto *R = Model.Recurrence.Recurrence) {
++    VPSlotTracker Slots(&Plan);
++    if (auto *V = dyn_cast<VPSingleDefRecipe>(R))
++      Dominant = Slots.getOrCreateName(V);
++  }
++  bool Supported = Model.FallbackReason.empty();
++  json::Object Record{
++      {"kind", "candidate"},
++      {"target", F.getParent()->getTargetTriple().str()},
++      {"cpu", F.getFnAttribute("target-cpu").getValueAsString()},
++      {"function", F.getName()},
++      {"loop", OrigLoop->getHeader()->getName()},
++      {"vf", VF.getKnownMinValue()},
++      {"scalable", VF.isScalable()},
++      {"runtime_vf", RuntimeVF},
++      {"legacy_cost", CostJSON(LegacyCost)},
++      {"memory_tp", CostJSON(Model.Memory)},
++      {"compute_tp", CostJSON(Model.Compute)},
++      {"other_tp", CostJSON(Model.Other)},
++      {"memory_recipes", Model.MemoryRecipes},
++      {"compute_recipes", Model.ComputeRecipes},
++      {"other_recipes", Model.OtherRecipes},
++      {"zero_cost_recipes", Model.ZeroCostRecipes},
++      {"fma_pairs", FMAPairs},
++      {"fma_savings_tp", CostJSON(FMASavings)},
++      {"full_width_iterations", FullWidth},
++      {"full_evl_savings_tp", CostJSON(FullEVLSavings)},
++      {"tp",
++       Supported ? json::Value(Model.throughput()) : json::Value(nullptr)},
++      {"lcd",
++       Supported ? json::Value(Model.Recurrence.Cycles) : json::Value(nullptr)},
++      {"dominant_recurrence", Dominant},
++      {"recurrence_distance", Model.Recurrence.Distance},
++      {"final_score", Supported ? json::Value(Model.loopScore() / RuntimeVF)
++                                : json::Value(nullptr)},
++      {"eligible", Eligible},
++      {"exclusion_reason", ExclusionReason},
++      {"scalar_address_register_recipes", ScalarAddressCount},
++      {"ordinary_pressure_excluded", OrdinaryPressureExcluded},
++      {"fallback_reason", Model.FallbackReason}};
++  errs() << "VPLAN-TP-LCD " << json::Value(std::move(Record)) << '\n';
++  return Supported ? std::optional<double>(Model.loopScore() / RuntimeVF)
++                   : std::nullopt;
++}
++
+ #ifndef NDEBUG
+ /// Return true if the original loop \ TheLoop contains any instructions that do
+ /// not have corresponding recipes in \p Plan and are not marked to be ignored
+@@ -7152,8 +7493,15 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
+     return VectorizationFactor::Disabled();
+   // If there is a single VPlan with a single VF, return it directly.
+   VPlan &FirstPlan = *VPlans[0];
+-  if (VPlans.size() == 1 && size(FirstPlan.vectorFactors()) == 1)
++  if (VPlans.size() == 1 && size(FirstPlan.vectorFactors()) == 1) {
++    ElementCount VF = *FirstPlan.vectorFactors().begin();
++    if (VPlanTPLCD != TPLCDMode::Off && VF.isVector()) {
++      auto Score = costTPLCD(FirstPlan, VF, cost(FirstPlan, VF), true);
++      SimplifySelectedFullEVL =
++          Score && VPlanTPLCD == TPLCDMode::Rank && hasFullWidthIterations(VF);
++    }
+     return {*FirstPlan.vectorFactors().begin(), 0, 0};
++  }
+ 
+   LLVM_DEBUG(dbgs() << "LV: Computing best VF using cost kind: "
+                     << (CM.CostKind == TTI::TCK_RecipThroughput
+@@ -7174,6 +7522,9 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
+   LLVM_DEBUG(dbgs() << "LV: Scalar loop costs: " << ScalarCost << ".\n");
+   VectorizationFactor ScalarFactor(ScalarVF, ScalarCost, ScalarCost);
+   VectorizationFactor BestFactor = ScalarFactor;
++  std::optional<VectorizationFactor> ModelBest;
++  double ModelBestScore = std::numeric_limits<double>::infinity();
++  bool AllEligibleModelsSupported = true;
+ 
+   bool ForceVectorization = Hints.getForce() == LoopVectorizeHints::FK_Enabled;
+   if (ForceVectorization) {
+@@ -7193,6 +7544,12 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
+         }))
+       RUs = calculateRegisterUsageForPlan(*P, VFs, TTI, CM.ValuesToIgnore);
+ 
++    auto ScalarAddresses = getScalarStridedAddresses(*P, VFs);
++    SmallVector<VPRegisterUsage, 8> ModelRUs;
++    if (!RUs.empty() && !ScalarAddresses.empty())
++      ModelRUs = calculateRegisterUsageForPlan(*P, VFs, TTI, CM.ValuesToIgnore,
++                                               &ScalarAddresses);
++
+     for (unsigned I = 0; I < VFs.size(); I++) {
+       ElementCount VF = VFs[I];
+       if (VF.isScalar())
+@@ -7216,18 +7573,48 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
+       InstructionCost Cost = cost(*P, VF);
+       VectorizationFactor CurrentFactor(VF, Cost, ScalarCost);
+ 
+-      if (CM.shouldConsiderRegPressureForVF(VF) &&
+-          RUs[I].exceedsMaxNumRegs(TTI, ForceTargetNumVectorRegs)) {
++      bool PressureExcluded =
++          CM.shouldConsiderRegPressureForVF(VF) &&
++          RUs[I].exceedsMaxNumRegs(TTI, ForceTargetNumVectorRegs);
++      bool ModelPressureExcluded =
++          ModelRUs.empty() ? PressureExcluded
++                           : CM.shouldConsiderRegPressureForVF(VF) &&
++                                 ModelRUs[I].exceedsMaxNumRegs(
++                                     TTI, ForceTargetNumVectorRegs);
++      if (PressureExcluded) {
+         LLVM_DEBUG(dbgs() << "LV(REG): Not considering vector loop of width "
+                           << VF << " because it uses too many registers\n");
+-        continue;
+       }
+ 
+-      if (isMoreProfitable(CurrentFactor, BestFactor, P->hasScalarTail()))
++      if (!PressureExcluded &&
++          isMoreProfitable(CurrentFactor, BestFactor, P->hasScalarTail()))
+         BestFactor = CurrentFactor;
+ 
++      // Scalar profitability remains in the ordinary cost units. The model
++      // ranks only eligible vector candidates; downstream costs and epilogue
++      // selection retain those ordinary units as well.
++      bool Profitable =
++          isMoreProfitable(CurrentFactor, ScalarFactor, P->hasScalarTail());
++      bool Eligible = !ModelPressureExcluded && Cost.isValid() &&
++                      (ForceVectorization || Profitable);
++      auto Score = costTPLCD(*P, VF, Cost, Eligible,
++                             ModelPressureExcluded ? "register pressure"
++                             : Eligible ? ""
++                                        : "ordinary scalar profitability",
++                             ScalarAddresses.size(), PressureExcluded);
++      if (Eligible && VPlanTPLCD != TPLCDMode::Off) {
++        AllEligibleModelsSupported &= Score.has_value();
++        if (Score && (*Score < ModelBestScore ||
++                      (*Score == ModelBestScore && ModelBest &&
++                       estimateElementCount(VF, CM.getVScaleForTuning()) <
++                           estimateElementCount(ModelBest->Width,
++                                                CM.getVScaleForTuning())))) {
++          ModelBest = CurrentFactor;
++          ModelBestScore = *Score;
++        }
++      }
+       // If profitable add it to ProfitableVF list.
+-      if (isMoreProfitable(CurrentFactor, ScalarFactor, P->hasScalarTail()))
++      if (Profitable && !PressureExcluded)
+         ProfitableVFs.push_back(CurrentFactor);
+     }
+   }
+@@ -7274,6 +7661,28 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
+          "when vectorizing, the scalar cost must be computed.");
+ #endif
+ 
++  // Never mix ordinary and TP/LCD units when any eligible candidate needs a
++  // fallback. The assertions above still verify the ordinary decision.
++  bool UseModel =
++      VPlanTPLCD == TPLCDMode::Rank && ModelBest && AllEligibleModelsSupported;
++  if (UseModel) {
++    BestFactor = *ModelBest;
++    SimplifySelectedFullEVL = hasFullWidthIterations(BestFactor.Width);
++  }
++  if (VPlanTPLCD != TPLCDMode::Off) {
++    json::Object Record{
++        {"kind", "selection"},
++        {"function", OrigLoop->getHeader()->getParent()->getName()},
++        {"loop", OrigLoop->getHeader()->getName()},
++        {"vf", BestFactor.Width.getKnownMinValue()},
++        {"scalable", BestFactor.Width.isScalable()},
++        {"used_model", UseModel},
++        {"fallback_reason",
++         AllEligibleModelsSupported
++             ? ""
++             : "unsupported eligible candidate; ordinary ranking"}};
++    errs() << "VPLAN-TP-LCD " << json::Value(std::move(Record)) << '\n';
++  }
+   LLVM_DEBUG(dbgs() << "LV: Selecting VF: " << BestFactor.Width << ".\n");
+   return BestFactor;
+ }
+@@ -7390,6 +7799,10 @@ DenseMap<const SCEV *, Value *> LoopVectorizationPlanner::executePlan(
+          "Trying to execute plan with unsupported VF");
+   assert(BestVPlan.hasUF(BestUF) &&
+          "Trying to execute plan with unsupported UF");
++  // Delay mutation until execution has fixed the main-loop VF/UF. Other VFs
++  // and epilogue selection must continue to see the original shared plan.
++  if (SimplifySelectedFullEVL && !VectorizingEpilogue && BestUF == 1)
++    simplifyFullEVL(BestVPlan);
+   if (BestVPlan.hasEarlyExit())
+     ++LoopsEarlyExitVectorized;
+   // TODO: Move to VPlan transform stage once the transition to the VPlan-based
+diff --git a/llvm/lib/Transforms/Vectorize/VPlan.h b/llvm/lib/Transforms/Vectorize/VPlan.h
+index 466591488443..09caece9cf67 100644
+--- a/llvm/lib/Transforms/Vectorize/VPlan.h
++++ b/llvm/lib/Transforms/Vectorize/VPlan.h
+@@ -1155,6 +1155,9 @@ public:
+   /// directly by the opcode.
+   static unsigned getNumOperandsForOpcode(unsigned Opcode);
+ 
++  /// Returns true if execution can emit a scalar when only lane zero is used.
++  bool canGenerateScalarForFirstLane() const;
++
+ private:
+   typedef unsigned char OpcodeTy;
+   OpcodeTy Opcode;
+@@ -1162,10 +1165,6 @@ private:
+   /// An optional name that can be used for the generated IR instruction.
+   std::string Name;
+ 
+-  /// Returns true if we can generate a scalar for the first lane only if
+-  /// needed.
+-  bool canGenerateScalarForFirstLane() const;
+-
+   /// Utility methods serving execute(): generates a single vector instance of
+   /// the modeled instruction. \returns the generated value. . In some cases an
+   /// existing value is returned rather than a generated one.
+diff --git a/llvm/lib/Transforms/Vectorize/VPlanAnalysis.cpp b/llvm/lib/Transforms/Vectorize/VPlanAnalysis.cpp
+index 994a4d892148..dd8e236db8ff 100644
+--- a/llvm/lib/Transforms/Vectorize/VPlanAnalysis.cpp
++++ b/llvm/lib/Transforms/Vectorize/VPlanAnalysis.cpp
+@@ -18,12 +18,131 @@
+ #include "llvm/Analysis/TargetTransformInfo.h"
+ #include "llvm/IR/Instruction.h"
+ #include "llvm/IR/PatternMatch.h"
++#include <limits>
+ 
+ using namespace llvm;
+ using namespace VPlanPatternMatch;
+ 
+ #define DEBUG_TYPE "vplan"
+ 
++VPRecurrenceLatency llvm::computeVPlanRecurrenceLatency(
++    VPlan &Plan, function_ref<InstructionCost(VPRecipeBase &)> GetLatency) {
++  VPRecurrenceLatency Result;
++  auto Fail = [&](StringRef Reason) {
++    Result.FallbackReason = Reason.str();
++    return Result;
++  };
++  VPRegionBlock *Region = Plan.getVectorLoopRegion();
++  if (!Region)
++    return Fail("no-vector-loop-region");
++
++  SmallVector<VPRecipeBase *> Recipes;
++  DenseMap<const VPRecipeBase *, unsigned> Index;
++  for (VPBlockBase *B : vp_depth_first_shallow(Region->getEntry())) {
++    // Replication/control-flow probabilities and nested iteration distances
++    // need a separate model. Do not silently flatten those regions.
++    auto *BB = dyn_cast<VPBasicBlock>(B);
++    if (!BB)
++      return Fail("nested-or-replicated-region");
++    for (VPRecipeBase &R : *BB) {
++      Index[&R] = Recipes.size();
++      Recipes.push_back(&R);
++    }
++  }
++
++  struct Edge {
++    unsigned To;
++    unsigned Distance;
++  };
++  const unsigned N = Recipes.size();
++  SmallVector<SmallVector<Edge, 4>> Successors(N);
++  SmallVector<unsigned> InDegree(N, 0), Roots;
++  SmallVector<double> Latencies;
++  auto AddEdge = [&](unsigned From, unsigned To, unsigned Distance) {
++    Successors[From].push_back({To, Distance});
++    if (!Distance)
++      ++InDegree[To];
++  };
++  auto AddOperand = [&](VPValue *V, unsigned To, unsigned Distance) {
++    auto I = Index.find(V->getDefiningRecipe());
++    if (I != Index.end())
++      AddEdge(I->second, To, Distance);
++  };
++
++  for (unsigned I = 0; I != N; ++I) {
++    VPRecipeBase *R = Recipes[I];
++    InstructionCost Latency = GetLatency(*R);
++    if (!Latency.isValid() || Latency < 0)
++      return Fail("unsupported-or-invalid-recipe-latency");
++    Latencies.push_back(Latency.getValue());
++
++    // Widened inductions synthesize their own backedge; their accessor is
++    // deliberately unreachable. Operand 1 is the step, not the backedge.
++    if (auto *IV = dyn_cast<VPWidenInductionRecipe>(R)) {
++      Roots.push_back(I);
++      AddEdge(I, I, 1);
++      AddOperand(IV->getStepValue(), I, 0);
++      continue;
++    }
++
++    bool IsHeaderPhi = R->getParent() == Region->getEntryBasicBlock() &&
++                       isa<VPHeaderPHIRecipe, VPPhi, VPWidenPHIRecipe>(R);
++    if (IsHeaderPhi) {
++      if (R->getNumOperands() != 2)
++        return Fail("unsupported-header-phi-arity");
++      Roots.push_back(I);
++      AddOperand(R->getOperand(1), I, 1);
++      continue;
++    }
++    for (VPValue *Op : R->operands())
++      AddOperand(Op, I, 0);
++  }
++
++  // A topological order for same-iteration edges. Backedges never participate
++  // here, so mutual PHIs can form distance-two or distance-three recurrences.
++  SmallVector<unsigned> Order;
++  for (unsigned I = 0; I != N; ++I)
++    if (!InDegree[I])
++      Order.push_back(I);
++  for (unsigned I = 0; I != Order.size(); ++I)
++    for (Edge E : Successors[Order[I]])
++      if (!E.Distance && !--InDegree[E.To])
++        Order.push_back(E.To);
++  if (Order.size() != N)
++    return Fail("same-iteration-dependency-cycle");
++
++  constexpr unsigned MaxDistance = 3;
++  const double Unreachable = -std::numeric_limits<double>::infinity();
++  for (unsigned Root : Roots) {
++    SmallVector<double> Times((MaxDistance + 1) * N, Unreachable);
++    Times[Root] = 0;
++    for (unsigned D = 0; D <= MaxDistance; ++D) {
++      for (unsigned I : Order) {
++        double Time = Times[D * N + I];
++        if (Time == Unreachable)
++          continue;
++        for (Edge E : Successors[I]) {
++          if (D + E.Distance > MaxDistance)
++            continue;
++          double &Next = Times[(D + E.Distance) * N + E.To];
++          Next = std::max(Next, Time + Latencies[E.To]);
++        }
++      }
++      // An independent long chain is unreachable from Root. In particular,
++      // a load-fed splice can have a backedge without a closed recurrence.
++      if (D && Times[D * N + Root] != Unreachable) {
++        double Cycles = Times[D * N + Root] / D;
++        if (Cycles > Result.Cycles) {
++          Result.Cycles = Cycles;
++          Result.Recurrence = Recipes[Root];
++          Result.Distance = D;
++        }
++      }
++    }
++  }
++  return Result;
++}
++
+ VPTypeAnalysis::VPTypeAnalysis(const VPlan &Plan) : Ctx(Plan.getContext()) {
+   if (auto LoopRegion = Plan.getVectorLoopRegion()) {
+     if (const auto *CanIV = dyn_cast<VPCanonicalIVPHIRecipe>(
+@@ -400,7 +519,8 @@ bool VPRegisterUsage::exceedsMaxNumRegs(const TargetTransformInfo &TTI,
+ 
+ SmallVector<VPRegisterUsage, 8> llvm::calculateRegisterUsageForPlan(
+     VPlan &Plan, ArrayRef<ElementCount> VFs, const TargetTransformInfo &TTI,
+-    const SmallPtrSetImpl<const Value *> &ValuesToIgnore) {
++    const SmallPtrSetImpl<const Value *> &ValuesToIgnore,
++    const SmallPtrSetImpl<const VPValue *> *ScalarAddresses) {
+   // Each 'key' in the map opens a new interval. The values
+   // of the map are the index of the 'last seen' usage of the
+   // VPValue that is the key.
+@@ -541,6 +661,13 @@ SmallVector<VPRegisterUsage, 8> llvm::calculateRegisterUsageForPlan(
+           continue;
+ 
+         if (VFs[J].isScalar() ||
++            (ScalarAddresses && ScalarAddresses->contains(VPV)) ||
++            // An explicit scalar definition stays scalar even if a widened
++            // recipe consumes it. For example, a widened induction consumes
++            // the scalar EVL without reporting a scalar-only use.
++            (ScalarAddresses && isa<VPInstruction>(VPV) &&
++             (cast<VPInstruction>(VPV)->isSingleScalar() ||
++              cast<VPInstruction>(VPV)->isVectorToScalar())) ||
+             isa<VPCanonicalIVPHIRecipe, VPReplicateRecipe, VPDerivedIVRecipe,
+                 VPEVLBasedIVPHIRecipe, VPScalarIVStepsRecipe>(VPV) ||
+             (isa<VPInstruction>(VPV) && vputils::onlyScalarValuesUsed(VPV)) ||
+diff --git a/llvm/lib/Transforms/Vectorize/VPlanAnalysis.h b/llvm/lib/Transforms/Vectorize/VPlanAnalysis.h
+index dc4be4270f7f..75d0f46bbcc1 100644
+--- a/llvm/lib/Transforms/Vectorize/VPlanAnalysis.h
++++ b/llvm/lib/Transforms/Vectorize/VPlanAnalysis.h
+@@ -12,7 +12,10 @@
+ #include "llvm/ADT/DenseMap.h"
+ #include "llvm/ADT/DenseSet.h"
+ #include "llvm/ADT/MapVector.h"
++#include "llvm/ADT/STLFunctionalExtras.h"
+ #include "llvm/IR/Type.h"
++#include "llvm/Support/InstructionCost.h"
++#include <string>
+ 
+ namespace llvm {
+ 
+@@ -69,6 +72,24 @@ public:
+ void collectEphemeralRecipesForVPlan(VPlan &Plan,
+                                      DenseSet<VPRecipeBase *> &EphRecipes);
+ 
++/// Result of the bounded, closed-recurrence latency analysis. An unsupported
++/// graph or invalid latency has an explicit reason, rather than a zero LCD.
++struct VPRecurrenceLatency {
++  double Cycles = 0;
++  const VPRecipeBase *Recurrence = nullptr;
++  unsigned Distance = 0;
++  std::string FallbackReason;
++};
++
++/// Analyze def-use and header backedges without modifying or cloning the plan.
++/// Latency is an operand-to-result approximation; for a widened induction it
++/// must describe its implicit update. Only paths returning to the same header
++/// value, at distances 1..3, constrain the result. Longer cycles can be missed.
++/// Memory-carried dependencies are not represented: the caller must check
++/// their support independently, using loop-access analysis.
++LLVM_ABI_FOR_TEST VPRecurrenceLatency computeVPlanRecurrenceLatency(
++    VPlan &Plan, function_ref<InstructionCost(VPRecipeBase &)> GetLatency);
++
+ /// A struct that represents some properties of the register usage
+ /// of a loop.
+ struct VPRegisterUsage {
+@@ -90,9 +111,13 @@ struct VPRegisterUsage {
+ /// by calculating the highest number of values that are live at a single
+ /// location as a rough estimate. Returns the register usage for each VF in \p
+ /// VFs.
++/// When ScalarAddresses is provided, count those proven address values and
++/// explicitly scalar VPInstruction definitions as scalar register values.
++/// The default path preserves the ordinary register-pressure estimate.
+ SmallVector<VPRegisterUsage, 8> calculateRegisterUsageForPlan(
+     VPlan &Plan, ArrayRef<ElementCount> VFs, const TargetTransformInfo &TTI,
+-    const SmallPtrSetImpl<const Value *> &ValuesToIgnore);
++    const SmallPtrSetImpl<const Value *> &ValuesToIgnore,
++    const SmallPtrSetImpl<const VPValue *> *ScalarAddresses = nullptr);
+ 
+ } // end namespace llvm
+ 
+diff --git a/llvm/unittests/Transforms/Vectorize/CMakeLists.txt b/llvm/unittests/Transforms/Vectorize/CMakeLists.txt
+index af111a29b90e..7f011a7f797b 100644
+--- a/llvm/unittests/Transforms/Vectorize/CMakeLists.txt
++++ b/llvm/unittests/Transforms/Vectorize/CMakeLists.txt
+@@ -10,9 +10,11 @@ set(LLVM_LINK_COMPONENTS
+ 
+ add_llvm_unittest(VectorizeTests
+   VPlanTest.cpp
++  VPlanCostModelTest.cpp
+   VPDomTreeTest.cpp
+   VPlanHCFGTest.cpp
+   VPlanPatternMatchTest.cpp
++  VPlanRecurrenceTest.cpp
+   VPlanSlpTest.cpp
+   VPlanUncountableExitTest.cpp
+   VPlanVerifierTest.cpp
+diff --git a/llvm/lib/Transforms/Vectorize/VPlanCostModel.cpp b/llvm/lib/Transforms/Vectorize/VPlanCostModel.cpp
+new file mode 100644
+index 000000000000..721314d44e39
+--- /dev/null
++++ b/llvm/lib/Transforms/Vectorize/VPlanCostModel.cpp
+@@ -0,0 +1,274 @@
++//===- VPlanCostModel.cpp - Experimental throughput/recurrence cost
++//----------===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#include "VPlanCostModel.h"
++#include "VPlan.h"
++#include "VPlanHelpers.h"
++#include "VPlanUtils.h"
++#include "llvm/Analysis/LoopInfo.h"
++#include "llvm/IR/Module.h"
++
++using namespace llvm;
++
++double VPTPLCDCost::throughput() const {
++  return Other.getValue() + std::max(Memory.getValue(), Compute.getValue());
++}
++
++double VPTPLCDCost::loopScore() const {
++  return std::max(throughput(), Recurrence.Cycles);
++}
++
++DenseMap<VPRecipeBase *, VPFusedRecipeCost>
++llvm::computeVPlanFusedCosts(VPlan &Plan, ElementCount VF,
++                             VPCostContext &TPContext,
++                             VPCostContext &LatencyContext) {
++  DenseMap<VPRecipeBase *, VPFusedRecipeCost> Costs;
++  for (VPBasicBlock *BB : VPBlockUtils::blocksOnly<VPBasicBlock>(
++           vp_depth_first_shallow(Plan.getVectorLoopRegion()->getEntry()))) {
++    for (VPRecipeBase &R : *BB) {
++      auto *Add = dyn_cast<VPWidenRecipe>(&R);
++      if (!Add || Add->getOpcode() != Instruction::FAdd ||
++          !Add->hasFastMathFlags() ||
++          !Add->getFastMathFlags().allowContract() ||
++          TPContext.skipCostComputation(Add->getUnderlyingInstr(), true))
++        continue;
++      Type *Ty = VectorType::get(TPContext.Types.inferScalarType(Add), VF);
++      if (!TPContext.TTI.isTypeLegal(Ty))
++        continue;
++      for (VPValue *Op : Add->operands()) {
++        auto *Mul = dyn_cast<VPWidenRecipe>(Op);
++        if (!Mul || Mul->getOpcode() != Instruction::FMul ||
++            Mul->getParent() != BB || Mul->getNumUsers() != 1 ||
++            !Mul->hasFastMathFlags() ||
++            !Mul->getFastMathFlags().allowContract() ||
++            TPContext.skipCostComputation(Mul->getUnderlyingInstr(), true))
++          continue;
++        IntrinsicCostAttributes Attrs(Intrinsic::fma, Ty, {Ty, Ty, Ty},
++                                      Add->getFastMathFlags());
++        InstructionCost FMA = TPContext.TTI.getIntrinsicInstrCost(
++            Attrs, TargetTransformInfo::TCK_RecipThroughput);
++        InstructionCost Separate =
++            Add->getCostForRecipeWithOpcode(Instruction::FAdd, VF, TPContext) +
++            Mul->getCostForRecipeWithOpcode(Instruction::FMul, VF, TPContext);
++        InstructionCost Latency = LatencyContext.TTI.getIntrinsicInstrCost(
++            Attrs, TargetTransformInfo::TCK_Latency);
++        // The legal vector type plus a strictly cheaper FMA cost is the TTI
++        // evidence for native contraction, rather than target-name matching.
++        if (!FMA.isValid() || !Separate.isValid() || !Latency.isValid() ||
++            FMA < 0 || Latency < 0 || FMA >= Separate)
++          continue;
++        Costs[Mul] = {0, 0};
++        Costs[Add] = {FMA, Latency};
++        break;
++      }
++    }
++  }
++  return Costs;
++}
++
++namespace {
++enum class Domain { Memory, Compute, Other };
++
++Domain classify(const VPRecipeBase &R) {
++  // Scalar execution belongs to Other even when the underlying opcode is FP
++  // or memory. Do not classify comparisons by their i1 result type.
++  if (isa<VPReplicateRecipe>(&R))
++    return Domain::Other;
++  if (isa<VPWidenMemoryRecipe>(&R))
++    return Domain::Memory;
++  if (isa<VPWidenRecipe, VPWidenCastRecipe, VPWidenIntrinsicRecipe,
++          VPWidenCanonicalIVRecipe>(&R))
++    return Domain::Compute;
++  if (auto *I = dyn_cast<VPInstruction>(&R)) {
++    if (I->canGenerateScalarForFirstLane() &&
++        (vputils::isSingleScalar(I) || vputils::onlyFirstLaneUsed(I)))
++      return Domain::Other;
++    unsigned Op = I->getOpcode();
++    if (Instruction::isBinaryOp(Op) || Instruction::isCast(Op) ||
++        Op == Instruction::ICmp || Op == Instruction::FCmp ||
++        Op == Instruction::Select ||
++        Op == VPInstruction::FirstOrderRecurrenceSplice ||
++        Op == VPInstruction::Reverse)
++      return Domain::Compute;
++  }
++  // Composite recipes remain additive until their components can be costed
++  // separately. In particular, do not silently treat interleaves as pure loads.
++  return Domain::Other;
++}
++
++} // namespace
++
++InstructionCost llvm::computeVPlanRecipeLatency(VPRecipeBase &R,
++                                                ElementCount VF,
++                                                VPCostContext &Ctx) {
++  assert(Ctx.CostKind == TargetTransformInfo::TCK_Latency &&
++         Ctx.SkipCostComputation.empty());
++  // Widened induction synthesizes an update, rather than exposing a def-use
++  // backedge. A scalar-only induction uses a scalar add.
++  if (auto *IV = dyn_cast<VPWidenInductionRecipe>(&R)) {
++    Type *Ty = Ctx.Types.inferScalarType(IV);
++    if (Ty->isPointerTy())
++      Ty = Type::getIntNTy(
++          Ctx.LLVMCtx,
++          Ctx.L->getHeader()->getModule()->getDataLayout().getPointerSizeInBits(
++              Ty->getPointerAddressSpace()));
++    if (!vputils::onlyFirstLaneUsed(IV))
++      Ty = VectorType::get(Ty, VF);
++    unsigned Opcode = IV->getInductionDescriptor().getInductionOpcode();
++    if (Opcode == Instruction::BinaryOpsEnd)
++      Opcode = Instruction::Add;
++    return Ctx.TTI.getArithmeticInstrCost(Opcode, Ty, Ctx.CostKind);
++  }
++  if (R.isPhi())
++    return 0;
++  if (auto *W = dyn_cast<VPWidenRecipe>(&R))
++    return W->getCostForRecipeWithOpcode(W->getOpcode(), VF, Ctx);
++  if (auto *C = dyn_cast<VPWidenCastRecipe>(&R))
++    return C->getCostForRecipeWithOpcode(C->getOpcode(), VF, Ctx);
++  if (auto *I = dyn_cast<VPWidenIntrinsicRecipe>(&R))
++    return I->computeCost(VF, Ctx);
++  if (auto *M = dyn_cast<VPWidenLoadEVLRecipe>(&R))
++    return M->computeCost(VF, Ctx);
++  if (auto *M = dyn_cast<VPWidenStoreEVLRecipe>(&R))
++    return M->computeCost(VF, Ctx);
++  if (auto *M = dyn_cast<VPWidenMemoryRecipe>(&R))
++    return M->computeCost(VF, Ctx);
++  if (auto *I = dyn_cast<VPInstruction>(&R)) {
++    unsigned Op = I->getOpcode();
++    if (Instruction::isBinaryOp(Op) || Instruction::isCast(Op) ||
++        Op == Instruction::ICmp || Op == Instruction::FCmp ||
++        Op == Instruction::Freeze) {
++      ElementCount Width =
++          vputils::isSingleScalar(I) || vputils::onlyFirstLaneUsed(I)
++              ? ElementCount::getFixed(1)
++              : VF;
++      return I->getCostForRecipeWithOpcode(Op, Width, Ctx);
++    }
++    switch (Op) {
++    case VPInstruction::FirstOrderRecurrenceSplice:
++    case VPInstruction::ExplicitVectorLength:
++    case VPInstruction::ActiveLaneMask:
++    case VPInstruction::Reverse:
++    case Instruction::Select:
++      return I->computeCost(VF, Ctx);
++    case VPInstruction::BranchOnCount:
++    case VPInstruction::BranchOnCond:
++      // These have no result and cannot participate in an SSA recurrence.
++      return 0;
++    default:
++      return InstructionCost::getInvalid();
++    }
++  }
++  if (auto *Rep = dyn_cast<VPReplicateRecipe>(&R)) {
++    if (!Rep->isSingleScalar() || Rep->isPredicated())
++      return InstructionCost::getInvalid();
++    Instruction *I = Rep->getUnderlyingInstr();
++    if (!I->isBinaryOp() && !I->isCast() && !isa<GetElementPtrInst, CmpInst>(I))
++      return InstructionCost::getInvalid();
++    SmallVector<const Value *> Ops(I->operands());
++    return Ctx.TTI.getInstructionCost(I, Ops, Ctx.CostKind);
++  }
++  if (auto *S = dyn_cast<VPScalarIVStepsRecipe>(&R)) {
++    // With IC=1 and only lane zero demanded, this forwards its start operand.
++    if (vputils::onlyFirstLaneUsed(S))
++      return 0;
++    return InstructionCost::getInvalid();
++  }
++  if (auto *IV = dyn_cast<VPDerivedIVRecipe>(&R)) {
++    Type *Ty = IV->getScalarType();
++    if (!Ty->isIntegerTy())
++      return InstructionCost::getInvalid();
++    // Start + IV * Step; the unit step is an identity multiplication.
++    auto *Step = dyn_cast<VPIRValue>(IV->getStepValue());
++    auto *C = Step ? dyn_cast<ConstantInt>(Step->getValue()) : nullptr;
++    InstructionCost Cost =
++        Ctx.TTI.getArithmeticInstrCost(Instruction::Add, Ty, Ctx.CostKind);
++    if (!C || !C->isOne())
++      Cost +=
++          Ctx.TTI.getArithmeticInstrCost(Instruction::Mul, Ty, Ctx.CostKind);
++    return Cost;
++  }
++  if (isa<VPWidenGEPRecipe, VPVectorPointerRecipe>(&R)) {
++    // Address formation is approximated by one add, not by a memory latency.
++    auto *V = cast<VPSingleDefRecipe>(&R);
++    Type *PtrTy = Ctx.Types.inferScalarType(V);
++    Type *Ty = Type::getIntNTy(
++        Ctx.LLVMCtx,
++        Ctx.L->getHeader()->getModule()->getDataLayout().getPointerSizeInBits(
++            PtrTy->getPointerAddressSpace()));
++    if (!vputils::isSingleScalar(V))
++      Ty = VectorType::get(Ty, VF);
++    return Ctx.TTI.getArithmeticInstrCost(Instruction::Add, Ty, Ctx.CostKind);
++  }
++  return InstructionCost::getInvalid();
++}
++
++VPTPLCDCost llvm::computeVPlanTPLCDCost(
++    VPlan &Plan, ElementCount VF, InstructionCost Precomputed,
++    function_ref<InstructionCost(VPRecipeBase &)> GetThroughput,
++    function_ref<InstructionCost(VPRecipeBase &)> GetLatency) {
++  VPTPLCDCost Result;
++  Result.Other = Precomputed;
++  auto *Region = Plan.getVectorLoopRegion();
++  if (!Region) {
++    Result.FallbackReason = "no vector loop region";
++    return Result;
++  }
++  for (VPBlockBase *B : vp_depth_first_shallow(Region->getEntry())) {
++    auto *BB = dyn_cast<VPBasicBlock>(B);
++    if (!BB) {
++      Result.FallbackReason = "nested or replicated region";
++      return Result;
++    }
++    for (VPRecipeBase &R : *BB) {
++      InstructionCost Cost = GetThroughput(R);
++      if (!Cost.isValid() || Cost < 0) {
++        Result.FallbackReason = "invalid recipe throughput";
++        return Result;
++      }
++      Result.ZeroCostRecipes += Cost == 0;
++      switch (classify(R)) {
++      case Domain::Memory:
++        Result.Memory += Cost;
++        ++Result.MemoryRecipes;
++        break;
++      case Domain::Compute:
++        Result.Compute += Cost;
++        ++Result.ComputeRecipes;
++        break;
++      case Domain::Other:
++        Result.Other += Cost;
++        ++Result.OtherRecipes;
++        break;
++      }
++    }
++  }
++  if (!Result.Other.isValid() || Result.Other < 0) {
++    Result.FallbackReason = "invalid precomputed throughput";
++    return Result;
++  }
++  std::string Unsupported;
++  Result.Recurrence = computeVPlanRecurrenceLatency(Plan, [&](VPRecipeBase &R) {
++    InstructionCost L = GetLatency(R);
++    if (!L.isValid() || L < 0) {
++      Unsupported = "unsupported-or-invalid-recipe-latency: recipe-id=" +
++                    std::to_string(R.getVPDefID());
++#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
++      raw_string_ostream OS(Unsupported);
++      VPSlotTracker Slots(&Plan);
++      R.print(OS, " ", Slots);
++#endif
++    }
++    return L;
++  });
++  Result.FallbackReason = Result.Recurrence.FallbackReason;
++  if (!Unsupported.empty())
++    Result.FallbackReason = std::move(Unsupported);
++  return Result;
++}
+diff --git a/llvm/lib/Transforms/Vectorize/VPlanCostModel.h b/llvm/lib/Transforms/Vectorize/VPlanCostModel.h
+new file mode 100644
+index 000000000000..90dd19a835cc
+--- /dev/null
++++ b/llvm/lib/Transforms/Vectorize/VPlanCostModel.h
+@@ -0,0 +1,57 @@
++//===- VPlanCostModel.h - Experimental throughput/recurrence cost -*- C++
++//-*-===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef LLVM_TRANSFORMS_VECTORIZE_VPLANCOSTMODEL_H
++#define LLVM_TRANSFORMS_VECTORIZE_VPLANCOSTMODEL_H
++
++#include "VPlanAnalysis.h"
++#include "llvm/Support/TypeSize.h"
++
++namespace llvm {
++struct VPCostContext;
++
++struct VPTPLCDCost {
++  InstructionCost Memory = 0;
++  InstructionCost Compute = 0;
++  InstructionCost Other = 0;
++  unsigned MemoryRecipes = 0;
++  unsigned ComputeRecipes = 0;
++  unsigned OtherRecipes = 0;
++  unsigned ZeroCostRecipes = 0;
++  VPRecurrenceLatency Recurrence;
++  std::string FallbackReason;
++
++  double throughput() const;
++  double loopScore() const;
++};
++
++/// Sum domains over the whole loop before taking their maximum. GetThroughput
++/// owns the legacy skip state; Precomputed includes the loop branch.
++LLVM_ABI_FOR_TEST VPTPLCDCost computeVPlanTPLCDCost(
++    VPlan &Plan, ElementCount VF, InstructionCost Precomputed,
++    function_ref<InstructionCost(VPRecipeBase &)> GetThroughput,
++    function_ref<InstructionCost(VPRecipeBase &)> GetLatency);
++
++/// Explicitly supported TTI latency queries, with no legacy fallback. Ctx must
++/// be a fresh latency context with no precomputed/skip state.
++InstructionCost computeVPlanRecipeLatency(VPRecipeBase &R, ElementCount VF,
++                                          VPCostContext &Ctx);
++
++struct VPFusedRecipeCost {
++  InstructionCost Throughput;
++  InstructionCost Latency;
++};
++/// Cost-only contractions; no graph or code-generation changes. The multiply
++/// is assigned zero and the add gets the native FMA cost for both cost kinds.
++DenseMap<VPRecipeBase *, VPFusedRecipeCost>
++computeVPlanFusedCosts(VPlan &Plan, ElementCount VF, VPCostContext &TPContext,
++                       VPCostContext &LatencyContext);
++} // namespace llvm
++
++#endif
+diff --git a/llvm/unittests/Transforms/Vectorize/VPlanCostModelTest.cpp b/llvm/unittests/Transforms/Vectorize/VPlanCostModelTest.cpp
+new file mode 100644
+index 000000000000..4cfb04c4adc5
+--- /dev/null
++++ b/llvm/unittests/Transforms/Vectorize/VPlanCostModelTest.cpp
+@@ -0,0 +1,124 @@
++//===- VPlanCostModelTest.cpp - Whole-loop TP domain tests
++//------------------===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#include "../lib/Transforms/Vectorize/VPlanCostModel.h"
++#include "VPlanTestBase.h"
++#include "llvm/IR/IRBuilder.h"
++
++namespace llvm {
++namespace {
++class VPlanCostModelTest : public VPlanTestBase {
++protected:
++  std::pair<VPBasicBlock *, VPBasicBlock *> makeLoop(VPlan &Plan) {
++    auto *A = Plan.createVPBasicBlock("first");
++    auto *B = Plan.createVPBasicBlock("second");
++    VPBlockUtils::connectBlocks(A, B);
++    auto *Region = Plan.createLoopRegion("loop", A, B);
++    VPBlockUtils::connectBlocks(Plan.getEntry(), Region);
++    VPBlockUtils::connectBlocks(Region, Plan.getScalarHeader());
++    return {A, B};
++  }
++};
++
++TEST_F(VPlanCostModelTest, DomainsAreSummedBeforeTakingMaximum) {
++  auto &Plan = getPlan();
++  auto [A, B] = makeLoop(Plan);
++  IRBuilder<> Builder(ScalarHeader->getTerminator());
++  auto *Ptr = ConstantPointerNull::get(PointerType::get(C, 0));
++  auto *Load = Builder.CreateLoad(Builder.getInt32Ty(), Ptr);
++  auto *Add = cast<Instruction>(Builder.CreateAdd(Load, Load));
++  auto *Mul = cast<Instruction>(Builder.CreateMul(Add, Add));
++  auto *Store = Builder.CreateStore(Mul, Ptr);
++  auto *VPPtr = Plan.getOrAddLiveIn(Ptr);
++  auto *L = new VPWidenLoadRecipe(*Load, VPPtr, nullptr, true, false, {}, {});
++  auto *X = new VPWidenRecipe(*Add, {L, L});
++  auto *Y = new VPWidenRecipe(*Mul, {X, X});
++  auto *S =
++      new VPWidenStoreRecipe(*Store, VPPtr, Y, nullptr, true, false, {}, {});
++  A->appendRecipe(L);
++  A->appendRecipe(X);
++  B->appendRecipe(Y);
++  B->appendRecipe(S);
++  unsigned Calls = 0;
++  auto Result = computeVPlanTPLCDCost(
++      Plan, ElementCount::getFixed(4), 3,
++      [&](VPRecipeBase &R) {
++        ++Calls;
++        return InstructionCost(&R == L ? 8 : &R == X ? 1 : &R == Y ? 9 : 2);
++      },
++      [](VPRecipeBase &) { return InstructionCost(0); });
++  EXPECT_TRUE(Result.FallbackReason.empty());
++  EXPECT_EQ(Calls, 4u);
++  EXPECT_EQ(Result.Memory, 10);
++  EXPECT_EQ(Result.Compute, 10);
++  EXPECT_EQ(Result.Other, 3);
++  EXPECT_EQ(Result.throughput(), 13);
++  EXPECT_EQ(Result.loopScore(), 13);
++  EXPECT_EQ(Result.MemoryRecipes, 2u);
++  EXPECT_EQ(Result.ComputeRecipes, 2u);
++}
++
++TEST_F(VPlanCostModelTest, FloatingCompareIsComputeAndReplicateIsOther) {
++  auto &Plan = getPlan();
++  auto [A, B] = makeLoop(Plan);
++  IRBuilder<> Builder(ScalarHeader->getTerminator());
++  auto *Ptr = ConstantPointerNull::get(PointerType::get(C, 0));
++  auto *Load = Builder.CreateLoad(Builder.getFloatTy(), Ptr);
++  auto *Cmp = cast<Instruction>(Builder.CreateFCmpOLT(Load, Load));
++  auto *Cast = cast<Instruction>(Builder.CreateZExt(Cmp, Builder.getInt32Ty()));
++  auto *Store = Builder.CreateStore(Builder.getFalse(), Ptr);
++  auto *VPPtr = Plan.getOrAddLiveIn(Ptr);
++  auto *L = new VPWidenLoadRecipe(*Load, VPPtr, nullptr, true, false, {}, {});
++  auto *X = new VPWidenRecipe(*Cmp, {L, L}, VPIRFlags(CmpInst::FCMP_OLT));
++  auto *S = new VPWidenStoreRecipe(*Store, VPPtr,
++                                   Plan.getOrAddLiveIn(Builder.getFalse()),
++                                   nullptr, true, false, {}, {});
++  // Only lane zero is consumed, but the widened compare still executes as a
++  // vector recipe. The scalar consumer is independently classified as Other.
++  auto *Scalar = new VPReplicateRecipe(Cast, {X}, true);
++  A->appendRecipe(L);
++  A->appendRecipe(X);
++  B->appendRecipe(S);
++  B->appendRecipe(Scalar);
++  auto Result = computeVPlanTPLCDCost(
++      Plan, ElementCount::getFixed(4), 7,
++      [&](VPRecipeBase &R) {
++        return InstructionCost(&R == X ? 5 : &R == Scalar ? 3 : 0);
++      },
++      [](VPRecipeBase &) { return InstructionCost(0); });
++  EXPECT_TRUE(Result.FallbackReason.empty());
++  EXPECT_EQ(Result.Compute, 5);
++  EXPECT_EQ(Result.Other, 10);
++  EXPECT_EQ(Result.ZeroCostRecipes, 2u);
++}
++
++TEST_F(VPlanCostModelTest, InvalidCostsHaveExplicitFallback) {
++  auto &Plan = getPlan();
++  auto [A, B] = makeLoop(Plan);
++  auto *V = Plan.getConstantInt(32, 1);
++  auto *R = new VPInstruction(Instruction::Add, {V, V});
++  A->appendRecipe(R);
++  auto Result = computeVPlanTPLCDCost(
++      Plan, ElementCount::getFixed(4), 0,
++      [](VPRecipeBase &) { return InstructionCost::getInvalid(); },
++      [](VPRecipeBase &) { return InstructionCost(1); });
++  EXPECT_EQ(Result.FallbackReason, "invalid recipe throughput");
++  Result = computeVPlanTPLCDCost(
++      Plan, ElementCount::getFixed(4), 0,
++      [](VPRecipeBase &) { return InstructionCost(0); },
++      [](VPRecipeBase &) { return InstructionCost::getInvalid(); });
++  EXPECT_FALSE(Result.FallbackReason.empty());
++  Result = computeVPlanTPLCDCost(
++      Plan, ElementCount::getFixed(4), InstructionCost::getInvalid(),
++      [](VPRecipeBase &) { return InstructionCost(0); },
++      [](VPRecipeBase &) { return InstructionCost(1); });
++  EXPECT_EQ(Result.FallbackReason, "invalid precomputed throughput");
++}
++} // namespace
++} // namespace llvm
+diff --git a/llvm/unittests/Transforms/Vectorize/VPlanRecurrenceTest.cpp b/llvm/unittests/Transforms/Vectorize/VPlanRecurrenceTest.cpp
+new file mode 100644
+index 000000000000..a5b4507a5620
+--- /dev/null
++++ b/llvm/unittests/Transforms/Vectorize/VPlanRecurrenceTest.cpp
+@@ -0,0 +1,184 @@
++//===- VPlanRecurrenceTest.cpp - Closed recurrence latency tests
++//------------===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#include "../lib/Transforms/Vectorize/VPlanAnalysis.h"
++#include "VPlanTestBase.h"
++
++namespace llvm {
++namespace {
++
++class VPlanRecurrenceTest : public VPlanTestBase {
++protected:
++  VPBasicBlock *makeLoop(VPlan &Plan) {
++    auto *Body = Plan.createVPBasicBlock("body");
++    auto *Region = Plan.createLoopRegion("loop", Body, Body);
++    VPBlockUtils::connectBlocks(Plan.getEntry(), Region);
++    VPBlockUtils::connectBlocks(Region, Plan.getScalarHeader());
++    return Body;
++  }
++
++  VPPhi *phi(VPlan &Plan, VPBasicBlock *Body) {
++    auto *Zero = Plan.getConstantInt(32, 0);
++    auto *Phi = new VPPhi({Zero, Zero}, {});
++    Body->appendRecipe(Phi);
++    return Phi;
++  }
++
++  VPInstruction *op(VPBasicBlock *Body, VPValue *Value,
++                    unsigned Opcode = Instruction::Add) {
++    auto *R = new VPInstruction(Opcode, {Value, Value});
++    Body->appendRecipe(R);
++    return R;
++  }
++};
++
++TEST_F(VPlanRecurrenceTest, IndependentLongChainDoesNotSetLCD) {
++  VPlan &Plan = getPlan();
++  auto *Body = makeLoop(Plan);
++  auto *Phi = phi(Plan, Body);
++  auto *Update = op(Body, Phi);
++  Phi->setOperand(1, Update);
++  VPValue *Chain = Plan.getConstantInt(32, 1);
++  for (unsigned I = 0; I != 20; ++I)
++    Chain = op(Body, Chain, Instruction::Mul);
++  auto Result = computeVPlanRecurrenceLatency(Plan, [&](VPRecipeBase &R) {
++    return InstructionCost(isa<VPPhi>(&R) ? 0 : &R == Update ? 7 : 100);
++  });
++  EXPECT_TRUE(Result.FallbackReason.empty());
++  EXPECT_EQ(Result.Cycles, 7);
++  EXPECT_EQ(Result.Recurrence, Phi);
++  EXPECT_EQ(Result.Distance, 1u);
++}
++
++TEST_F(VPlanRecurrenceTest, MutualPhisUseIterationDistance) {
++  VPlan &Plan = getPlan();
++  auto *Body = makeLoop(Plan);
++  auto *A = phi(Plan, Body);
++  auto *B = phi(Plan, Body);
++  auto *UpdateA = op(Body, B);
++  auto *UpdateB = op(Body, A);
++  A->setOperand(1, UpdateA);
++  B->setOperand(1, UpdateB);
++  auto Result = computeVPlanRecurrenceLatency(Plan, [&](VPRecipeBase &R) {
++    return InstructionCost(isa<VPPhi>(&R) ? 0 : &R == UpdateA ? 4 : 8);
++  });
++  EXPECT_TRUE(Result.FallbackReason.empty());
++  EXPECT_EQ(Result.Cycles, 6);
++  EXPECT_EQ(Result.Distance, 2u);
++}
++
++TEST_F(VPlanRecurrenceTest, IndependentAccumulatorsUseMaximum) {
++  VPlan &Plan = getPlan();
++  auto *Body = makeLoop(Plan);
++  auto *A = phi(Plan, Body);
++  auto *B = phi(Plan, Body);
++  auto *UpdateA = op(Body, A);
++  auto *UpdateB = op(Body, B);
++  A->setOperand(1, UpdateA);
++  B->setOperand(1, UpdateB);
++  auto Result = computeVPlanRecurrenceLatency(Plan, [&](VPRecipeBase &R) {
++    return InstructionCost(isa<VPPhi>(&R) ? 0 : &R == UpdateA ? 4 : 8);
++  });
++  EXPECT_TRUE(Result.FallbackReason.empty());
++  EXPECT_EQ(Result.Cycles, 8);
++  EXPECT_EQ(Result.Recurrence, B);
++}
++
++TEST_F(VPlanRecurrenceTest, DistanceThreeCycle) {
++  VPlan &Plan = getPlan();
++  auto *Body = makeLoop(Plan);
++  auto *A = phi(Plan, Body);
++  auto *B = phi(Plan, Body);
++  auto *C = phi(Plan, Body);
++  A->setOperand(1, op(Body, B));
++  B->setOperand(1, op(Body, C));
++  C->setOperand(1, op(Body, A));
++  auto Result = computeVPlanRecurrenceLatency(Plan, [](VPRecipeBase &R) {
++    return InstructionCost(isa<VPPhi>(&R) ? 0 : 5);
++  });
++  EXPECT_TRUE(Result.FallbackReason.empty());
++  EXPECT_EQ(Result.Cycles, 5);
++  EXPECT_EQ(Result.Distance, 3u);
++}
++
++TEST_F(VPlanRecurrenceTest, WidenedInductionHasImplicitBackedge) {
++  VPlan &Plan = getPlan();
++  auto *Body = makeLoop(Plan);
++  InductionDescriptor Descriptor;
++  auto *IV = new VPWidenIntOrFpInductionRecipe(
++      nullptr, Plan.getConstantInt(32, 0), Plan.getConstantInt(32, 1),
++      Plan.getConstantInt(32, 4), Descriptor, {}, {});
++  Body->appendRecipe(IV);
++  auto Result = computeVPlanRecurrenceLatency(
++      Plan, [](VPRecipeBase &) { return InstructionCost(3); });
++  EXPECT_TRUE(Result.FallbackReason.empty());
++  EXPECT_EQ(Result.Cycles, 3);
++  EXPECT_EQ(Result.Recurrence, IV);
++  EXPECT_EQ(Result.Distance, 1u);
++}
++
++TEST_F(VPlanRecurrenceTest, ClosedFirstOrderSplice) {
++  VPlan &Plan = getPlan();
++  auto *Body = makeLoop(Plan);
++  VPValue *Start = Plan.getConstantInt(32, 0);
++  auto *Phi = new VPFirstOrderRecurrencePHIRecipe(nullptr, *Start, *Start);
++  Body->appendRecipe(Phi);
++  auto *Splice = new VPInstruction(VPInstruction::FirstOrderRecurrenceSplice,
++                                   {Phi, Start});
++  Body->appendRecipe(Splice);
++  Phi->setBackedgeValue(Splice);
++  auto Result = computeVPlanRecurrenceLatency(Plan, [&](VPRecipeBase &R) {
++    return InstructionCost(&R == Splice ? 12 : 0);
++  });
++  EXPECT_TRUE(Result.FallbackReason.empty());
++  EXPECT_EQ(Result.Cycles, 12);
++  EXPECT_EQ(Result.Recurrence, Phi);
++}
++
++TEST_F(VPlanRecurrenceTest, LoadFedSpliceIsNotClosed) {
++  VPlan &Plan = getPlan();
++  auto *Body = makeLoop(Plan);
++  auto *Phi = phi(Plan, Body);
++  auto *Feed = op(Body, Plan.getConstantInt(32, 1));
++  Phi->setOperand(1, Feed);
++  auto *Splice =
++      new VPInstruction(VPInstruction::FirstOrderRecurrenceSplice, {Phi, Feed});
++  Body->appendRecipe(Splice);
++  op(Body, Splice);
++  auto Result = computeVPlanRecurrenceLatency(Plan, [](VPRecipeBase &R) {
++    return InstructionCost(isa<VPPhi>(&R) ? 0 : 100);
++  });
++  EXPECT_TRUE(Result.FallbackReason.empty());
++  EXPECT_EQ(Result.Cycles, 0);
++  EXPECT_EQ(Result.Recurrence, nullptr);
++}
++
++TEST_F(VPlanRecurrenceTest, UnsupportedAndInvalidHaveReasons) {
++  VPlan &Plan = getPlan();
++  auto *Body = makeLoop(Plan);
++  auto *Phi = phi(Plan, Body);
++  Phi->setOperand(1, op(Body, Phi));
++  auto Result = computeVPlanRecurrenceLatency(
++      Plan, [](VPRecipeBase &) { return InstructionCost::getInvalid(); });
++  EXPECT_EQ(Result.FallbackReason, "unsupported-or-invalid-recipe-latency");
++}
++
++TEST_F(VPlanRecurrenceTest, SameIterationCycleHasReason) {
++  VPlan &Plan = getPlan();
++  auto *Body = makeLoop(Plan);
++  auto *A = op(Body, Plan.getConstantInt(32, 0));
++  auto *B = op(Body, A);
++  A->setOperand(0, B);
++  auto Result = computeVPlanRecurrenceLatency(
++      Plan, [](VPRecipeBase &) { return InstructionCost(1); });
++  EXPECT_EQ(Result.FallbackReason, "same-iteration-dependency-cycle");
++}
++
++} // namespace
++} // namespace llvm
+diff --git a/llvm/test/Analysis/CostModel/RISCV/tp-lcd-profile.ll b/llvm/test/Analysis/CostModel/RISCV/tp-lcd-profile.ll
+new file mode 100644
+index 000000000000..599766d05141
+--- /dev/null
++++ b/llvm/test/Analysis/CostModel/RISCV/tp-lcd-profile.ll
+@@ -0,0 +1,91 @@
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=xiangshan -riscv-tp-lcd-memory-beat-bits=256 -riscv-tp-lcd-slide-startup=8 -riscv-tp-lcd-slide-quadratic-cost=3 -riscv-tp-lcd-latency-startup=5 -riscv-tp-lcd-data-index-startup=true < %s 2>&1 | FileCheck %s --check-prefix=TUNED-TP
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=xiangshan -riscv-tp-lcd-memory-beat-bits=256 -riscv-tp-lcd-slide-startup=8 -riscv-tp-lcd-slide-quadratic-cost=3 -riscv-tp-lcd-latency-startup=5 -riscv-tp-lcd-data-index-startup=true -cost-kind=latency < %s 2>&1 | FileCheck %s --check-prefix=TUNED-LAT
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=xiangshan -riscv-tp-lcd-memory-beat-bits=256 -riscv-tp-lcd-slide-startup=8 -riscv-tp-lcd-slide-quadratic-cost=3 -riscv-tp-lcd-latency-startup=5 -riscv-tp-lcd-data-index-startup=true -cost-kind=code-size < %s 2>&1 | FileCheck %s --check-prefix=SIZE
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=none -riscv-tp-lcd-memory-beat-bits=256 -riscv-tp-lcd-slide-startup=8 -riscv-tp-lcd-slide-quadratic-cost=3 -riscv-tp-lcd-latency-startup=5 -riscv-tp-lcd-data-index-startup=true < %s 2>&1 | FileCheck %s --check-prefix=DEFAULT
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b < %s 2>&1 | FileCheck %s --check-prefix=DEFAULT
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=none < %s 2>&1 | FileCheck %s --check-prefix=DEFAULT
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mcpu=xiangshan-kunminghu -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=xiangshan < %s 2>&1 | FileCheck %s --check-prefix=TUNED-TP
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mcpu=generic-rv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=saturn < %s 2>&1 | FileCheck %s --check-prefix=TP
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=xiangshan -cost-kind=latency < %s 2>&1 | FileCheck %s --check-prefix=TUNED-LAT
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=saturn -cost-kind=latency < %s 2>&1 | FileCheck %s --check-prefix=LAT
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=none -cost-kind=code-size < %s 2>&1 | FileCheck %s --check-prefix=SIZE
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=xiangshan -cost-kind=code-size < %s 2>&1 | FileCheck %s --check-prefix=SIZE
++; RUN: opt -passes='print<cost-model>' -disable-output -mtriple=riscv64 -mattr=+v,+f,+d,+zvl128b -riscv-tp-lcd-profile=saturn -cost-kind=code-size < %s 2>&1 | FileCheck %s --check-prefix=SIZE
++
++; Profiles are explicitly selected software assumptions, including on a generic
++; host CPU. Saturn retains independent, unvalidated initial assumptions.
++define void @costs(ptr %p, <vscale x 4 x float> %a, <vscale x 4 x float> %b) {
++; DEFAULT: cost of 4 for instruction: %add = fadd
++; TP: cost of 2 for instruction: %add = fadd
++; LAT: cost of 5 for instruction: %add = fadd
++; SIZE: cost of 1 for instruction: %add = fadd
++; TUNED-TP: cost of 2 for instruction: %add = fadd
++; TUNED-LAT: cost of 7 for instruction: %add = fadd
++  %add = fadd <vscale x 4 x float> %a, %b
++; DEFAULT: cost of 2 for instruction: %load = load
++; TP: cost of 2 for instruction: %load = load
++; LAT: cost of 5 for instruction: %load = load
++; SIZE: cost of 1 for instruction: %load = load
++; TUNED-TP: cost of 1 for instruction: %load = load
++; TUNED-LAT: cost of 6 for instruction: %load = load
++  %load = load <vscale x 4 x float>, ptr %p, align 4
++; DEFAULT: cost of 2 for instruction: %fma = call
++; TP: cost of 2 for instruction: %fma = call
++; LAT: cost of 5 for instruction: %fma = call
++; SIZE: cost of 1 for instruction: %fma = call
++; TUNED-TP: cost of 2 for instruction: %fma = call
++; TUNED-LAT: cost of 7 for instruction: %fma = call
++  %fma = call <vscale x 4 x float> @llvm.fma.nxv4f32(<vscale x 4 x float> %a, <vscale x 4 x float> %b, <vscale x 4 x float> %load)
++; DEFAULT: cost of 4 for instruction: %splice = call
++; TP: cost of 4 for instruction: %splice = call
++; LAT: cost of 10 for instruction: %splice = call
++; SIZE: cost of 2 for instruction: %splice = call
++; TUNED-TP: cost of 22 for instruction: %splice = call
++; TUNED-LAT: cost of 32 for instruction: %splice = call
++  %splice = call <vscale x 4 x float> @llvm.vector.splice.right.nxv4f32(<vscale x 4 x float> %a, <vscale x 4 x float> %b, i32 1)
++; DEFAULT: cost of 2 for instruction: %scalar = fadd
++; TP: cost of 2 for instruction: %scalar = fadd
++; LAT: cost of 3 for instruction: %scalar = fadd
++; SIZE: cost of 1 for instruction: %scalar = fadd
++; TUNED-TP: cost of 2 for instruction: %scalar = fadd
++; TUNED-LAT: cost of 3 for instruction: %scalar = fadd
++  %scalar = fadd float 1.0, 2.0
++; DEFAULT: cost of 16 for instruction: %split = load
++; TP: cost of 16 for instruction: %split = load
++; LAT: cost of 22 for instruction: %split = load
++; SIZE: cost of 2 for instruction: %split = load
++; TUNED-TP: cost of 8 for instruction: %split = load
++; TUNED-LAT: cost of 18 for instruction: %split = load
++  %split = load <vscale x 32 x float>, ptr %p, align 4
++  ret void
++}
++
++; Native VP loads use the same target memory latency rather than a generic
++; instruction latency. Indexed costs retain their existing per-lane scaling.
++define void @vp_costs(ptr %p, <vscale x 4 x ptr> %ptrs, <vscale x 4 x i1> %mask, i32 %evl) {
++; TP: cost of 2 for instruction: %vp = call
++; LAT: cost of 5 for instruction: %vp = call
++; TUNED-TP: cost of 1 for instruction: %vp = call
++; TUNED-LAT: cost of 6 for instruction: %vp = call
++  %vp = call <vscale x 4 x float> @llvm.vp.load.nxv4f32(ptr %p, <vscale x 4 x i1> %mask, i32 %evl)
++; TP: cost of 8 for instruction: %gather = call
++; LAT: cost of 11 for instruction: %gather = call
++; TUNED-TP: cost of 8 for instruction: %gather = call
++; TUNED-LAT: cost of 13 for instruction: %gather = call
++  %gather = call <vscale x 4 x float> @llvm.masked.gather.nxv4f32.nxv4p0(<vscale x 4 x ptr> %ptrs, i32 4, <vscale x 4 x i1> %mask, <vscale x 4 x float> poison)
++  ret void
++}
++
++; A loaded index, including an integer extension, pays the common startup.
++; The argument-only index in vp_costs above must not acquire this startup.
++define void @loaded_index(ptr %base, ptr %indices, <vscale x 4 x i1> %mask) {
++  %idx = load <vscale x 4 x i32>, ptr %indices, align 4
++  %ext = sext <vscale x 4 x i32> %idx to <vscale x 4 x i64>
++  %addresses = getelementptr float, ptr %base, <vscale x 4 x i64> %ext
++; TP: cost of 8 for instruction: %indexed = call
++; LAT: cost of 11 for instruction: %indexed = call
++; TUNED-TP: cost of 13 for instruction: %indexed = call
++; TUNED-LAT: cost of 13 for instruction: %indexed = call
++  %indexed = call <vscale x 4 x float> @llvm.masked.gather.nxv4f32.nxv4p0(<vscale x 4 x ptr> %addresses, i32 4, <vscale x 4 x i1> %mask, <vscale x 4 x float> poison)
++  ret void
++}
+diff --git a/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-ranking.ll b/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-ranking.ll
+new file mode 100644
+index 000000000000..889e5ae06a78
+--- /dev/null
++++ b/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-ranking.ll
+@@ -0,0 +1,137 @@
++; RUN: opt %s -disable-output -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=2 -force-vector-width=2 -scalable-vectorization=on -vplan-tp-lcd=rank 2>&1 | FileCheck %s --check-prefix=IC2
++; RUN: opt %s -S -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -force-vector-width=2 -scalable-vectorization=on -vplan-tp-lcd=off -o %t.off
++; RUN: opt %s -S -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -force-vector-width=2 -scalable-vectorization=on -vplan-tp-lcd=observe -o %t.observe 2>%t.log
++; RUN: diff %t.off %t.observe
++; RUN: FileCheck %s --check-prefix=OBSERVE < %t.log
++; RUN: opt %s -disable-output -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -force-vector-width=2 -scalable-vectorization=on -vplan-tp-lcd=rank -riscv-tp-lcd-profile=xiangshan 2>&1 | FileCheck %s --check-prefix=RANK
++;
++; IC2: VPLAN-TP-LCD {{.*}}"fallback_reason":"experimental ranking requires explicit IC=1"{{.*}}"function":"stream"
++;
++; Diagnostics must also cover forced VFs, whose ordinary selection bypasses
++; computeBestVF's candidate loop. Observation leaves emitted IR unchanged.
++; Ordinary legality allows this distant memory recurrence, but the SSA-only
++; latency graph cannot model its memory edge and must explicitly fall back.
++;
++; OBSERVE: VPLAN-TP-LCD {{.*}}"fallback_reason":""{{.*}}"function":"stream"{{.*}}"runtime_vf":4{{.*}}"vf":2
++; OBSERVE: VPLAN-TP-LCD {{.*}}"fallback_reason":"memory-carried or unresolved dependence"{{.*}}"function":"memory_recurrence"
++; RANK: VPLAN-TP-LCD {{.*}}"fallback_reason":""{{.*}}"function":"stream"{{.*}}"lcd":1
++; RANK: VPLAN-TP-LCD {{.*}}"fallback_reason":"memory-carried or unresolved dependence"{{.*}}"function":"memory_recurrence"
++; RANK: VPLAN-TP-LCD {{.*}}"fma_pairs":1{{.*}}"function":"contractable"
++; RANK: VPLAN-TP-LCD {{.*}}"fma_pairs":0{{.*}}"function":"no_contract"
++; RANK: VPLAN-TP-LCD {{.*}}"fma_pairs":0{{.*}}"function":"shared_multiply"
++; RANK: VPLAN-TP-LCD {{.*}}"fallback_reason":"size optimization retains ordinary costs"{{.*}}"function":"size_only"
++
++target datalayout = "e-m:e-p:64:64-i64:64-n32:64-S128"
++target triple = "riscv64"
++
++define void @stream(ptr noalias %a, ptr noalias %b) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %v = load float, ptr %bp, align 4
++  %sum = fadd float %v, 1.0
++  %ap = getelementptr float, ptr %a, i64 %iv
++  store float %sum, ptr %ap, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
++
++define void @memory_recurrence(ptr %a) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 32, %entry ], [ %next, %loop ]
++  %previous = sub i64 %iv, 32
++  %p = getelementptr float, ptr %a, i64 %previous
++  %v = load float, ptr %p, align 4
++  %sum = fadd float %v, 1.0
++  %q = getelementptr float, ptr %a, i64 %iv
++  store float %sum, ptr %q, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
++
++; Contraction needs both flags and exactly one use of the multiply.
++define void @contractable(ptr noalias %a, ptr noalias %b, ptr noalias %c, float %alpha, float %beta) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %v = load float, ptr %bp, align 4
++  %mul = fmul contract float %v, %alpha
++  %sum = fadd contract float %mul, %beta
++  %ap = getelementptr float, ptr %a, i64 %iv
++  store float %sum, ptr %ap, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
++
++; Contraction needs both flags and exactly one use of the multiply.
++define void @no_contract(ptr noalias %a, ptr noalias %b, ptr noalias %c, float %alpha, float %beta) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %v = load float, ptr %bp, align 4
++  %mul = fmul float %v, %alpha
++  %sum = fadd float %mul, %beta
++  %ap = getelementptr float, ptr %a, i64 %iv
++  store float %sum, ptr %ap, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
++
++; Contraction needs both flags and exactly one use of the multiply.
++define void @shared_multiply(ptr noalias %a, ptr noalias %b, ptr noalias %c, float %alpha, float %beta) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %v = load float, ptr %bp, align 4
++  %mul = fmul contract float %v, %alpha
++  %sum = fadd contract float %mul, %beta
++  %ap = getelementptr float, ptr %a, i64 %iv
++  store float %sum, ptr %ap, align 4
++  %cp = getelementptr float, ptr %c, i64 %iv
++  store float %mul, ptr %cp, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
++
++; Code-size profitability and ranking keep ordinary costs.
++define void @size_only(ptr noalias %a, ptr noalias %b) minsize {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %v = load float, ptr %bp, align 4
++  %sum = fadd float %v, 1.0
++  %ap = getelementptr float, ptr %a, i64 %iv
++  store float %sum, ptr %ap, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
+diff --git a/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-full-evl.ll b/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-full-evl.ll
+new file mode 100644
+index 000000000000..53143bdef697
+--- /dev/null
++++ b/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-full-evl.ll
+@@ -0,0 +1,124 @@
++; RUN: opt %s -S -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -scalable-vectorization=on -riscv-v-register-bit-width-lmul=8 -riscv-tp-lcd-profile=xiangshan -vplan-tp-lcd-full-evl=true -vplan-tp-lcd=rank -force-target-num-vector-regs=16 -o %t.full 2>%t.full.log
++; RUN: FileCheck %s --check-prefix=FULL-IR < %t.full
++; RUN: opt %s -S -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -scalable-vectorization=on -riscv-v-register-bit-width-lmul=8 -riscv-tp-lcd-profile=xiangshan -vplan-tp-lcd-full-evl=true -vplan-tp-lcd=rank -o %t.rank 2>%t.log
++; RUN: FileCheck %s --check-prefix=PROOF < %t.log
++; RUN: opt %s -S -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -scalable-vectorization=on -riscv-v-register-bit-width-lmul=8 -riscv-tp-lcd-profile=xiangshan -vplan-tp-lcd-full-evl=true -vplan-tp-lcd=observe -o %t.observe 2>/dev/null
++; RUN: opt %s -S -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -scalable-vectorization=on -riscv-v-register-bit-width-lmul=8 -riscv-tp-lcd-profile=xiangshan -vplan-tp-lcd-full-evl=true -vplan-tp-lcd=off -o %t.off
++; RUN: diff %t.off %t.observe
++; RUN: opt %t.rank -passes=verify -disable-output
++;
++; Full width must hold at the largest legal vscale, not just tuning vscale2.
++; At the architectural maximum (1024), 4096 covers VF4 but not VF8.
++; A bounded vscale range admits VF16. Nonmultiples and unknown counts fail.
++;
++; PROOF: "full_width_iterations":true{{.*}}"function":"architectural_max"{{.*}}"vf":4
++; PROOF: "full_width_iterations":false{{.*}}"function":"architectural_max"{{.*}}"vf":8
++; PROOF: "full_width_iterations":true{{.*}}"function":"bounded_max"{{.*}}"vf":16
++; PROOF: "full_width_iterations":false{{.*}}"function":"nonmultiple"
++; PROOF: "full_width_iterations":false{{.*}}"function":"unknown_count"
++
++target datalayout = "e-m:e-p:64:64-i64:64-n32:64-S128"
++target triple = "riscv64"
++
++define void @architectural_max(ptr noalias %a, ptr noalias %b) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %v = load float, ptr %bp, align 4
++  %sum = fadd float %v, 1.0
++  %ap = getelementptr float, ptr %a, i64 %iv
++  store float %sum, ptr %ap, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
++
++define void @bounded_max(ptr noalias %a, ptr noalias %b) vscale_range(2, 8) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %v = load float, ptr %bp, align 4
++  %sum = fadd float %v, 1.0
++  %ap = getelementptr float, ptr %a, i64 %iv
++  store float %sum, ptr %ap, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
++
++define void @nonmultiple(ptr noalias %a, ptr noalias %b) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %v = load float, ptr %bp, align 4
++  %sum = fadd float %v, 1.0
++  %ap = getelementptr float, ptr %a, i64 %iv
++  store float %sum, ptr %ap, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4098
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
++
++define void @unknown_count(ptr noalias %a, ptr noalias %b, i64 %n) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %v = load float, ptr %bp, align 4
++  %sum = fadd float %v, 1.0
++  %ap = getelementptr float, ptr %a, i64 %iv
++  store float %sum, ptr %ap, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, %n
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
++
++
++; Limit register pressure so VF4 is actually selected from an EVL plan spanning
++; larger candidates. Check vector code exists and its EVL/merge cleanup occurs.
++; FULL-IR-LABEL: define float @cleanup
++; FULL-IR-NOT: @llvm.experimental.get.vector.length
++; FULL-IR-NOT: index.evl
++; FULL-IR: call <vscale x 4 x float> @llvm.vp.load
++; FULL-IR-NOT: @llvm.vp.merge
++; FULL-IR-NOT: index.evl
++; FULL-IR: ret float
++define float @cleanup(ptr noalias %a, ptr noalias %b, ptr noalias %x) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %sum.a = phi float [ 0.0, %entry ], [ %add.a, %loop ]
++  %sum.b = phi float [ 0.0, %entry ], [ %add.b, %loop ]
++  %ap = getelementptr float, ptr %a, i64 %iv
++  %av = load float, ptr %ap, align 4
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %bv = load float, ptr %bp, align 4
++  %xp = getelementptr float, ptr %x, i64 %iv
++  %xv = load float, ptr %xp, align 4
++  %mul.a = fmul fast float %av, %xv
++  %mul.b = fmul fast float %bv, %xv
++  %add.a = fadd fast float %sum.a, %mul.a
++  %add.b = fadd fast float %sum.b, %mul.b
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  %result = fadd fast float %add.a, %add.b
++  ret float %result
++}
+diff --git a/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll b/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll
+new file mode 100644
+index 000000000000..8573afc38d3d
+--- /dev/null
++++ b/llvm/test/Transforms/LoopVectorize/RISCV/tp-lcd-scalar-registers.ll
+@@ -0,0 +1,71 @@
++; RUN: opt %s -disable-output -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -scalable-vectorization=on -riscv-v-register-bit-width-lmul=8 -riscv-tp-lcd-profile=xiangshan -vplan-tp-lcd=rank -vplan-tp-lcd-strided-addresses=true 2>&1 | FileCheck %s --check-prefix=ON
++; RUN: opt %s -disable-output -passes=loop-vectorize -mtriple=riscv64 -mattr=+v,+zvl128b -force-vector-interleave=1 -scalable-vectorization=on -riscv-v-register-bit-width-lmul=8 -riscv-tp-lcd-profile=xiangshan -vplan-tp-lcd=rank -vplan-tp-lcd-strided-addresses=false 2>&1 | FileCheck %s --check-prefix=OFF
++;
++; The affine, address-only chain becomes a scalar strided address. Scalar EVL
++; must remain a GPR even when a widened induction consumes it. Four genuine
++; float groups fit in 32 registers at VF16; the ordinary estimate counts 56.
++; An extra vector use of the integer index invalidates that scalar proof.
++;
++; ON: "eligible":true{{.*}}"function":"address_only"{{.*}}"ordinary_pressure_excluded":true{{.*}}"scalar_address_register_recipes":3{{.*}}"vf":16
++; OFF: "eligible":false{{.*}}"exclusion_reason":"register pressure"{{.*}}"function":"address_only"{{.*}}"vf":16
++; ON: "function":"vector_index_use"{{.*}}"scalar_address_register_recipes":1{{.*}}"vf":8
++; ON-NOT: "function":"vector_index_use"{{.*}}"vf":16
++
++target datalayout = "e-m:e-p:64:64-i64:64-n32:64-S128"
++target triple = "riscv64"
++
++define void @address_only(ptr noalias %a, ptr noalias %b, ptr noalias %c, ptr noalias %d, ptr noalias %out) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %cp = getelementptr float, ptr %c, i64 %iv
++  %cv = load float, ptr %cp, align 4
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %bv = load float, ptr %bp, align 4
++  %dp = getelementptr float, ptr %d, i64 %iv
++  %dv = load float, ptr %dp, align 4
++  %twice = fmul fast float %bv, 2.0
++  %factor = fmul fast float %twice, %dv
++  %sum1 = fadd fast float %bv, %cv
++  %sum2 = fadd fast float %sum1, %dv
++  %product = fmul fast float %sum2, %cv
++  %value = fadd fast float %product, %factor
++  %offset = shl nuw nsw i64 %iv, 3
++  %ap = getelementptr float, ptr %a, i64 %offset
++  store float %value, ptr %ap, align 4
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}
++
++define void @vector_index_use(ptr noalias %a, ptr noalias %b, ptr noalias %c, ptr noalias %d, ptr noalias %out) {
++entry:
++  br label %loop
++loop:
++  %iv = phi i64 [ 0, %entry ], [ %next, %loop ]
++  %cp = getelementptr float, ptr %c, i64 %iv
++  %cv = load float, ptr %cp, align 4
++  %bp = getelementptr float, ptr %b, i64 %iv
++  %bv = load float, ptr %bp, align 4
++  %dp = getelementptr float, ptr %d, i64 %iv
++  %dv = load float, ptr %dp, align 4
++  %twice = fmul fast float %bv, 2.0
++  %factor = fmul fast float %twice, %dv
++  %sum1 = fadd fast float %bv, %cv
++  %sum2 = fadd fast float %sum1, %dv
++  %product = fmul fast float %sum2, %cv
++  %value = fadd fast float %product, %factor
++  %offset = shl nuw nsw i64 %iv, 3
++  %ap = getelementptr float, ptr %a, i64 %offset
++  store float %value, ptr %ap, align 4
++  %op = getelementptr i64, ptr %out, i64 %iv
++  store i64 %offset, ptr %op, align 8
++  %next = add nuw i64 %iv, 1
++  %done = icmp eq i64 %next, 4096
++  br i1 %done, label %exit, label %loop
++exit:
++  ret void
++}

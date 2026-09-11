@@ -1,0 +1,6 @@
+[1/6] Building CXX object lib/Target/RISCV/CMakeFiles/LLVMRISCVCodeGen.dir/RISCVTargetTransformInfo.cpp.o
+[2/6] Building CXX object lib/Target/RISCV/CMakeFiles/LLVMRISCVCodeGen.dir/RISCVTargetMachine.cpp.o
+[3/6] Linking CXX static library lib/libLLVMRISCVCodeGen.a
+[4/6] Linking CXX executable bin/clang-22
+[5/6] Creating executable symlink bin/clang
+[6/6] Linking CXX executable bin/opt

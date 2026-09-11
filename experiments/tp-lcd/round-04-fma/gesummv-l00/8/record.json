@@ -1,0 +1,65 @@
+{
+  "kernel": "gesummv-l00",
+  "mode": 8,
+  "vf": 8,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "d2129031ceb6b3e8a99d61de57304b16d4da6b006b29b607fbdce0dc6f0b1bfe",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vsetvli": 2,
+          "sh2add": 3,
+          "vle32.v": 3,
+          "vfmacc.vv": 2,
+          "sub": 1,
+          "add": 1,
+          "bnez": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvsetvli\ta5, a1, e8, m1, ta, ma\n\tsh2add\ta2, a0, a6\n\tvle32.v\tv16, (a2)\n\tsh2add\ta2, a0, a3\n\tvle32.v\tv20, (a2)\n\tsh2add\ta2, a0, a4\n\tvle32.v\tv24, (a2)\n\tvsetvli\tzero, zero, e32, m4, tu, ma\n\tvfmacc.vv\tv12, v20, v16\n\tsub\ta1, a1, a5\n\tvfmacc.vv\tv8, v24, v20\n\tadd\ta0, a0, a5\n\tbnez\ta1, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m4"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 6,
+      "compute_tp": 16,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "ir<%y.021>",
+      "eligible": true,
+      "exclusion_reason": "",
+      "fallback_reason": "",
+      "final_score": 1.1875,
+      "fma_pairs": 2,
+      "fma_savings_tp": 8,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 8,
+      "legacy_cost": 33,
+      "loop": "for.body",
+      "memory_recipes": 3,
+      "memory_tp": 6,
+      "other_recipes": 18,
+      "other_tp": 3,
+      "recurrence_distance": 1,
+      "runtime_vf": 16,
+      "scalable": true,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 19,
+      "vf": 8,
+      "zero_cost_recipes": 19
+    }
+  ],
+  "workaround_applied": 2,
+  "scheduled_extractions_moved": 2,
+  "allocation_dump_present": true
+}

@@ -1,0 +1,28 @@
+{
+  "frozen_scores_equal_round11": true,
+  "thresholds": {
+    "core": {
+      "forced_regret_gm": true,
+      "forced_regret_worst": true,
+      "automatic_regret_gm": true,
+      "automatic_regret_worst": true,
+      "non_tie_accuracy": true,
+      "relative_gm": true,
+      "relative_p90": true
+    },
+    "validation_informed": {
+      "forced_regret_gm": true,
+      "forced_regret_worst": true,
+      "automatic_regret_gm": true,
+      "automatic_regret_worst": true,
+      "non_tie_accuracy": true,
+      "relative_gm": true,
+      "relative_p90": true
+    }
+  },
+  "all_report_calibration_thresholds_met": true,
+  "current_binary_measurements": false,
+  "saturn_measurements": false,
+  "historical_binary_identity_proven": false,
+  "validation_informed": true
+}

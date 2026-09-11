@@ -1,0 +1,4 @@
+VPLAN-TP-LCD {"compute_recipes":4,"compute_tp":8,"cpu":"xiangshan-kunminghu","dominant_recurrence":"ir<%q.018>","eligible":true,"fallback_reason":"","final_score":1.25,"function":"selected_kernel","kind":"candidate","lcd":5,"legacy_cost":18,"loop":"for.body","memory_recipes":4,"memory_tp":8,"other_recipes":12,"other_tp":2,"recurrence_distance":1,"runtime_vf":8,"scalable":true,"target":"riscv64-unknown-unknown-elf","tp":10,"vf":4,"zero_cost_recipes":12}
+/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/inputs/application_kernels.c:84:5: remark: vectorized loop (vectorization width: vscale x 4, interleaved count: 1) [-Rpass=loop-vectorize]
+   84 |     for (int j = 0; j < APP_LOOP_SIZE; ++j) {
+      |     ^

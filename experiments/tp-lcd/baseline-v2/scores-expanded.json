@@ -1,0 +1,231 @@
+{
+  "candidates": [
+    {
+      "kernel": "s000",
+      "vf": 2,
+      "runtime_vf": 4,
+      "legacy_cost": 6
+    },
+    {
+      "kernel": "s000",
+      "vf": 4,
+      "runtime_vf": 8,
+      "legacy_cost": 10
+    },
+    {
+      "kernel": "s000",
+      "vf": 8,
+      "runtime_vf": 16,
+      "legacy_cost": 18
+    },
+    {
+      "kernel": "s000",
+      "vf": 16,
+      "runtime_vf": 32,
+      "legacy_cost": 34
+    },
+    {
+      "kernel": "s1111",
+      "vf": 2,
+      "runtime_vf": 4,
+      "legacy_cost": 26
+    },
+    {
+      "kernel": "s1111",
+      "vf": 4,
+      "runtime_vf": 8,
+      "legacy_cost": 51
+    },
+    {
+      "kernel": "s1111",
+      "vf": 8,
+      "runtime_vf": 16,
+      "legacy_cost": 101
+    },
+    {
+      "kernel": "s1111",
+      "vf": 16,
+      "runtime_vf": 32,
+      "legacy_cost": 201
+    },
+    {
+      "kernel": "s125",
+      "vf": 2,
+      "runtime_vf": 4,
+      "legacy_cost": 10
+    },
+    {
+      "kernel": "s125",
+      "vf": 4,
+      "runtime_vf": 8,
+      "legacy_cost": 18
+    },
+    {
+      "kernel": "s125",
+      "vf": 8,
+      "runtime_vf": 16,
+      "legacy_cost": 34
+    },
+    {
+      "kernel": "s125",
+      "vf": 16,
+      "runtime_vf": 32,
+      "legacy_cost": 66
+    },
+    {
+      "kernel": "s311",
+      "vf": 2,
+      "runtime_vf": 4,
+      "legacy_cost": 5
+    },
+    {
+      "kernel": "s311",
+      "vf": 4,
+      "runtime_vf": 8,
+      "legacy_cost": 8
+    },
+    {
+      "kernel": "s311",
+      "vf": 8,
+      "runtime_vf": 16,
+      "legacy_cost": 18
+    },
+    {
+      "kernel": "s311",
+      "vf": 16,
+      "runtime_vf": 32,
+      "legacy_cost": 34
+    },
+    {
+      "kernel": "s4112",
+      "vf": 2,
+      "runtime_vf": 4,
+      "legacy_cost": 17
+    },
+    {
+      "kernel": "s4112",
+      "vf": 4,
+      "runtime_vf": 8,
+      "legacy_cost": 32
+    },
+    {
+      "kernel": "s4112",
+      "vf": 8,
+      "runtime_vf": 16,
+      "legacy_cost": 62
+    },
+    {
+      "kernel": "s4112",
+      "vf": 16,
+      "runtime_vf": 32,
+      "legacy_cost": 123
+    },
+    {
+      "kernel": "jacobi-2d-imper-l00",
+      "vf": 2,
+      "runtime_vf": 4,
+      "legacy_cost": 20
+    },
+    {
+      "kernel": "jacobi-2d-imper-l00",
+      "vf": 4,
+      "runtime_vf": 8,
+      "legacy_cost": 37
+    },
+    {
+      "kernel": "jacobi-2d-imper-l00",
+      "vf": 8,
+      "runtime_vf": 16,
+      "legacy_cost": 71
+    },
+    {
+      "kernel": "jacobi-2d-imper-l00",
+      "vf": 16,
+      "runtime_vf": 32,
+      "legacy_cost": 139
+    },
+    {
+      "kernel": "gesummv-l00",
+      "vf": 2,
+      "runtime_vf": 4,
+      "legacy_cost": 13
+    },
+    {
+      "kernel": "gesummv-l00",
+      "vf": 4,
+      "runtime_vf": 8,
+      "legacy_cost": 24
+    },
+    {
+      "kernel": "gesummv-l00",
+      "vf": 8,
+      "runtime_vf": 16,
+      "legacy_cost": 54
+    },
+    {
+      "kernel": "gesummv-l00",
+      "vf": 16,
+      "runtime_vf": 32,
+      "legacy_cost": 106
+    },
+    {
+      "kernel": "bicg-l01",
+      "vf": 2,
+      "runtime_vf": 4,
+      "legacy_cost": 14
+    },
+    {
+      "kernel": "bicg-l01",
+      "vf": 4,
+      "runtime_vf": 8,
+      "legacy_cost": 26
+    },
+    {
+      "kernel": "bicg-l01",
+      "vf": 8,
+      "runtime_vf": 16,
+      "legacy_cost": 54
+    },
+    {
+      "kernel": "bicg-l01",
+      "vf": 16,
+      "runtime_vf": 32,
+      "legacy_cost": 106
+    },
+    {
+      "kernel": "gemver-l00",
+      "vf": 2,
+      "runtime_vf": 4,
+      "legacy_cost": 14
+    },
+    {
+      "kernel": "gemver-l00",
+      "vf": 4,
+      "runtime_vf": 8,
+      "legacy_cost": 26
+    },
+    {
+      "kernel": "gemver-l00",
+      "vf": 8,
+      "runtime_vf": 16,
+      "legacy_cost": 50
+    },
+    {
+      "kernel": "gemver-l00",
+      "vf": 16,
+      "runtime_vf": 32,
+      "legacy_cost": 98
+    }
+  ],
+  "automatic": {
+    "s000": 16,
+    "s1111": 8,
+    "s125": 16,
+    "s311": 16,
+    "s4112": 16,
+    "jacobi-2d-imper-l00": 16,
+    "gesummv-l00": 8,
+    "bicg-l01": 16,
+    "gemver-l00": 16
+  }
+}

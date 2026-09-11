@@ -1,0 +1,15 @@
+[
+  "/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/bin/clang-22",
+  "--target=riscv64-unknown-elf",
+  "-march=rv64gcv_zba_zbb_zbc_zbs_zicbom_zicboz_zvl128b",
+  "-mcpu=xiangshan-kunminghu",
+  "-mabi=lp64d",
+  "-mcmodel=medany",
+  "-mno-relax",
+  "-mllvm",
+  "-riscv-v-vector-bits-min=128",
+  "-c",
+  "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-04-fma/bicg-l01/8/workaround.s",
+  "-o",
+  "/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/round-04-fma/bicg-l01/8/workaround.o"
+]

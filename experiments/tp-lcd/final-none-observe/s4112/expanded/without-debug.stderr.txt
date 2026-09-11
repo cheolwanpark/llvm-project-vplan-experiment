@@ -1,0 +1,121 @@
+VPLAN-TP-LCD {"compute_recipes":3,"compute_tp":2,"cpu":"xiangshan-kunminghu","dominant_recurrence":"","eligible":true,"exclusion_reason":"","fallback_reason":"unsupported-or-invalid-recipe-latency: recipe-id=19 WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)","final_score":null,"fma_pairs":1,"fma_savings_tp":3,"full_evl_savings_tp":1,"full_width_iterations":true,"function":"selected_kernel","kind":"candidate","lcd":null,"legacy_cost":14,"loop":"for.body","memory_recipes":4,"memory_tp":6,"ordinary_pressure_excluded":false,"other_recipes":16,"other_tp":2,"recurrence_distance":0,"runtime_vf":2,"scalable":true,"scalar_address_register_recipes":0,"target":"riscv64-unknown-unknown-elf","tp":null,"vf":1,"zero_cost_recipes":17}
+VPLAN-TP-LCD {"compute_recipes":3,"compute_tp":3,"cpu":"xiangshan-kunminghu","dominant_recurrence":"","eligible":true,"exclusion_reason":"","fallback_reason":"unsupported-or-invalid-recipe-latency: recipe-id=19 WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)","final_score":null,"fma_pairs":1,"fma_savings_tp":3,"full_evl_savings_tp":1,"full_width_iterations":true,"function":"selected_kernel","kind":"candidate","lcd":null,"legacy_cost":18,"loop":"for.body","memory_recipes":4,"memory_tp":9,"ordinary_pressure_excluded":false,"other_recipes":16,"other_tp":2,"recurrence_distance":0,"runtime_vf":4,"scalable":true,"scalar_address_register_recipes":0,"target":"riscv64-unknown-unknown-elf","tp":null,"vf":2,"zero_cost_recipes":17}
+VPLAN-TP-LCD {"compute_recipes":3,"compute_tp":6,"cpu":"xiangshan-kunminghu","dominant_recurrence":"","eligible":true,"exclusion_reason":"","fallback_reason":"unsupported-or-invalid-recipe-latency: recipe-id=19 WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)","final_score":null,"fma_pairs":1,"fma_savings_tp":6,"full_evl_savings_tp":1,"full_width_iterations":true,"function":"selected_kernel","kind":"candidate","lcd":null,"legacy_cost":33,"loop":"for.body","memory_recipes":4,"memory_tp":18,"ordinary_pressure_excluded":false,"other_recipes":16,"other_tp":2,"recurrence_distance":0,"runtime_vf":8,"scalable":true,"scalar_address_register_recipes":0,"target":"riscv64-unknown-unknown-elf","tp":null,"vf":4,"zero_cost_recipes":17}
+VPLAN-TP-LCD {"compute_recipes":3,"compute_tp":12,"cpu":"xiangshan-kunminghu","dominant_recurrence":"","eligible":true,"exclusion_reason":"","fallback_reason":"unsupported-or-invalid-recipe-latency: recipe-id=19 WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)","final_score":null,"fma_pairs":1,"fma_savings_tp":12,"full_evl_savings_tp":0,"full_width_iterations":false,"function":"selected_kernel","kind":"candidate","lcd":null,"legacy_cost":63,"loop":"for.body","memory_recipes":4,"memory_tp":36,"ordinary_pressure_excluded":false,"other_recipes":16,"other_tp":3,"recurrence_distance":0,"runtime_vf":16,"scalable":true,"scalar_address_register_recipes":0,"target":"riscv64-unknown-unknown-elf","tp":null,"vf":8,"zero_cost_recipes":16}
+VPLAN-TP-LCD {"compute_recipes":3,"compute_tp":25,"cpu":"xiangshan-kunminghu","dominant_recurrence":"","eligible":true,"exclusion_reason":"","fallback_reason":"unsupported-or-invalid-recipe-latency: recipe-id=19 WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)","final_score":null,"fma_pairs":1,"fma_savings_tp":24,"full_evl_savings_tp":0,"full_width_iterations":false,"function":"selected_kernel","kind":"candidate","lcd":null,"legacy_cost":124,"loop":"for.body","memory_recipes":4,"memory_tp":72,"ordinary_pressure_excluded":false,"other_recipes":16,"other_tp":3,"recurrence_distance":0,"runtime_vf":32,"scalable":true,"scalar_address_register_recipes":0,"target":"riscv64-unknown-unknown-elf","tp":null,"vf":16,"zero_cost_recipes":16}
+VPLAN-TP-LCD {"fallback_reason":"unsupported eligible candidate; ordinary ranking","function":"selected_kernel","kind":"selection","loop":"for.body","scalable":true,"used_model":false,"vf":16}
+/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/inputs/tsvc_kernels.c:109:5: remark: vectorized loop (vectorization width: vscale x 16, interleaved count: 1) [-Rpass=loop-vectorize]
+  109 |     for (int i = 0; i < LOOP_SIZE; ++i)
+      |     ^
+# *** IR Dump After Virtual Register Rewriter (virtregrewriter) ***:
+# Machine code for function selected_kernel: NoPHIs, TracksLiveness, TiedOpsRewritten, TracksDebugUserValues
+
+0B	bb.0.entry:
+	  successors: %bb.1(0x80000000); %bb.1(100.00%)
+
+16B	  %45:gpr = COPY $x0
+32B	  INLINEASM &"" [sideeffect] [mayload] [maystore] [attdialect], !102, debug-location !101; experiments/tp-lcd/inputs/tsvc_kernels.c:107:5
+48B	  %46:gprnox0 = LUI 1
+96B	  %36:gpr = AUIPC target-flags(riscv-pcrel-hi) @index_array, pre-instr-symbol <mcsymbol .Lpcrel_hi5>
+128B	  %13:gpr = ADDI $x0, 4
+144B	  %37:gpr = AUIPC target-flags(riscv-pcrel-hi) @b, pre-instr-symbol <mcsymbol .Lpcrel_hi6>
+176B	  %17:gpr = PseudoReadVLENB
+224B	  %29:gpr = LUI 258048
+240B	  %8:gpr = ADDI %36:gpr, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi5>
+256B	  %16:gpr = ADDI %37:gpr, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi6>
+272B	  %30:fpr32 = FMV_W_X %29:gpr
+288B	  %38:gpr = AUIPC target-flags(riscv-pcrel-hi) @a, pre-instr-symbol <mcsymbol .Lpcrel_hi7>
+304B	  %26:gpr = ADDI %38:gpr, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi7>
+
+352B	bb.1.vector.body:
+	; predecessors: %bb.0, %bb.1
+	  successors: %bb.2(0x04000000), %bb.1(0x7c000000); %bb.2(3.12%), %bb.1(96.88%)
+
+400B	  %7:gprnox0 = PseudoVSETVLI %46:gprnox0, 193, implicit-def dead $vl, implicit-def dead $vtype
+416B	  %9:gpr = nuw SH2ADD %45:gpr, %8:gpr, debug-location !104; experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+432B	  renamable $v8m8 = PseudoVLE32_V_M8 undef renamable $v8m8(tied-def 0), %9:gpr, %7:gprnox0, 5, 2, debug-location !104 :: (load unknown-size from %ir.1, align 4, !tbaa !10); experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+512B	  %18:gpr = MAXU %7:gprnox0, %17:gpr, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+528B	  %19:gprnox0 = SUB %18:gpr, %17:gpr, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+544B	  early-clobber renamable $v16m8 = PseudoVWMULSU_VX_M4 undef renamable $v16m8(tied-def 0), renamable $v12m4, %13:gpr, -1, 5, 1, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+560B	  early-clobber renamable $v12m4 = PseudoVLUXEI64_V_M8_M4 undef renamable $v12m4(tied-def 0), %16:gpr, killed renamable $v16m8, %19:gprnox0, 5, 2, debug-location !105 :: (load unknown-size, align 4, !tbaa !32); experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+576B	  %21:gprnox0 = MINU %7:gprnox0, %17:gpr, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+592B	  early-clobber renamable $v16m8 = PseudoVWMULSU_VX_M4 undef renamable $v16m8(tied-def 0), killed renamable $v8m4, %13:gpr, -1, 5, 1, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+608B	  early-clobber renamable $v8m4 = PseudoVLUXEI64_V_M8_M4 undef renamable $v8m4(tied-def 0), %16:gpr, killed renamable $v16m8, %21:gprnox0, 5, 2, debug-location !105 :: (load unknown-size, align 4, !tbaa !32); experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+672B	  %27:gpr = nuw SH2ADD %45:gpr, %26:gpr, debug-location !107; experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+688B	  renamable $v16m8 = PseudoVLE32_V_M8 undef renamable $v16m8(tied-def 0), %27:gpr, %7:gprnox0, 5, 2, debug-location !108 :: (load unknown-size from %ir.5, align 4, !tbaa !32); experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+768B	  %46:gprnox0 = nuw SUB %46:gprnox0, %7:gprnox0
+784B	  renamable $v16m8 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFMACC_VFPR32_M8_E32 killed renamable $v16m8(tied-def 0), %30:fpr32, killed renamable $v8m8, 7, %7:gprnox0, 5, 1, implicit $frm, debug-location !108; experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+800B	  PseudoVSE32_V_M8 killed renamable $v16m8, %27:gpr, %7:gprnox0, 5, debug-location !108 :: (store unknown-size into %ir.5, align 4, !tbaa !32); experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+816B	  %45:gpr = nuw ADD %45:gpr, %7:gprnox0, debug-location !109; experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+864B	  BNE %46:gprnox0, $x0, %bb.1, debug-location !103; experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+880B	  PseudoBR %bb.2, debug-location !103; experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+
+896B	bb.2.for.cond.cleanup:
+	; predecessors: %bb.1
+
+912B	  %32:gpr = LUI 4, debug-location !113; experiments/tp-lcd/inputs/tsvc_kernels.c:111:12
+928B	  %34:gpr = ADD %26:gpr, %32:gpr, debug-location !113; experiments/tp-lcd/inputs/tsvc_kernels.c:111:12
+944B	  %35:fpr32 = FLW %34:gpr, -4, debug-location !113 :: (dereferenceable load (s32) from `ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380)`, !tbaa !32); experiments/tp-lcd/inputs/tsvc_kernels.c:111:12
+960B	  $f10_f = COPY %35:fpr32, debug-location !114; experiments/tp-lcd/inputs/tsvc_kernels.c:111:5
+976B	  PseudoRET implicit killed $f10_f, debug-location !114; experiments/tp-lcd/inputs/tsvc_kernels.c:111:5
+
+# End machine code for function selected_kernel.
+
+# *** IR Dump After Virtual Register Rewriter (virtregrewriter) ***:
+# Machine code for function selected_kernel: NoPHIs, TracksLiveness, NoVRegs, TiedOpsRewritten, TracksDebugUserValues
+
+0B	bb.0.entry:
+	  successors: %bb.1(0x80000000); %bb.1(100.00%)
+
+16B	  renamable $x10 = COPY $x0
+32B	  INLINEASM &"" [sideeffect] [mayload] [maystore] [attdialect], !102, implicit-def $vl, implicit-def $vtype, debug-location !101; experiments/tp-lcd/inputs/tsvc_kernels.c:107:5
+48B	  renamable $x11 = LUI 1
+96B	  renamable $x12 = AUIPC target-flags(riscv-pcrel-hi) @index_array, pre-instr-symbol <mcsymbol .Lpcrel_hi5>
+128B	  renamable $x16 = ADDI $x0, 4
+144B	  renamable $x15 = AUIPC target-flags(riscv-pcrel-hi) @b, pre-instr-symbol <mcsymbol .Lpcrel_hi6>
+176B	  renamable $x13 = PseudoReadVLENB
+224B	  renamable $x17 = LUI 258048
+240B	  renamable $x5 = ADDI killed renamable $x12, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi5>
+256B	  renamable $x6 = ADDI killed renamable $x15, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi6>
+272B	  renamable $f15_f = FMV_W_X killed renamable $x17
+288B	  renamable $x12 = AUIPC target-flags(riscv-pcrel-hi) @a, pre-instr-symbol <mcsymbol .Lpcrel_hi7>
+304B	  renamable $x17 = ADDI killed renamable $x12, target-flags(riscv-pcrel-lo) <mcsymbol .Lpcrel_hi7>
+
+352B	bb.1.vector.body:
+	; predecessors: %bb.0, %bb.1
+	  successors: %bb.2(0x04000000), %bb.1(0x7c000000); %bb.2(3.12%), %bb.1(96.88%)
+	  liveins: $x5, $x6, $x10, $x11, $x13, $x16, $x17, $f15_f
+400B	  renamable $x14 = PseudoVSETVLI renamable $x11, 193, implicit-def $vl, implicit-def $vtype
+416B	  renamable $x12 = nuw SH2ADD renamable $x10, renamable $x5, debug-location !104; experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+432B	  renamable $v8m8 = PseudoVLE32_V_M8 undef renamable $v8m8(tied-def 0), killed renamable $x12, $noreg, 5, 2, implicit $vl, implicit $vtype, debug-location !104 :: (load unknown-size from %ir.1, align 4, !tbaa !10); experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+512B	  renamable $x12 = MAXU renamable $x14, renamable $x13, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+528B	  renamable $x12 = SUB killed renamable $x12, renamable $x13, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+544B	  dead renamable $x15 = PseudoVSETVLIX0 killed $x0, 210, implicit-def $vl, implicit-def $vtype, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+560B	  early-clobber renamable $v16m8 = PseudoVWMULSU_VX_M4 undef renamable $v16m8(tied-def 0), renamable $v12m4, renamable $x16, -1, 5, 1, implicit $vl, implicit $vtype, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+576B	  dead $x0 = PseudoVSETVLI killed renamable $x12, 210, implicit-def $vl, implicit-def $vtype, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+592B	  early-clobber renamable $v12m4 = PseudoVLUXEI64_V_M8_M4 undef renamable $v12m4(tied-def 0), renamable $x6, killed renamable $v16m8, $noreg, 5, 2, implicit $vl, implicit $vtype, debug-location !105 :: (load unknown-size, align 4, !tbaa !32); experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+608B	  renamable $x12 = MINU renamable $x14, renamable $x13, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+624B	  dead renamable $x15 = PseudoVSETVLIX0 killed $x0, 210, implicit-def $vl, implicit-def $vtype, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+640B	  early-clobber renamable $v16m8 = PseudoVWMULSU_VX_M4 undef renamable $v16m8(tied-def 0), killed renamable $v8m4, renamable $x16, -1, 5, 1, implicit $vl, implicit $vtype, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+656B	  dead $x0 = PseudoVSETVLI killed renamable $x12, 210, implicit-def $vl, implicit-def $vtype, debug-location !105; experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+672B	  early-clobber renamable $v8m4 = PseudoVLUXEI64_V_M8_M4 undef renamable $v8m4(tied-def 0), renamable $x6, killed renamable $v16m8, $noreg, 5, 2, implicit $vl, implicit $vtype, debug-location !105 :: (load unknown-size, align 4, !tbaa !32); experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+736B	  renamable $x12 = nuw SH2ADD renamable $x10, renamable $x17, debug-location !107; experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+752B	  dead $x0 = PseudoVSETVLI renamable $x11, 211, implicit-def $vl, implicit-def $vtype, debug-location !108; experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+768B	  renamable $v16m8 = PseudoVLE32_V_M8 undef renamable $v16m8(tied-def 0), renamable $x12, $noreg, 5, 2, implicit $vl, implicit $vtype, debug-location !108 :: (load unknown-size from %ir.5, align 4, !tbaa !32); experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+848B	  renamable $x11 = nuw SUB killed renamable $x11, renamable $x14
+864B	  renamable $v16m8 = nnan ninf nsz arcp contract afn reassoc nofpexcept PseudoVFMACC_VFPR32_M8_E32 killed renamable $v16m8(tied-def 0), renamable $f15_f, killed renamable $v8m8, 7, $noreg, 5, 1, implicit $frm, implicit $vl, implicit $vtype, debug-location !108; experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+880B	  PseudoVSE32_V_M8 killed renamable $v16m8, killed renamable $x12, $noreg, 5, implicit $vl, implicit $vtype, debug-location !108 :: (store unknown-size into %ir.5, align 4, !tbaa !32); experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+896B	  renamable $x10 = nuw ADD killed renamable $x10, killed renamable $x14, debug-location !109; experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+944B	  BNE renamable $x11, $x0, %bb.1, debug-location !103; experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+960B	  PseudoBR %bb.2, debug-location !103; experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+
+976B	bb.2.for.cond.cleanup:
+	; predecessors: %bb.1
+	  liveins: $x17
+992B	  renamable $x10 = LUI 4, debug-location !113; experiments/tp-lcd/inputs/tsvc_kernels.c:111:12
+1008B	  renamable $x10 = ADD killed renamable $x17, killed renamable $x10, debug-location !113; experiments/tp-lcd/inputs/tsvc_kernels.c:111:12
+1024B	  renamable $f10_f = FLW killed renamable $x10, -4, debug-location !113 :: (dereferenceable load (s32) from `ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380)`, !tbaa !32); experiments/tp-lcd/inputs/tsvc_kernels.c:111:12
+1056B	  PseudoRET implicit $f10_f, debug-location !114; experiments/tp-lcd/inputs/tsvc_kernels.c:111:5
+
+# End machine code for function selected_kernel.
+

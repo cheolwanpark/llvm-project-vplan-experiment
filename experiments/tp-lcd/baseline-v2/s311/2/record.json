@@ -1,0 +1,33 @@
+{
+  "kernel": "s311",
+  "mode": 2,
+  "actual_vf": 2,
+  "scalable": true,
+  "source_sha256": "4aa2e36fa8d4c857db6177579c26737640de72e1c39a0c7bfd22fc13312d1ae3",
+  "assembly_sha256": "1db6c4ee0397ab92bb39a2b1e7477e27ff40f3e87dcdabfc9d7b336b293bf9e3",
+  "shape": {
+    "body_sha256": "ec95f34b039a1a7cd6847fa74b17dc39e815021a190ed974a22a31535a39433e",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vl1re32.v": 1,
+          "add": 1,
+          "vfadd.vv": 1,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvl1re32.v\tv9, (a1)\n\tadd\ta1, a1, a0\n\tvfadd.vv\tv8, v9, v8\n\tbne\ta1, a2, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m1"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "workaround_applied": 1,
+  "scheduled_extractions_moved": 0,
+  "register_allocation_frame_lines": [],
+  "register_allocation_observed": true,
+  "visited": []
+}

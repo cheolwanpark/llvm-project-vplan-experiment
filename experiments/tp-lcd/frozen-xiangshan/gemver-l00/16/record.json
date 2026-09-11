@@ -1,0 +1,71 @@
+{
+  "kernel": "gemver-l00",
+  "mode": 16,
+  "vf": 16,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "5cc942554fea6da5d0abfe4664007edb92c0079017041cded22c4968daa62a60",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vsetvli": 1,
+          "sh2add": 3,
+          "vle32.v": 3,
+          "vfmadd.vf": 2,
+          "sub": 1,
+          "vse32.v": 1,
+          "add": 1,
+          "bnez": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvsetvli\ta5, a1, e32, m8, ta, ma\n\tsh2add\ta2, a0, a6\n\tsh2add\ta3, a0, a7\n\tvle32.v\tv16, (a2)\n\tvle32.v\tv8, (a3)\n\tsh2add\ta3, a0, a4\n\tvle32.v\tv24, (a3)\n\tvfmadd.vf\tv8, fa5, v16\n\tsub\ta1, a1, a5\n\tvfmadd.vf\tv24, fa4, v8\n\tvse32.v\tv24, (a2)\n\tadd\ta0, a0, a5\n\tbnez\ta1, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m8"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 4,
+      "compute_tp": 16,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "vp<%avl>",
+      "eligible": true,
+      "exclusion_reason": "",
+      "fallback_reason": "",
+      "final_score": 0.59375,
+      "fma_pairs": 2,
+      "fma_savings_tp": 16,
+      "full_evl_savings_tp": 0,
+      "full_width_iterations": false,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 3,
+      "legacy_cost": 51,
+      "loop": "for.body",
+      "memory_recipes": 4,
+      "memory_tp": 16,
+      "ordinary_pressure_excluded": false,
+      "other_recipes": 17,
+      "other_tp": 3,
+      "recurrence_distance": 1,
+      "runtime_vf": 32,
+      "scalable": true,
+      "scalar_address_register_recipes": 0,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 19,
+      "vf": 16,
+      "zero_cost_recipes": 18
+    }
+  ],
+  "workaround_applied": 0,
+  "scheduled_extractions_moved": 0,
+  "allocation_dump_present": true,
+  "register_allocation_frame_lines": []
+}

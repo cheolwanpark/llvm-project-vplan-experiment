@@ -1,0 +1,67 @@
+{
+  "kernel": "jacobi-2d-imper-l00",
+  "mode": 4,
+  "vf": 4,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "5b9928d0407d91d5ce314f20093747719b1e46f88db3497336cc3e47f9a0b024",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "addi": 1,
+          "vl2re32.v": 4,
+          "vsetvli": 1,
+          "vslidedown.vx": 1,
+          "vslideup.vi": 1,
+          "vfadd.vv": 4,
+          "add": 4,
+          "vfmul.vf": 1,
+          "vs2r.v": 1,
+          "vmv2r.v": 1,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\taddi\ta0, a1, 8\n\tvl2re32.v\tv10, (a0)\n\tvl2re32.v\tv12, (a1)\n\tvsetvli\ta0, zero, e32, m2, ta, ma\n\tvslidedown.vx\tv8, v8, a6\n\tvl2re32.v\tv14, (a2)\n\tvslideup.vi\tv8, v10, 1\n\tvfadd.vv\tv8, v12, v8\n\tvl2re32.v\tv12, (a3)\n\tvfadd.vv\tv8, v8, v10\n\tvfadd.vv\tv8, v8, v14\n\tadd\ta1, a1, a5\n\tadd\ta2, a2, a5\n\tvfadd.vv\tv8, v8, v12\n\tvfmul.vf\tv8, v8, fa5\n\tvs2r.v\tv8, (a4)\n\tadd\ta4, a4, a5\n\tadd\ta3, a3, a5\n\tvmv2r.v\tv8, v10\n\tbne\ta1, t0, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m1",
+      "m2"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 6,
+      "compute_tp": 42,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "vp<%4>",
+      "eligible": true,
+      "exclusion_reason": "",
+      "fallback_reason": "",
+      "final_score": 5.625,
+      "fma_pairs": 0,
+      "fma_savings_tp": 0,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 1,
+      "legacy_cost": 50,
+      "loop": "for.body",
+      "memory_recipes": 5,
+      "memory_tp": 5,
+      "other_recipes": 18,
+      "other_tp": 3,
+      "recurrence_distance": 1,
+      "runtime_vf": 8,
+      "scalable": true,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 45,
+      "vf": 4,
+      "zero_cost_recipes": 17
+    }
+  ]
+}

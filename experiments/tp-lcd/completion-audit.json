@@ -1,0 +1,106 @@
+{
+  "scope": "report-only compiler implementation and historical calibration; validation-informed",
+  "starting_revision": "ca7933e47d3a3451d81e72ac174dcb5aa28b59d1",
+  "requirements": [
+    {
+      "requirement": "fresh pristine baseline and immutable provenance",
+      "status": "met",
+      "evidence": [
+        "baseline-v2/summary/README.md",
+        "pristine-snapshot.json",
+        "input-manifest.json"
+      ]
+    },
+    {
+      "requirement": "whole-loop TP domains and independent bounded closed LCD",
+      "status": "met",
+      "evidence": [
+        "implementation.patch",
+        "FINAL_REPORT.md",
+        "vectorize-unit-tests-final-2.log"
+      ]
+    },
+    {
+      "requirement": "explicit latency, fallback, legality, profitability and genuine pressure",
+      "status": "met",
+      "evidence": [
+        "implementation.patch",
+        "riscv-regression-final-2.log",
+        "final-report/automatic-candidates.csv"
+      ]
+    },
+    {
+      "requirement": "independent XiangShan/Saturn software profiles and unchanged defaults",
+      "status": "met",
+      "evidence": [
+        "frozen-model.json",
+        "frozen-saturn/records.json",
+        "frozen-none-observe/records.json"
+      ]
+    },
+    {
+      "requirement": "36 actual forced scores and 9 expanded visits of all four VFs",
+      "status": "met",
+      "evidence": [
+        "final-report/coverage.json",
+        "final-report/candidates.csv",
+        "final-report/selections.csv"
+      ]
+    },
+    {
+      "requirement": "separate-group metrics and actual automatic targets",
+      "status": "met within report-only historical calibration",
+      "evidence": [
+        "final-report/metric-audit.json",
+        "final-report/summary.csv"
+      ]
+    },
+    {
+      "requirement": "rounds, failed trials, ablations, fixed parameters and remaining gaps",
+      "status": "met",
+      "evidence": [
+        "WORK_LOG.md",
+        "final-report/rounds-and-ablations.csv",
+        "final-report/gaps.csv",
+        "frozen-model.json"
+      ]
+    },
+    {
+      "requirement": "code correspondence and spill evidence, no invented measurements",
+      "status": "met",
+      "evidence": [
+        "FINAL_REPORT.md",
+        "final-report/code-shape.csv",
+        "final-report/assembly-differences/"
+      ]
+    },
+    {
+      "requirement": "reproducible scripts, final patch, build and meaningful tests",
+      "status": "met",
+      "evidence": [
+        "README.md",
+        "implementation.patch",
+        "final-source-manifest.json",
+        "model-build-20-format.log",
+        "riscv-regression-final-2.log",
+        "vectorize-unit-tests-final-2.log",
+        "python-tests-final.log"
+      ]
+    }
+  ],
+  "unmet_in_scope_numeric_thresholds": [],
+  "remaining_limitations": [
+    "No new-binary measured timing; GESUMMV automatic VF4 code differs from same-VF forced code.",
+    "Historical full binary identity cannot be proved from the report; current GESUMMV16 spills and s4112 has differing vset overhead.",
+    "Individual adjacent gap magnitudes remain imperfect despite passing aggregate thresholds.",
+    "LCD only covers closure distances one through three and explicitly falls back for unsupported memory/recipe graphs.",
+    "Saturn hardware configuration and performance are unverified; software tests are not hardware validation."
+  ],
+  "tests": {
+    "riscv_lit_passed": 169,
+    "vectorize_unit_passed": 80,
+    "python_passed": 17
+  },
+  "publication_or_external_measurement_performed": false,
+  "goal_requirements_complete_within_authorized_scope": true
+}

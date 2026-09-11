@@ -1,0 +1,11 @@
+{
+  "round": 11,
+  "parent": "round-10-strided-pressure",
+  "validation_informed": true,
+  "new_numeric_parameters": 0,
+  "problem": "Adjusted live-value audit found scalar ExplicitVectorLength counted as an eight-register vector because widened induction consumes EVL without reporting scalar-only use. Maximum consists of four real float groups plus this phantom group.",
+  "change": "Within the optional scalar-address register analysis, trust explicit VPInstruction scalar or vector-to-scalar execution semantics in addition to scalar-only uses. Keep scalar register cost, all genuine vector liveness and ordinary profitability/pressure path.",
+  "evaluation": "Full 45 compiler artifacts with retained parameters, negative vector-address use test, explicit scalar EVL test; GESUMMV16 real spill must remain excluded.",
+  "audit": "pressure-audit/s1111-adjusted.log",
+  "status": "audit-driven correction; no numeric search"
+}

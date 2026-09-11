@@ -1,0 +1,1022 @@
+[
+  {
+    "parameter": "latency_startup",
+    "value": 3,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "experiments/tp-lcd/round-06-latency-grid/3",
+    "summary": [
+      {
+        "group": "core",
+        "mode": "legacy",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 4,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0515100649511175,
+        "regret_worst": 1.2796628540096655,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9230769230769231,
+        "relative_error_geomean": 1.2503602493683315,
+        "relative_error_p90": 1.5640850866387905
+      },
+      {
+        "group": "core",
+        "mode": "largest_vf",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 16,
+          "gesummv-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0576888336595451,
+        "regret_worst": 1.457382236537608,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "core",
+        "mode": "tp_only",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 4,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0515100649511175,
+        "regret_worst": 1.2796628540096655,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9230769230769231,
+        "relative_error_geomean": 1.2378749855621096,
+        "relative_error_p90": 1.33144018724387
+      },
+      {
+        "group": "core",
+        "mode": "lcd_only",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 16,
+          "gesummv-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0576888336595451,
+        "regret_worst": 1.457382236537608,
+        "all_pair_accuracy": 0.7380952380952381,
+        "non_tie_pair_accuracy": 0.7948717948717948,
+        "relative_error_geomean": 1.398033846655923,
+        "relative_error_p90": 2.011963529423796
+      },
+      {
+        "group": "core",
+        "mode": "max_tp_lcd",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0151122480048456,
+        "regret_worst": 1.0931166540392083,
+        "all_pair_accuracy": 0.9047619047619048,
+        "non_tie_pair_accuracy": 0.9487179487179487,
+        "relative_error_geomean": 1.2007239093155728,
+        "relative_error_p90": 1.33144018724387
+      },
+      {
+        "group": "core",
+        "mode": "automatic",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 8,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 8
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0287677159884299,
+        "regret_worst": 1.161080002841178,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "validation_informed",
+        "mode": "legacy",
+        "selections": {
+          "bicg-l01": 4,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0323424181315806,
+        "regret_worst": 1.065730868273759,
+        "all_pair_accuracy": 0.8333333333333334,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.2981551751087295,
+        "relative_error_p90": 1.369413466706132
+      },
+      {
+        "group": "validation_informed",
+        "mode": "largest_vf",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "validation_informed",
+        "mode": "tp_only",
+        "selections": {
+          "bicg-l01": 4,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0323424181315806,
+        "regret_worst": 1.065730868273759,
+        "all_pair_accuracy": 0.8333333333333334,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.131718573153826,
+        "relative_error_p90": 1.2036677931301372
+      },
+      {
+        "group": "validation_informed",
+        "mode": "lcd_only",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": 0.9166666666666666,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.248434283233518,
+        "relative_error_p90": 1.4497757553451756
+      },
+      {
+        "group": "validation_informed",
+        "mode": "max_tp_lcd",
+        "selections": {
+          "bicg-l01": 4,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0323424181315806,
+        "regret_worst": 1.065730868273759,
+        "all_pair_accuracy": 0.8333333333333334,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.131718573153826,
+        "relative_error_p90": 1.2036677931301372
+      },
+      {
+        "group": "validation_informed",
+        "mode": "automatic",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      }
+    ]
+  },
+  {
+    "parameter": "latency_startup",
+    "value": 4,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "experiments/tp-lcd/round-06-latency-grid/4",
+    "summary": [
+      {
+        "group": "core",
+        "mode": "legacy",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 4,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0515100649511175,
+        "regret_worst": 1.2796628540096655,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9230769230769231,
+        "relative_error_geomean": 1.2503602493683315,
+        "relative_error_p90": 1.5640850866387905
+      },
+      {
+        "group": "core",
+        "mode": "largest_vf",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 16,
+          "gesummv-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0576888336595451,
+        "regret_worst": 1.457382236537608,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "core",
+        "mode": "tp_only",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 4,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0515100649511175,
+        "regret_worst": 1.2796628540096655,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9230769230769231,
+        "relative_error_geomean": 1.2378749855621096,
+        "relative_error_p90": 1.33144018724387
+      },
+      {
+        "group": "core",
+        "mode": "lcd_only",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 16,
+          "gesummv-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0576888336595451,
+        "regret_worst": 1.457382236537608,
+        "all_pair_accuracy": 0.7380952380952381,
+        "non_tie_pair_accuracy": 0.7948717948717948,
+        "relative_error_geomean": 1.4315100138527586,
+        "relative_error_p90": 2.027370464985738
+      },
+      {
+        "group": "core",
+        "mode": "max_tp_lcd",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0151122480048456,
+        "regret_worst": 1.0931166540392083,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9487179487179487,
+        "relative_error_geomean": 1.1731928473219317,
+        "relative_error_p90": 1.3063325322658448
+      },
+      {
+        "group": "core",
+        "mode": "automatic",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 8,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 8
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0287677159884299,
+        "regret_worst": 1.161080002841178,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "validation_informed",
+        "mode": "legacy",
+        "selections": {
+          "bicg-l01": 4,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0323424181315806,
+        "regret_worst": 1.065730868273759,
+        "all_pair_accuracy": 0.8333333333333334,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.2981551751087295,
+        "relative_error_p90": 1.369413466706132
+      },
+      {
+        "group": "validation_informed",
+        "mode": "largest_vf",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "validation_informed",
+        "mode": "tp_only",
+        "selections": {
+          "bicg-l01": 4,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0323424181315806,
+        "regret_worst": 1.065730868273759,
+        "all_pair_accuracy": 0.8333333333333334,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.131718573153826,
+        "relative_error_p90": 1.2036677931301372
+      },
+      {
+        "group": "validation_informed",
+        "mode": "lcd_only",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": 0.9166666666666666,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.2923945701264763,
+        "relative_error_p90": 1.560934165762367
+      },
+      {
+        "group": "validation_informed",
+        "mode": "max_tp_lcd",
+        "selections": {
+          "bicg-l01": 4,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0323424181315806,
+        "regret_worst": 1.065730868273759,
+        "all_pair_accuracy": 0.8333333333333334,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.131718573153826,
+        "relative_error_p90": 1.2036677931301372
+      },
+      {
+        "group": "validation_informed",
+        "mode": "automatic",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      }
+    ]
+  },
+  {
+    "parameter": "latency_startup",
+    "value": 5,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "experiments/tp-lcd/round-06-latency-grid/5",
+    "summary": [
+      {
+        "group": "core",
+        "mode": "legacy",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 4,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0515100649511175,
+        "regret_worst": 1.2796628540096655,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9230769230769231,
+        "relative_error_geomean": 1.2503602493683315,
+        "relative_error_p90": 1.5640850866387905
+      },
+      {
+        "group": "core",
+        "mode": "largest_vf",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 16,
+          "gesummv-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0576888336595451,
+        "regret_worst": 1.457382236537608,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "core",
+        "mode": "tp_only",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 4,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0515100649511175,
+        "regret_worst": 1.2796628540096655,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9230769230769231,
+        "relative_error_geomean": 1.2378749855621096,
+        "relative_error_p90": 1.33144018724387
+      },
+      {
+        "group": "core",
+        "mode": "lcd_only",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 16,
+          "gesummv-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0576888336595451,
+        "regret_worst": 1.457382236537608,
+        "all_pair_accuracy": 0.7380952380952381,
+        "non_tie_pair_accuracy": 0.7948717948717948,
+        "relative_error_geomean": 1.4569795909536416,
+        "relative_error_p90": 2.027370464985738
+      },
+      {
+        "group": "core",
+        "mode": "max_tp_lcd",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0151122480048456,
+        "regret_worst": 1.0931166540392083,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9487179487179487,
+        "relative_error_geomean": 1.1454368536403983,
+        "relative_error_p90": 1.3034042388656588
+      },
+      {
+        "group": "core",
+        "mode": "automatic",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 8,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 8
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0287677159884299,
+        "regret_worst": 1.161080002841178,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "validation_informed",
+        "mode": "legacy",
+        "selections": {
+          "bicg-l01": 4,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0323424181315806,
+        "regret_worst": 1.065730868273759,
+        "all_pair_accuracy": 0.8333333333333334,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.2981551751087295,
+        "relative_error_p90": 1.369413466706132
+      },
+      {
+        "group": "validation_informed",
+        "mode": "largest_vf",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "validation_informed",
+        "mode": "tp_only",
+        "selections": {
+          "bicg-l01": 4,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0323424181315806,
+        "regret_worst": 1.065730868273759,
+        "all_pair_accuracy": 0.8333333333333334,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.131718573153826,
+        "relative_error_p90": 1.2036677931301372
+      },
+      {
+        "group": "validation_informed",
+        "mode": "lcd_only",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": 0.9166666666666666,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.326659389139449,
+        "relative_error_p90": 1.6562128032628165
+      },
+      {
+        "group": "validation_informed",
+        "mode": "max_tp_lcd",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": 0.9166666666666666,
+        "non_tie_pair_accuracy": 1.0,
+        "relative_error_geomean": 1.1067038280348176,
+        "relative_error_p90": 1.1886717703879097
+      },
+      {
+        "group": "validation_informed",
+        "mode": "automatic",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      }
+    ]
+  },
+  {
+    "parameter": "latency_startup",
+    "value": 6,
+    "compiler_exit": 0,
+    "evaluator_exit": 0,
+    "path": "experiments/tp-lcd/round-06-latency-grid/6",
+    "summary": [
+      {
+        "group": "core",
+        "mode": "legacy",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 4,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0515100649511175,
+        "regret_worst": 1.2796628540096655,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9230769230769231,
+        "relative_error_geomean": 1.2503602493683315,
+        "relative_error_p90": 1.5640850866387905
+      },
+      {
+        "group": "core",
+        "mode": "largest_vf",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 16,
+          "gesummv-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0576888336595451,
+        "regret_worst": 1.457382236537608,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "core",
+        "mode": "tp_only",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 4,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0515100649511175,
+        "regret_worst": 1.2796628540096655,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9230769230769231,
+        "relative_error_geomean": 1.2378749855621096,
+        "relative_error_p90": 1.33144018724387
+      },
+      {
+        "group": "core",
+        "mode": "lcd_only",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 16,
+          "gesummv-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0576888336595451,
+        "regret_worst": 1.457382236537608,
+        "all_pair_accuracy": 0.7380952380952381,
+        "non_tie_pair_accuracy": 0.7948717948717948,
+        "relative_error_geomean": 1.4770984314313993,
+        "relative_error_p90": 2.027370464985738
+      },
+      {
+        "group": "core",
+        "mode": "max_tp_lcd",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 16,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 4
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "42/42",
+        "relative_coverage": "21/21",
+        "regret_geomean": 1.0151122480048456,
+        "regret_worst": 1.0931166540392083,
+        "all_pair_accuracy": 0.8809523809523809,
+        "non_tie_pair_accuracy": 0.9487179487179487,
+        "relative_error_geomean": 1.1663953122153048,
+        "relative_error_p90": 1.3063325322658448
+      },
+      {
+        "group": "core",
+        "mode": "automatic",
+        "selections": {
+          "s000": 16,
+          "s125": 16,
+          "s311": 16,
+          "s1111": 8,
+          "s4112": 16,
+          "jacobi-2d-imper-l00": 8,
+          "gesummv-l00": 8
+        },
+        "issues": [],
+        "selection_coverage": "7/7",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0287677159884299,
+        "regret_worst": 1.161080002841178,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "validation_informed",
+        "mode": "legacy",
+        "selections": {
+          "bicg-l01": 4,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0323424181315806,
+        "regret_worst": 1.065730868273759,
+        "all_pair_accuracy": 0.8333333333333334,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.2981551751087295,
+        "relative_error_p90": 1.369413466706132
+      },
+      {
+        "group": "validation_informed",
+        "mode": "largest_vf",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      },
+      {
+        "group": "validation_informed",
+        "mode": "tp_only",
+        "selections": {
+          "bicg-l01": 4,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0323424181315806,
+        "regret_worst": 1.065730868273759,
+        "all_pair_accuracy": 0.8333333333333334,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.131718573153826,
+        "relative_error_p90": 1.2036677931301372
+      },
+      {
+        "group": "validation_informed",
+        "mode": "lcd_only",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": 0.9166666666666666,
+        "non_tie_pair_accuracy": 0.9090909090909091,
+        "relative_error_geomean": 1.359014488601157,
+        "relative_error_p90": 1.738787622429873
+      },
+      {
+        "group": "validation_informed",
+        "mode": "max_tp_lcd",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "12/12",
+        "relative_coverage": "6/6",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": 1.0,
+        "non_tie_pair_accuracy": 1.0,
+        "relative_error_geomean": 1.1110277283415837,
+        "relative_error_p90": 1.1886717703879097
+      },
+      {
+        "group": "validation_informed",
+        "mode": "automatic",
+        "selections": {
+          "bicg-l01": 16,
+          "gemver-l00": 16
+        },
+        "issues": [],
+        "selection_coverage": "2/2",
+        "pair_coverage": "not applicable",
+        "relative_coverage": "not applicable",
+        "regret_geomean": 1.0,
+        "regret_worst": 1.0,
+        "all_pair_accuracy": null,
+        "non_tie_pair_accuracy": null,
+        "relative_error_geomean": null,
+        "relative_error_p90": null
+      }
+    ]
+  }
+]

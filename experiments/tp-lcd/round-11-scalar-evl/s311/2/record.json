@@ -1,0 +1,66 @@
+{
+  "kernel": "s311",
+  "mode": 2,
+  "vf": 2,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "ec95f34b039a1a7cd6847fa74b17dc39e815021a190ed974a22a31535a39433e",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vl1re32.v": 1,
+          "add": 1,
+          "vfadd.vv": 1,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvl1re32.v\tv9, (a1)\n\tadd\ta1, a1, a0\n\tvfadd.vv\tv8, v9, v8\n\tbne\ta1, a2, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m1"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 1,
+      "compute_tp": 1,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "ir<%sum.04>",
+      "eligible": true,
+      "exclusion_reason": "",
+      "fallback_reason": "",
+      "final_score": 1.5,
+      "fma_pairs": 0,
+      "fma_savings_tp": 0,
+      "full_evl_savings_tp": 0,
+      "full_width_iterations": true,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 6,
+      "legacy_cost": 4,
+      "loop": "for.body",
+      "memory_recipes": 1,
+      "memory_tp": 1,
+      "ordinary_pressure_excluded": false,
+      "other_recipes": 7,
+      "other_tp": 2,
+      "recurrence_distance": 1,
+      "runtime_vf": 4,
+      "scalable": true,
+      "scalar_address_register_recipes": 0,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 3,
+      "vf": 2,
+      "zero_cost_recipes": 7
+    }
+  ],
+  "workaround_applied": 1,
+  "scheduled_extractions_moved": 0,
+  "allocation_dump_present": true
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "compute_recipes": 7,
+    "compute_tp": 56,
+    "cpu": "xiangshan-kunminghu",
+    "dominant_recurrence": "vp<%avl>",
+    "eligible": true,
+    "exclusion_reason": "",
+    "fallback_reason": "",
+    "final_score": 2.4375,
+    "fma_pairs": 1,
+    "fma_savings_tp": 8,
+    "full_evl_savings_tp": 0,
+    "full_width_iterations": false,
+    "function": "selected_kernel",
+    "kind": "candidate",
+    "lcd": 3,
+    "legacy_cost": 142,
+    "loop": "for.body",
+    "memory_recipes": 4,
+    "memory_tp": 60,
+    "other_recipes": 18,
+    "other_tp": 18,
+    "recurrence_distance": 1,
+    "runtime_vf": 32,
+    "scalable": true,
+    "target": "riscv64-unknown-unknown-elf",
+    "tp": 78,
+    "vf": 16,
+    "zero_cost_recipes": 18
+  }
+]

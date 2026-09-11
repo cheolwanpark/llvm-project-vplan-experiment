@@ -1,0 +1,14 @@
+[1/11] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/LoopVectorize.cpp.o
+FAILED: [code=1] lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/LoopVectorize.cpp.o 
+/usr/bin/clang++ -D_DEBUG -D_GLIBCXX_ASSERTIONS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/lib/Transforms/Vectorize -I/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize -I/Users/cheolwanpark/Documents/project/llvm-project/build-tp-lcd-main/include -I/Users/cheolwanpark/Documents/project/llvm-project/llvm/include -fPIC -fvisibility-inlines-hidden -Werror=date-time -Werror=unguarded-availability-new -Wall -Wextra -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -pedantic -Wno-long-long -Wc++98-compat-extra-semi -Wimplicit-fallthrough -Wcovered-switch-default -Wno-noexcept-type -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Wsuggest-override -Wstring-conversion -Wno-pass-failed -Wmisleading-indentation -Wctad-maybe-unsupported -fdiagnostics-color -O2 -DNDEBUG -std=c++17 -arch arm64 -UNDEBUG -fno-exceptions -funwind-tables -fno-rtti -MD -MT lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/LoopVectorize.cpp.o -MF lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/LoopVectorize.cpp.o.d -o lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/LoopVectorize.cpp.o -c /Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/LoopVectorize.cpp
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/LoopVectorize.cpp:7070:41: error: use of undeclared identifier 'm_True'; did you mean 'llvm::VPlanPatternMatch::m_True'?
+ 7070 |             match(Merge->getOperand(0), m_True()))
+      |                                         ^~~~~~
+      |                                         llvm::VPlanPatternMatch::m_True
+/Users/cheolwanpark/Documents/project/llvm-project/llvm/lib/Transforms/Vectorize/VPlanPatternMatch.h:148:27: note: 'llvm::VPlanPatternMatch::m_True' declared here
+  148 | inline specific_intval<1> m_True() {
+      |                           ^
+1 error generated.
+[2/11] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlanConstruction.cpp.o
+[3/11] Building CXX object lib/Transforms/Vectorize/CMakeFiles/LLVMVectorize.dir/VPlan.cpp.o
+ninja: build stopped: subcommand failed.

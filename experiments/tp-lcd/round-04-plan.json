@@ -1,0 +1,13 @@
+{
+  "round": 4,
+  "status": "planned before rule changes",
+  "validation_informed": true,
+  "parent": "round-03-memory256",
+  "residual": "Memory beat separation improves core relative GM 1.42958 to 1.26818, but BiCG/GEMVER remain at 1.54624. VPlan FMul and FAdd are costed separately while their same-block contractable single-use pairs lower to native FMA in the preserved assembly.",
+  "hypothesis": "Common FMA accounting should charge one target intrinsic cost, with one latency for the dependency path, when contraction and target cost/legality support it.",
+  "change": "Cost-only fold same-block single-use FMul+FAdd with both contract flags and legal target vector type, only when target FMA throughput is strictly cheaper than separate operations. Use TTI fma latency independently. Do not change VPlan/codegen or register-pressure policy.",
+  "parameters": {"memory_beat_bits":256,"fp_slide_beat_bits":128,"latency_startup":3},
+  "new_numeric_parameters": 0,
+  "ablation": "vplan-tp-lcd-fma=false restores pre-fold accounting",
+  "evaluation": "Full 36 forced/9 expanded compile; core and additional group separately; retain all output and code-shape comparison. No new measurements."
+}

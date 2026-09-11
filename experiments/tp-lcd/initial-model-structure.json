@@ -1,0 +1,32 @@
+{
+  "round": "implementation-initial",
+  "stage": "before target parameter changes or model scoring",
+  "validation_status": "validation-informed",
+  "baseline": "baseline-v2",
+  "common_structure": {
+    "tp": "OtherTP + max(Memory sum, Compute sum), whole vector loop region",
+    "lcd": "Closed def-use/header-backedge paths at distances 1, 2, 3; no plan cloning",
+    "score": "max(TP,LCD)/estimated runtime VF",
+    "memory_carried_dependence": "Explicit fallback required when unsupported; SSA graph alone is insufficient"
+  },
+  "initial_target_profiles": {
+    "none": "existing TTI behavior, default",
+    "xiangshan": {
+      "vector_beat_bits": 128,
+      "latency_startup_cycles": 3
+    },
+    "saturn": {
+      "vector_beat_bits": 128,
+      "latency_startup_cycles": 3,
+      "status": "unvalidated software assumptions; no hardware configuration claim"
+    }
+  },
+  "initial_parameters_per_profile": 2,
+  "initial_rules": "Native vector FP add/sub/mul/FMA and continuous memory use ceil(legalized runtime bits / beat bits) throughput; latency adds startup. Slides initially use the same linear beat rule. Legalization multiplicity is retained. Generic integer/irregular memory costs initially retained. No capacity multiplier.",
+  "search": "none yet; residual-driven changes must get a new recorded round",
+  "known_initial_limitations": [
+    "VPlan multiply/add may lower to a single FMA; accounting must be verified with generated code.",
+    "Initial linear slide throughput cannot explain report Jacobi m8 regression; any nonlinear extension requires recorded residual evidence.",
+    "Current pristine GESUMMV m8 binary spills and is not the historical no-spill binary."
+  ]
+}

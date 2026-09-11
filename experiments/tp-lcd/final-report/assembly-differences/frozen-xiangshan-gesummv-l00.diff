@@ -1,0 +1,93 @@
+--- same-VF forced
++++ actual automatic
+@@ -204,59 +204,57 @@
+ 	.type	selected_kernel,@function
+ selected_kernel:                        # @selected_kernel
+ # %bb.0:                                # %entry
+-	csrr	a0, vlenb
++	#APP
++	#NO_APP
++	csrr	a2, vlenb
+ 	lui	a1, 1
+-	srli	a2, a0, 1
+-	sub	a1, a1, a2
+-	divu	a1, a1, a2
+-	#APP
+-	#NO_APP
++	vsetvli	a0, zero, e32, m2, ta, ma
++	vmv.v.i	v8, 0
+ .Lpcrel_hi7:
+-	auipc	a2, %pcrel_hi(b)
+-	vsetvli	a3, zero, e32, m2, ta, ma
+-	vmv.v.i	v8, 0
++	auipc	a3, %pcrel_hi(b)
+ .Lpcrel_hi8:
+-	auipc	a3, %pcrel_hi(x)
+-	srli	a4, a0, 3
+-	slli	a1, a1, 4
+-	addi	a1, a1, 16
+-	mul	a4, a1, a4
++	auipc	a4, %pcrel_hi(x)
++	srli	a0, a2, 1
++	addi	a1, a1, -1
++	add	a1, a1, a0
++	neg	a5, a0
++	and	a1, a1, a5
+ .Lpcrel_hi9:
+ 	auipc	a5, %pcrel_hi(a)
+-	slli	a0, a0, 1
+-	addi	a1, a2, %pcrel_lo(.Lpcrel_hi7)
+-	addi	a2, a3, %pcrel_lo(.Lpcrel_hi8)
+-	add	a3, a1, a4
+-	addi	a4, a5, %pcrel_lo(.Lpcrel_hi9)
++	slli	a2, a2, 1
++	addi	a3, a3, %pcrel_lo(.Lpcrel_hi7)
++	addi	a4, a4, %pcrel_lo(.Lpcrel_hi8)
++	addi	a5, a5, %pcrel_lo(.Lpcrel_hi9)
+ 	vmv.v.i	v10, 0
+ .LBB2_1:                                # %vector.body
+                                         # =>This Inner Loop Header: Depth=1
+-	vl2re32.v	v12, (a4)
+-	vl2re32.v	v14, (a2)
+-	vl2re32.v	v16, (a1)
++	vl2re32.v	v12, (a5)
++	vl2re32.v	v14, (a4)
+ 	vfmacc.vv	v10, v14, v12
+-	add	a1, a1, a0
+-	add	a2, a2, a0
+-	vfmacc.vv	v8, v16, v14
+-	add	a4, a4, a0
+-	bne	a1, a3, .LBB2_1
++	vl2re32.v	v12, (a3)
++	sub	a1, a1, a0
++	add	a3, a3, a2
++	add	a4, a4, a2
++	vfmacc.vv	v8, v12, v14
++	add	a5, a5, a2
++	bnez	a1, .LBB2_1
+ # %bb.2:                                # %for.cond.cleanup
+ 	vmv.s.x	v12, zero
+ 	lui	a0, 261120
+ 	lui	a1, 260506
++	vfredusum.vs	v10, v10, v12
+ 	vfredusum.vs	v8, v8, v12
+-	vfredusum.vs	v9, v10, v12
+ 	fmv.w.x	fa5, a0
+ 	addi	a0, a1, -1638
+-	vfmv.f.s	fa4, v8
+-	vfmv.f.s	fa3, v9
++	vfmv.f.s	fa4, v10
++	vfmv.f.s	fa3, v8
+ 	fmv.w.x	fa2, a0
+-	fmul.s	fa5, fa3, fa5
+-	fmadd.s	fa5, fa4, fa2, fa5
++	fmul.s	fa5, fa4, fa5
++	fmadd.s	fa5, fa3, fa2, fa5
+ .Lpcrel_hi10:
+ 	auipc	a0, %pcrel_hi(.L_MergedGlobals)
+ 	addi	a0, a0, %pcrel_lo(.Lpcrel_hi10)
+-	fsw	fa3, 64(a0)
++	fsw	fa4, 64(a0)
+ 	fsw	fa5, 68(a0)
+ 	ret
+ .Lfunc_end2:

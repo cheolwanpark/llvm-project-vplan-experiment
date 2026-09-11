@@ -1,0 +1,793 @@
+
+LV: Checking a loop in 'builder_main' from experiments/tp-lcd/inputs/tsvc_kernels.c:124:5
+LV: Interleaving disabled by the pass manager
+LV: Loop hints: force=? width=vscale x 0 interleave=1
+LV: Found a loop: for.body
+LV: Found an induction variable.
+LV: Not vectorizing: Found a non-intrinsic callsite   %call1 = tail call fast fastcc nofpclass(nan inf) float @selected_kernel() #6, !dbg !40
+LV: Interleaving disabled by the pass manager
+LV: Can't vectorize the instructions or CFG
+LV: Can't vectorize due to memory conflicts
+LV: Not vectorizing: Cannot prove legality.
+
+LV: Checking a loop in 'selected_kernel' from experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+LV: Interleaving disabled by the pass manager
+LV: Loop hints: force=? width=vscale x 0 interleave=1
+LV: Found a loop: for.body
+LV: Found an induction variable.
+LV: We can vectorize this loop!
+LV: Loop does not require scalar epilogue
+LV: Found trip count: 4096
+LV: vector predicate hint/switch found.
+LV: Not allowing scalar epilogue, creating predicated vector loop.
+LV: Scalable vectorization is available
+LV: The max safe fixed VF is: 67108864.
+LV: The max safe scalable VF is: vscale x 4294967295.
+LV: The Smallest and Widest types: 32 / 32 bits.
+LV: The Widest register safe to use is: 1024 bits.
+LV: Loop does not require scalar epilogue
+LV: The Widest register safe to use is: vscale x 512 bits.
+LV: Loop does not require scalar epilogue
+LV: Found feasible scalable VF = vscale x 16
+LV: checking if tail can be folded by masking.
+LV: can fold tail by masking.
+LV: tail is folded with EVL, forcing unroll factor to be 1. Will try to generate VP Intrinsics with scalable vector factors only.
+LV: Found uniform instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found uniform instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found uniform instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found uniform instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found uniform instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found uniform instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found uniform instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found uniform instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found uniform instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found uniform instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found uniform instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found uniform instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found uniform instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found uniform instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found uniform instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found uniform instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found uniform instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found uniform instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found uniform instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found uniform instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found uniform instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found uniform instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found uniform instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found uniform instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found uniform instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Loop does not require scalar epilogue
+LV: Scalarizing:  %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Scalarizing and predicating:  %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+LV: Scalarizing:  %idxprom1 = sext i32 %1 to i64, !dbg !26
+LV: Scalarizing:  %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+LV: Scalarizing and predicating:  %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+LV: Scalarizing:  %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+LV: Scalarizing:  %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Scalarizing and predicating:  %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Scalarizing:  %add = fadd fast float %3, %mul, !dbg !29
+LV: Scalarizing and predicating:  store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Scalarizing:  %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Scalarizing:  %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Loop does not require scalar epilogue
+LV: Loop does not require scalar epilogue
+LV: Loop does not require scalar epilogue
+LV: Loop does not require scalar epilogue
+LV: Loop does not require scalar epilogue
+LV: Scalarizing:  %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Scalarizing:  %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Scalarizing:  %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Scalarizing:  %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+VPlan 'Initial VPlan for VF={1},UF>=1' {
+Live-in vp<%0> = VF
+Live-in vp<%1> = VF * UF
+Live-in vp<%2> = vector-trip-count
+Live-in vp<%3> = backedge-taken count
+Live-in ir<4096> = original trip-count
+
+ir-bb<entry>:
+  IR   tail call void asm sideeffect "", "~{memory}"() #6, !dbg !18, !srcloc !19
+Successor(s): scalar.ph, vector.ph
+
+vector.ph:
+Successor(s): vector loop
+
+<x1> vector loop: {
+  vector.body:
+    EMIT vp<%4> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+    vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%0>
+    EMIT vp<%6> = icmp ule vp<%5>, vp<%3>
+  Successor(s): pred.store
+
+  <xVFxUF> pred.store: {
+    pred.store.entry:
+      BRANCH-ON-MASK vp<%6>
+    Successor(s): pred.store.if, pred.store.continue
+
+    pred.store.if:
+      CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+      CLONE ir<%1> = load ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+      CLONE ir<%idxprom1> = sext ir<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+      CLONE ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+      CLONE ir<%2> = load ir<%arrayidx2>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+      CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+      CLONE ir<%3> = load ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+      CLONE ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+      CLONE ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+      CLONE store ir<%add>, ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+    Successor(s): pred.store.continue
+
+    pred.store.continue:
+    No successors
+  }
+  Successor(s): for.body.3
+
+  for.body.3:
+    EMIT vp<%index.next> = add nuw vp<%4>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+    EMIT branch-on-count vp<%index.next>, vp<%2>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+  No successors
+}
+Successor(s): middle.block
+
+middle.block:
+Successor(s): ir-bb<for.cond.cleanup>
+
+ir-bb<for.cond.cleanup>:
+  IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+No successors
+
+scalar.ph:
+  EMIT-SCALAR vp<%bc.resume.val> = phi [ ir<0>, ir-bb<entry> ]
+Successor(s): ir-bb<for.body>
+
+ir-bb<for.body>:
+  IR   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ] (extra operand: vp<%bc.resume.val> from scalar.ph)
+  IR   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+  IR   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+  IR   %idxprom1 = sext i32 %1 to i64, !dbg !26
+  IR   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+  IR   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+  IR   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+  IR   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+  IR   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+  IR   %add = fadd fast float %3, %mul, !dbg !29
+  IR   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+  IR   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+  IR   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+No successors
+}
+VPlan 'Initial VPlan for VF={vscale x 1,vscale x 2,vscale x 4,vscale x 8,vscale x 16},UF={1}' {
+Live-in vp<%0> = VF * UF
+Live-in vp<%1> = vector-trip-count
+Live-in ir<4096> = original trip-count
+
+ir-bb<entry>:
+  IR   tail call void asm sideeffect "", "~{memory}"() #6, !dbg !18, !srcloc !19
+Successor(s): scalar.ph, vector.ph
+
+vector.ph:
+Successor(s): vector loop
+
+<x1> vector loop: {
+  vector.body:
+    EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+    EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+    EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+    EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+    vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+    CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+    vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+    WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+    WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+    WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+    WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+    WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+    CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+    vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+    WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+    WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+    vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+    WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+    EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+    EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+    EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+    EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+    EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+  No successors
+}
+Successor(s): middle.block
+
+middle.block:
+Successor(s): ir-bb<for.cond.cleanup>
+
+ir-bb<for.cond.cleanup>:
+  IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+No successors
+
+scalar.ph:
+  EMIT-SCALAR vp<%bc.resume.val> = phi [ ir<0>, ir-bb<entry> ]
+Successor(s): ir-bb<for.body>
+
+ir-bb<for.body>:
+  IR   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ] (extra operand: vp<%bc.resume.val> from scalar.ph)
+  IR   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+  IR   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+  IR   %idxprom1 = sext i32 %1 to i64, !dbg !26
+  IR   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+  IR   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+  IR   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+  IR   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+  IR   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+  IR   %add = fadd fast float %3, %mul, !dbg !29
+  IR   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+  IR   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+  IR   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+No successors
+}
+LV: Computing best VF using cost kind: Reciprocal Throughput
+LV: Found an estimated cost of 0 for VF 1 For instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found an estimated cost of 0 for VF 1 For instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found an estimated cost of 1 for VF 1 For instruction:   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+LV: Found an estimated cost of 0 for VF 1 For instruction:   %idxprom1 = sext i32 %1 to i64, !dbg !26
+LV: Found an estimated cost of 0 for VF 1 For instruction:   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+LV: Found an estimated cost of 1 for VF 1 For instruction:   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+LV: Found an estimated cost of 2 for VF 1 For instruction:   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+LV: Found an estimated cost of 0 for VF 1 For instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found an estimated cost of 1 for VF 1 For instruction:   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 2 for VF 1 For instruction:   %add = fadd fast float %3, %mul, !dbg !29
+LV: Found an estimated cost of 1 for VF 1 For instruction:   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 1 for VF 1 For instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found an estimated cost of 1 for VF 1 For instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found an estimated cost of 0 for VF 1 For instruction:   br i1 %exitcond.not, label %for.cond.cleanup, label %for.body, !dbg !20, !llvm.loop !32
+LV: Scalar loop costs: 10.
+Cost of 1 for VF vscale x 1: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 1: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 1: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 1: EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 1: EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+Cost of 0 for VF vscale x 1: EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+Cost of 1 for VF vscale x 1: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+Cost of 0 for VF vscale x 1: vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+Cost of 0 for VF vscale x 1: CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 0 for VF vscale x 1: vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 1 for VF vscale x 1: WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+Cost of 1 for VF vscale x 1: WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 0 for VF vscale x 1: WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 3 for VF vscale x 1: WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+Cost of 2 for VF vscale x 1: WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+Cost of 0 for VF vscale x 1: CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+Cost of 0 for VF vscale x 1: vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 1 for VF vscale x 1: WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 2 for VF vscale x 1: WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 0 for VF vscale x 1: vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 1 for VF vscale x 1: WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 0 for VF vscale x 1: EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 1: EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 1: EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+Cost of 0 for VF vscale x 1: EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 1: EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Cost of 0 for VF vscale x 1: vector loop backedge
+Cost of 0 for VF vscale x 1: IR   tail call void asm sideeffect "", "~{memory}"() #6, !dbg !18, !srcloc !19
+Cost of 0 for VF vscale x 1: EMIT-SCALAR vp<%bc.resume.val> = phi [ ir<0>, ir-bb<entry> ]
+Cost of 0 for VF vscale x 1: IR   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ] (extra operand: vp<%bc.resume.val> from scalar.ph)
+Cost of 0 for VF vscale x 1: IR   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+Cost of 0 for VF vscale x 1: IR   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+Cost of 0 for VF vscale x 1: IR   %idxprom1 = sext i32 %1 to i64, !dbg !26
+Cost of 0 for VF vscale x 1: IR   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+Cost of 0 for VF vscale x 1: IR   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+Cost of 0 for VF vscale x 1: IR   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+Cost of 0 for VF vscale x 1: IR   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+Cost of 0 for VF vscale x 1: IR   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+Cost of 0 for VF vscale x 1: IR   %add = fadd fast float %3, %mul, !dbg !29
+Cost of 0 for VF vscale x 1: IR   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+Cost of 0 for VF vscale x 1: IR   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 1: IR   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 1: IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+Cost for VF vscale x 1: 14 (Estimated cost per lane: 7.0)
+Cost of 1 for VF vscale x 2: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 2: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 2: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 2: EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 2: EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+Cost of 0 for VF vscale x 2: EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+Cost of 1 for VF vscale x 2: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+Cost of 0 for VF vscale x 2: vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+Cost of 0 for VF vscale x 2: CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 0 for VF vscale x 2: vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 1 for VF vscale x 2: WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+Cost of 2 for VF vscale x 2: WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 0 for VF vscale x 2: WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 6 for VF vscale x 2: WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+Cost of 2 for VF vscale x 2: WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+Cost of 0 for VF vscale x 2: CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+Cost of 0 for VF vscale x 2: vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 1 for VF vscale x 2: WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 2 for VF vscale x 2: WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 0 for VF vscale x 2: vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 1 for VF vscale x 2: WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 0 for VF vscale x 2: EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 2: EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 2: EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+Cost of 0 for VF vscale x 2: EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 2: EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Cost of 0 for VF vscale x 2: vector loop backedge
+Cost of 0 for VF vscale x 2: IR   tail call void asm sideeffect "", "~{memory}"() #6, !dbg !18, !srcloc !19
+Cost of 0 for VF vscale x 2: EMIT-SCALAR vp<%bc.resume.val> = phi [ ir<0>, ir-bb<entry> ]
+Cost of 0 for VF vscale x 2: IR   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ] (extra operand: vp<%bc.resume.val> from scalar.ph)
+Cost of 0 for VF vscale x 2: IR   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+Cost of 0 for VF vscale x 2: IR   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+Cost of 0 for VF vscale x 2: IR   %idxprom1 = sext i32 %1 to i64, !dbg !26
+Cost of 0 for VF vscale x 2: IR   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+Cost of 0 for VF vscale x 2: IR   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+Cost of 0 for VF vscale x 2: IR   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+Cost of 0 for VF vscale x 2: IR   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+Cost of 0 for VF vscale x 2: IR   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+Cost of 0 for VF vscale x 2: IR   %add = fadd fast float %3, %mul, !dbg !29
+Cost of 0 for VF vscale x 2: IR   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+Cost of 0 for VF vscale x 2: IR   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 2: IR   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 2: IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+Cost for VF vscale x 2: 18 (Estimated cost per lane: 4.5)
+Cost of 1 for VF vscale x 4: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 4: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 4: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 4: EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 4: EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+Cost of 0 for VF vscale x 4: EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+Cost of 1 for VF vscale x 4: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+Cost of 0 for VF vscale x 4: vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+Cost of 0 for VF vscale x 4: CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 0 for VF vscale x 4: vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 2 for VF vscale x 4: WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+Cost of 4 for VF vscale x 4: WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 0 for VF vscale x 4: WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 12 for VF vscale x 4: WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+Cost of 4 for VF vscale x 4: WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+Cost of 0 for VF vscale x 4: CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+Cost of 0 for VF vscale x 4: vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 2 for VF vscale x 4: WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 4 for VF vscale x 4: WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 0 for VF vscale x 4: vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 2 for VF vscale x 4: WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 0 for VF vscale x 4: EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 4: EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 4: EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+Cost of 0 for VF vscale x 4: EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 4: EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Cost of 0 for VF vscale x 4: vector loop backedge
+Cost of 0 for VF vscale x 4: IR   tail call void asm sideeffect "", "~{memory}"() #6, !dbg !18, !srcloc !19
+Cost of 0 for VF vscale x 4: EMIT-SCALAR vp<%bc.resume.val> = phi [ ir<0>, ir-bb<entry> ]
+Cost of 0 for VF vscale x 4: IR   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ] (extra operand: vp<%bc.resume.val> from scalar.ph)
+Cost of 0 for VF vscale x 4: IR   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+Cost of 0 for VF vscale x 4: IR   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+Cost of 0 for VF vscale x 4: IR   %idxprom1 = sext i32 %1 to i64, !dbg !26
+Cost of 0 for VF vscale x 4: IR   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+Cost of 0 for VF vscale x 4: IR   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+Cost of 0 for VF vscale x 4: IR   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+Cost of 0 for VF vscale x 4: IR   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+Cost of 0 for VF vscale x 4: IR   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+Cost of 0 for VF vscale x 4: IR   %add = fadd fast float %3, %mul, !dbg !29
+Cost of 0 for VF vscale x 4: IR   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+Cost of 0 for VF vscale x 4: IR   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 4: IR   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 4: IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+Cost for VF vscale x 4: 33 (Estimated cost per lane: 4.1)
+Cost of 1 for VF vscale x 8: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 8: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 8: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 8: EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 8: EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+Cost of 0 for VF vscale x 8: EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+Cost of 1 for VF vscale x 8: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+Cost of 0 for VF vscale x 8: vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+Cost of 0 for VF vscale x 8: CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 0 for VF vscale x 8: vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 4 for VF vscale x 8: WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+Cost of 8 for VF vscale x 8: WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 0 for VF vscale x 8: WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 24 for VF vscale x 8: WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+Cost of 8 for VF vscale x 8: WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+Cost of 0 for VF vscale x 8: CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+Cost of 0 for VF vscale x 8: vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 4 for VF vscale x 8: WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 8 for VF vscale x 8: WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 0 for VF vscale x 8: vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 4 for VF vscale x 8: WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 0 for VF vscale x 8: EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 8: EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 8: EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+Cost of 0 for VF vscale x 8: EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 8: EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Cost of 0 for VF vscale x 8: vector loop backedge
+Cost of 0 for VF vscale x 8: IR   tail call void asm sideeffect "", "~{memory}"() #6, !dbg !18, !srcloc !19
+Cost of 0 for VF vscale x 8: EMIT-SCALAR vp<%bc.resume.val> = phi [ ir<0>, ir-bb<entry> ]
+Cost of 0 for VF vscale x 8: IR   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ] (extra operand: vp<%bc.resume.val> from scalar.ph)
+Cost of 0 for VF vscale x 8: IR   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+Cost of 0 for VF vscale x 8: IR   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+Cost of 0 for VF vscale x 8: IR   %idxprom1 = sext i32 %1 to i64, !dbg !26
+Cost of 0 for VF vscale x 8: IR   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+Cost of 0 for VF vscale x 8: IR   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+Cost of 0 for VF vscale x 8: IR   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+Cost of 0 for VF vscale x 8: IR   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+Cost of 0 for VF vscale x 8: IR   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+Cost of 0 for VF vscale x 8: IR   %add = fadd fast float %3, %mul, !dbg !29
+Cost of 0 for VF vscale x 8: IR   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+Cost of 0 for VF vscale x 8: IR   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 8: IR   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 8: IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+Cost for VF vscale x 8: 63 (Estimated cost per lane: 3.9)
+Cost of 1 for VF vscale x 16: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 16: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 16: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 16: EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 16: EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+Cost of 0 for VF vscale x 16: EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+Cost of 1 for VF vscale x 16: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+Cost of 0 for VF vscale x 16: vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+Cost of 0 for VF vscale x 16: CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 0 for VF vscale x 16: vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 8 for VF vscale x 16: WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+Cost of 17 for VF vscale x 16: WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 0 for VF vscale x 16: WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 48 for VF vscale x 16: WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+Cost of 16 for VF vscale x 16: WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+Cost of 0 for VF vscale x 16: CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+Cost of 0 for VF vscale x 16: vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 8 for VF vscale x 16: WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 16 for VF vscale x 16: WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 0 for VF vscale x 16: vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 8 for VF vscale x 16: WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 0 for VF vscale x 16: EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 16: EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 16: EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+Cost of 0 for VF vscale x 16: EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 16: EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Cost of 0 for VF vscale x 16: vector loop backedge
+Cost of 0 for VF vscale x 16: IR   tail call void asm sideeffect "", "~{memory}"() #6, !dbg !18, !srcloc !19
+Cost of 0 for VF vscale x 16: EMIT-SCALAR vp<%bc.resume.val> = phi [ ir<0>, ir-bb<entry> ]
+Cost of 0 for VF vscale x 16: IR   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ] (extra operand: vp<%bc.resume.val> from scalar.ph)
+Cost of 0 for VF vscale x 16: IR   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+Cost of 0 for VF vscale x 16: IR   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+Cost of 0 for VF vscale x 16: IR   %idxprom1 = sext i32 %1 to i64, !dbg !26
+Cost of 0 for VF vscale x 16: IR   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+Cost of 0 for VF vscale x 16: IR   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+Cost of 0 for VF vscale x 16: IR   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+Cost of 0 for VF vscale x 16: IR   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+Cost of 0 for VF vscale x 16: IR   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+Cost of 0 for VF vscale x 16: IR   %add = fadd fast float %3, %mul, !dbg !29
+Cost of 0 for VF vscale x 16: IR   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+Cost of 0 for VF vscale x 16: IR   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 16: IR   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 16: IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+Cost for VF vscale x 16: 124 (Estimated cost per lane: 3.9)
+LV: Found an estimated cost of 0 for VF 1 For instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found an estimated cost of 0 for VF 1 For instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found an estimated cost of 1 for VF 1 For instruction:   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+LV: Found an estimated cost of 0 for VF 1 For instruction:   %idxprom1 = sext i32 %1 to i64, !dbg !26
+LV: Found an estimated cost of 0 for VF 1 For instruction:   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+LV: Found an estimated cost of 1 for VF 1 For instruction:   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+LV: Found an estimated cost of 2 for VF 1 For instruction:   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+LV: Found an estimated cost of 0 for VF 1 For instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found an estimated cost of 1 for VF 1 For instruction:   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 2 for VF 1 For instruction:   %add = fadd fast float %3, %mul, !dbg !29
+LV: Found an estimated cost of 1 for VF 1 For instruction:   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 1 for VF 1 For instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found an estimated cost of 1 for VF 1 For instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found an estimated cost of 0 for VF 1 For instruction:   br i1 %exitcond.not, label %for.cond.cleanup, label %for.body, !dbg !20, !llvm.loop !32
+LV: Scalar loop costs: 10.
+LV: Found an estimated cost of 0 for VF vscale x 1 For instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found an estimated cost of 0 for VF vscale x 1 For instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found an estimated cost of 1 for VF vscale x 1 For instruction:   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+LV: Found an estimated cost of 1 for VF vscale x 1 For instruction:   %idxprom1 = sext i32 %1 to i64, !dbg !26
+LV: Found an estimated cost of 0 for VF vscale x 1 For instruction:   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+LV: Found an estimated cost of 3 for VF vscale x 1 For instruction:   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+LV: Found an estimated cost of 2 for VF vscale x 1 For instruction:   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+LV: Found an estimated cost of 0 for VF vscale x 1 For instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found an estimated cost of 1 for VF vscale x 1 For instruction:   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 2 for VF vscale x 1 For instruction:   %add = fadd fast float %3, %mul, !dbg !29
+LV: Found an estimated cost of 1 for VF vscale x 1 For instruction:   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 1 for VF vscale x 1 For instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found an estimated cost of 1 for VF vscale x 1 For instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found an estimated cost of 0 for VF vscale x 1 For instruction:   br i1 %exitcond.not, label %for.cond.cleanup, label %for.body, !dbg !20, !llvm.loop !32
+Cost of 1 for VF vscale x 1: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+LV: Vector loop of width vscale x 1 costs: 7 (assuming a minimum vscale of 2).
+LV: Found an estimated cost of 0 for VF vscale x 2 For instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found an estimated cost of 0 for VF vscale x 2 For instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found an estimated cost of 1 for VF vscale x 2 For instruction:   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+LV: Found an estimated cost of 2 for VF vscale x 2 For instruction:   %idxprom1 = sext i32 %1 to i64, !dbg !26
+LV: Found an estimated cost of 0 for VF vscale x 2 For instruction:   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+LV: Found an estimated cost of 6 for VF vscale x 2 For instruction:   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+LV: Found an estimated cost of 2 for VF vscale x 2 For instruction:   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+LV: Found an estimated cost of 0 for VF vscale x 2 For instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found an estimated cost of 1 for VF vscale x 2 For instruction:   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 2 for VF vscale x 2 For instruction:   %add = fadd fast float %3, %mul, !dbg !29
+LV: Found an estimated cost of 1 for VF vscale x 2 For instruction:   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 1 for VF vscale x 2 For instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found an estimated cost of 1 for VF vscale x 2 For instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found an estimated cost of 0 for VF vscale x 2 For instruction:   br i1 %exitcond.not, label %for.cond.cleanup, label %for.body, !dbg !20, !llvm.loop !32
+Cost of 1 for VF vscale x 2: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+LV: Vector loop of width vscale x 2 costs: 4 (assuming a minimum vscale of 2).
+LV: Found an estimated cost of 0 for VF vscale x 4 For instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found an estimated cost of 0 for VF vscale x 4 For instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found an estimated cost of 2 for VF vscale x 4 For instruction:   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+LV: Found an estimated cost of 4 for VF vscale x 4 For instruction:   %idxprom1 = sext i32 %1 to i64, !dbg !26
+LV: Found an estimated cost of 0 for VF vscale x 4 For instruction:   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+LV: Found an estimated cost of 12 for VF vscale x 4 For instruction:   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+LV: Found an estimated cost of 4 for VF vscale x 4 For instruction:   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+LV: Found an estimated cost of 0 for VF vscale x 4 For instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found an estimated cost of 2 for VF vscale x 4 For instruction:   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 4 for VF vscale x 4 For instruction:   %add = fadd fast float %3, %mul, !dbg !29
+LV: Found an estimated cost of 2 for VF vscale x 4 For instruction:   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 1 for VF vscale x 4 For instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found an estimated cost of 1 for VF vscale x 4 For instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found an estimated cost of 0 for VF vscale x 4 For instruction:   br i1 %exitcond.not, label %for.cond.cleanup, label %for.body, !dbg !20, !llvm.loop !32
+Cost of 1 for VF vscale x 4: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+LV: Vector loop of width vscale x 4 costs: 4 (assuming a minimum vscale of 2).
+LV: Found an estimated cost of 0 for VF vscale x 8 For instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found an estimated cost of 0 for VF vscale x 8 For instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found an estimated cost of 4 for VF vscale x 8 For instruction:   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+LV: Found an estimated cost of 8 for VF vscale x 8 For instruction:   %idxprom1 = sext i32 %1 to i64, !dbg !26
+LV: Found an estimated cost of 0 for VF vscale x 8 For instruction:   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+LV: Found an estimated cost of 24 for VF vscale x 8 For instruction:   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+LV: Found an estimated cost of 8 for VF vscale x 8 For instruction:   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+LV: Found an estimated cost of 0 for VF vscale x 8 For instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found an estimated cost of 4 for VF vscale x 8 For instruction:   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 8 for VF vscale x 8 For instruction:   %add = fadd fast float %3, %mul, !dbg !29
+LV: Found an estimated cost of 4 for VF vscale x 8 For instruction:   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 1 for VF vscale x 8 For instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found an estimated cost of 1 for VF vscale x 8 For instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found an estimated cost of 0 for VF vscale x 8 For instruction:   br i1 %exitcond.not, label %for.cond.cleanup, label %for.body, !dbg !20, !llvm.loop !32
+Cost of 1 for VF vscale x 8: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+LV: Vector loop of width vscale x 8 costs: 3 (assuming a minimum vscale of 2).
+LV: Found an estimated cost of 0 for VF vscale x 16 For instruction:   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+LV: Found an estimated cost of 0 for VF vscale x 16 For instruction:   %arrayidx = getelementptr inbounds nuw i32, ptr @index_array, i64 %indvars.iv, !dbg !25
+LV: Found an estimated cost of 8 for VF vscale x 16 For instruction:   %1 = load i32, ptr %arrayidx, align 4, !dbg !25, !tbaa !10
+LV: Found an estimated cost of 17 for VF vscale x 16 For instruction:   %idxprom1 = sext i32 %1 to i64, !dbg !26
+LV: Found an estimated cost of 0 for VF vscale x 16 For instruction:   %arrayidx2 = getelementptr inbounds float, ptr @b, i64 %idxprom1, !dbg !26
+LV: Found an estimated cost of 48 for VF vscale x 16 For instruction:   %2 = load float, ptr %arrayidx2, align 4, !dbg !26, !tbaa !22
+LV: Found an estimated cost of 16 for VF vscale x 16 For instruction:   %mul = fmul fast float %2, 5.000000e-01, !dbg !27
+LV: Found an estimated cost of 0 for VF vscale x 16 For instruction:   %arrayidx4 = getelementptr inbounds nuw float, ptr @a, i64 %indvars.iv, !dbg !28
+LV: Found an estimated cost of 8 for VF vscale x 16 For instruction:   %3 = load float, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 16 for VF vscale x 16 For instruction:   %add = fadd fast float %3, %mul, !dbg !29
+LV: Found an estimated cost of 8 for VF vscale x 16 For instruction:   store float %add, ptr %arrayidx4, align 4, !dbg !29, !tbaa !22
+LV: Found an estimated cost of 1 for VF vscale x 16 For instruction:   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+LV: Found an estimated cost of 1 for VF vscale x 16 For instruction:   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Found an estimated cost of 0 for VF vscale x 16 For instruction:   br i1 %exitcond.not, label %for.cond.cleanup, label %for.body, !dbg !20, !llvm.loop !32
+Cost of 1 for VF vscale x 16: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+LV: Vector loop of width vscale x 16 costs: 3 (assuming a minimum vscale of 2).
+Cost of 1 for VF vscale x 16: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 16: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 16: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+LV: Selecting VF: vscale x 16.
+Cost of 1 for VF vscale x 1: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 1: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 1: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 1: EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 1: EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+Cost of 0 for VF vscale x 1: EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+Cost of 1 for VF vscale x 1: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+Cost of 0 for VF vscale x 1: vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+Cost of 0 for VF vscale x 1: CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 0 for VF vscale x 1: vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 1 for VF vscale x 1: WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+Cost of 1 for VF vscale x 1: WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 0 for VF vscale x 1: WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 3 for VF vscale x 1: WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+Cost of 2 for VF vscale x 1: WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+Cost of 0 for VF vscale x 1: CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+Cost of 0 for VF vscale x 1: vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 1 for VF vscale x 1: WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 2 for VF vscale x 1: WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 0 for VF vscale x 1: vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 1 for VF vscale x 1: WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 0 for VF vscale x 1: EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 1: EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 1: EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+Cost of 0 for VF vscale x 1: EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 1: EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Cost of 0 for VF vscale x 1: IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+Cost of 1 for VF vscale x 2: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 2: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 2: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 2: EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 2: EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+Cost of 0 for VF vscale x 2: EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+Cost of 1 for VF vscale x 2: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+Cost of 0 for VF vscale x 2: vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+Cost of 0 for VF vscale x 2: CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 0 for VF vscale x 2: vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 1 for VF vscale x 2: WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+Cost of 2 for VF vscale x 2: WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 0 for VF vscale x 2: WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 6 for VF vscale x 2: WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+Cost of 2 for VF vscale x 2: WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+Cost of 0 for VF vscale x 2: CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+Cost of 0 for VF vscale x 2: vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 1 for VF vscale x 2: WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 2 for VF vscale x 2: WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 0 for VF vscale x 2: vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 1 for VF vscale x 2: WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 0 for VF vscale x 2: EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 2: EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 2: EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+Cost of 0 for VF vscale x 2: EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 2: EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Cost of 0 for VF vscale x 2: IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+Cost of 1 for VF vscale x 4: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 4: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 4: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 4: EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 4: EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+Cost of 0 for VF vscale x 4: EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+Cost of 1 for VF vscale x 4: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+Cost of 0 for VF vscale x 4: vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+Cost of 0 for VF vscale x 4: CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 0 for VF vscale x 4: vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 2 for VF vscale x 4: WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+Cost of 4 for VF vscale x 4: WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 0 for VF vscale x 4: WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 12 for VF vscale x 4: WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+Cost of 4 for VF vscale x 4: WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+Cost of 0 for VF vscale x 4: CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+Cost of 0 for VF vscale x 4: vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 2 for VF vscale x 4: WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 4 for VF vscale x 4: WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 0 for VF vscale x 4: vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 2 for VF vscale x 4: WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 0 for VF vscale x 4: EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 4: EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 4: EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+Cost of 0 for VF vscale x 4: EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 4: EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Cost of 0 for VF vscale x 4: IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+Cost of 1 for VF vscale x 8: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 8: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 8: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 8: EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 8: EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+Cost of 0 for VF vscale x 8: EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+Cost of 1 for VF vscale x 8: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+Cost of 0 for VF vscale x 8: vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+Cost of 0 for VF vscale x 8: CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 0 for VF vscale x 8: vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 4 for VF vscale x 8: WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+Cost of 8 for VF vscale x 8: WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 0 for VF vscale x 8: WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 24 for VF vscale x 8: WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+Cost of 8 for VF vscale x 8: WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+Cost of 0 for VF vscale x 8: CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+Cost of 0 for VF vscale x 8: vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 4 for VF vscale x 8: WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 8 for VF vscale x 8: WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 0 for VF vscale x 8: vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 4 for VF vscale x 8: WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 0 for VF vscale x 8: EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 8: EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 8: EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+Cost of 0 for VF vscale x 8: EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 8: EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Cost of 0 for VF vscale x 8: IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+Cost of 1 for VF vscale x 16: induction instruction   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !30
+Cost of 0 for VF vscale x 16: induction instruction   %indvars.iv = phi i64 [ 0, %entry ], [ %indvars.iv.next, %for.body ]
+Cost of 1 for VF vscale x 16: exit condition instruction   %exitcond.not = icmp eq i64 %indvars.iv.next, 4096, !dbg !31
+Cost of 0 for VF vscale x 16: EMIT vp<%3> = CANONICAL-INDUCTION ir<0>, vp<%index.next>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 16: EXPLICIT-VECTOR-LENGTH-BASED-IV-PHI vp<%4> = phi ir<0>, vp<%index.evl.next>
+Cost of 0 for VF vscale x 16: EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+Cost of 1 for VF vscale x 16: EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+Cost of 0 for VF vscale x 16: vp<%5> = SCALAR-STEPS vp<%4>, ir<1>, vp<%evl>
+Cost of 0 for VF vscale x 16: CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 0 for VF vscale x 16: vp<%6> = vector-pointer inbounds nuw ir<%arrayidx>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+Cost of 8 for VF vscale x 16: WIDEN ir<%1> = vp.load vp<%6>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+Cost of 17 for VF vscale x 16: WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 0 for VF vscale x 16: WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+Cost of 48 for VF vscale x 16: WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+Cost of 16 for VF vscale x 16: WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+Cost of 0 for VF vscale x 16: CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%5>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+Cost of 0 for VF vscale x 16: vp<%7> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 8 for VF vscale x 16: WIDEN ir<%3> = vp.load vp<%7>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 16 for VF vscale x 16: WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 0 for VF vscale x 16: vp<%8> = vector-pointer inbounds nuw ir<%arrayidx4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+Cost of 8 for VF vscale x 16: WIDEN vp.store vp<%8>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+Cost of 0 for VF vscale x 16: EMIT-SCALAR vp<%9> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 16: EMIT vp<%index.evl.next> = add nuw vp<%9>, vp<%4>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 16: EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%9>
+Cost of 0 for VF vscale x 16: EMIT vp<%index.next> = add nuw vp<%3>, vp<%0>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+Cost of 0 for VF vscale x 16: EMIT branch-on-count vp<%index.next>, vp<%1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Cost of 0 for VF vscale x 16: IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+LV: Minimum required TC for runtime checks to be profitable:0
+LV: Interleaving is not beneficial.
+LV: Found a vectorizable loop (vscale x 16) in experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+LV: Vectorizing: innermost loop.
+/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/inputs/tsvc_kernels.c:109:5: remark: vectorized loop (vectorization width: vscale x 16, interleaved count: 1) [-Rpass=loop-vectorize]
+  109 |     for (int i = 0; i < LOOP_SIZE; ++i)
+      |     ^
+LEV: Unable to vectorize epilogue because no epilogue is allowed.
+LV: Loop does not require scalar epilogue
+LV: Loop does not require scalar epilogue
+Executing best plan with VF=vscale x 16, UF=1
+VPlan 'Final VPlan for VF={vscale x 1,vscale x 2,vscale x 4,vscale x 8,vscale x 16},UF={1}' {
+Live-in ir<4096> = original trip-count
+
+ir-bb<entry>:
+  IR   tail call void asm sideeffect "", "~{memory}"() #6, !dbg !18, !srcloc !19
+Successor(s): vector.ph
+
+vector.ph:
+Successor(s): vector.body
+
+vector.body:
+  EMIT-SCALAR vp<%evl.based.iv> = phi [ ir<0>, vector.ph ], [ vp<%index.evl.next>, vector.body ]
+  EMIT-SCALAR vp<%avl> = phi [ ir<4096>, vector.ph ], [ vp<%avl.next>, vector.body ]
+  EMIT-SCALAR vp<%evl> = EXPLICIT-VECTOR-LENGTH vp<%avl>
+  CLONE ir<%arrayidx> = getelementptr inbounds nuw ir<@index_array>, vp<%evl.based.iv>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19
+  WIDEN ir<%1> = vp.load ir<%arrayidx>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:19 (!tbaa !10)
+  WIDEN-CAST ir<%idxprom1> = sext ir<%1> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+  WIDEN-GEP Inv[Var] ir<%arrayidx2> = getelementptr inbounds ir<@b>, ir<%idxprom1>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17
+  WIDEN ir<%2> = vp.load ir<%arrayidx2>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:17 (!tbaa !32)
+  WIDEN ir<%mul> = fmul fast ir<%2>, ir<5.000000e-01>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:35
+  CLONE ir<%arrayidx4> = getelementptr inbounds nuw ir<@a>, vp<%evl.based.iv>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:9
+  WIDEN ir<%3> = vp.load ir<%arrayidx4>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+  WIDEN ir<%add> = fadd fast ir<%3>, ir<%mul>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14
+  WIDEN vp.store ir<%arrayidx4>, ir<%add>, vp<%evl>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:110:14 (!tbaa !32)
+  EMIT-SCALAR vp<%2> = zext vp<%evl> to i64, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+  EMIT vp<%index.evl.next> = add nuw vp<%2>, vp<%evl.based.iv>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:36
+  EMIT vp<%avl.next> = sub nuw vp<%avl>, vp<%2>
+  EMIT vp<%3> = icmp eq vp<%avl.next>, ir<0>
+  EMIT branch-on-cond vp<%3>, !dbg experiments/tp-lcd/inputs/tsvc_kernels.c:109:5
+Successor(s): middle.block, vector.body
+
+middle.block:
+Successor(s): ir-bb<for.cond.cleanup>
+
+ir-bb<for.cond.cleanup>:
+  IR   %0 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !21, !tbaa !22
+No successors
+}
+LV: vectorizing VPBB: ir-bb<entry> in BB: entry
+LV: filled BB: 
+entry:
+  tail call void asm sideeffect "", "~{memory}"() #6, !dbg !18, !srcloc !19
+  br, !dbg !20
+LV: created vector.ph
+LV: draw edge from entry
+LV: vectorizing VPBB: vector.ph in BB: vector.ph
+LV: filled BB: 
+vector.ph:                                        ; preds = %entry
+  unreachable, !dbg !20
+LV: created vector.body
+LV: draw edge from vector.ph
+LV: vectorizing VPBB: vector.body in BB: vector.body
+LV: filled BB: 
+vector.body:                                      ; preds = %vector.body, %vector.ph
+  %evl.based.iv = phi i64 [ 0, %vector.ph ]
+  %avl = phi i64 [ 4096, %vector.ph ]
+  %0 = call i32 @llvm.experimental.get.vector.length.i64(i64 %avl, i32 16, i1 true)
+  %1 = getelementptr inbounds nuw i32, ptr @index_array, i64 %evl.based.iv, !dbg !21
+  %vp.op.load = call <vscale x 16 x i32> @llvm.vp.load.nxv16i32.p0(ptr align 4 %1, <vscale x 16 x i1> splat (i1 true), i32 %0), !dbg !21, !tbaa !10
+  %2 = sext <vscale x 16 x i32> %vp.op.load to <vscale x 16 x i64>, !dbg !22
+  %3 = getelementptr inbounds float, ptr @b, <vscale x 16 x i64> %2, !dbg !22
+  %wide.masked.gather = call <vscale x 16 x float> @llvm.vp.gather.nxv16f32.nxv16p0(<vscale x 16 x ptr> align 4 %3, <vscale x 16 x i1> splat (i1 true), i32 %0), !dbg !22, !tbaa !23
+  %4 = fmul fast <vscale x 16 x float> %wide.masked.gather, splat (float 5.000000e-01), !dbg !25
+  %5 = getelementptr inbounds nuw float, ptr @a, i64 %evl.based.iv, !dbg !26
+  %vp.op.load9 = call <vscale x 16 x float> @llvm.vp.load.nxv16f32.p0(ptr align 4 %5, <vscale x 16 x i1> splat (i1 true), i32 %0), !dbg !27, !tbaa !23
+  %6 = fadd fast <vscale x 16 x float> %vp.op.load9, %4, !dbg !27
+  call void @llvm.vp.store.nxv16f32.p0(<vscale x 16 x float> %6, ptr align 4 %5, <vscale x 16 x i1> splat (i1 true), i32 %0), !dbg !27, !tbaa !23
+  %7 = zext i32 %0 to i64, !dbg !28
+  %index.evl.next = add nuw i64 %7, %evl.based.iv, !dbg !28
+  %avl.next = sub nuw i64 %avl, %7
+  %8 = icmp eq i64 %avl.next, 0
+  br i1 %8, <null operand!>, label %vector.body, !dbg !20
+LV: created middle.block
+LV: draw edge from vector.body
+LV: vectorizing VPBB: middle.block in BB: middle.block
+LV: filled BB: 
+middle.block:                                     ; preds = %vector.body
+  unreachable, !dbg !20
+LV: vectorizing VPBB: ir-bb<for.cond.cleanup> in BB: for.cond.cleanup
+LV: filled BB: 
+for.cond.cleanup:                                 ; preds = %for.body
+  %9 = load float, ptr getelementptr inbounds nuw (i8, ptr @a, i64 16380), align 4, !dbg !29, !tbaa !23
+  ret float %9, !dbg !30
+LV: draw edge from middle.block
+LV: Interleaving disabled by the pass manager

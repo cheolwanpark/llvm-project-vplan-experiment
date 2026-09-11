@@ -1,0 +1,41 @@
+[
+  {
+    "collection": "final-xiangshan",
+    "profile": "xiangshan",
+    "forced": 36,
+    "actual_automatic": 9,
+    "all_four_vfs_visited": true,
+    "supported_forced": 36,
+    "full_assembly_pristine_identical": 42,
+    "forced_assembly_pristine_identical": 36,
+    "all_allocation_dumps": true,
+    "failures": [],
+    "measured": false
+  },
+  {
+    "collection": "final-saturn",
+    "profile": "saturn",
+    "forced": 36,
+    "actual_automatic": 9,
+    "all_four_vfs_visited": true,
+    "supported_forced": 36,
+    "full_assembly_pristine_identical": 43,
+    "forced_assembly_pristine_identical": 36,
+    "all_allocation_dumps": true,
+    "failures": [],
+    "measured": false
+  },
+  {
+    "collection": "final-none-observe",
+    "profile": "none",
+    "forced": 36,
+    "actual_automatic": 9,
+    "all_four_vfs_visited": true,
+    "supported_forced": 14,
+    "full_assembly_pristine_identical": 45,
+    "forced_assembly_pristine_identical": 36,
+    "all_allocation_dumps": true,
+    "failures": [],
+    "measured": false
+  }
+]

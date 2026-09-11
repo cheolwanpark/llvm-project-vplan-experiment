@@ -1,0 +1,3 @@
+/Users/cheolwanpark/Documents/project/llvm-project/experiments/tp-lcd/inputs/tsvc_kernels.c:67:5: remark: vectorized loop (vectorization width: vscale x 8, interleaved count: 1) [-Rpass=loop-vectorize]
+   67 |     for (int i = 0; i < LOOP_SIZE; ++i)
+      |     ^

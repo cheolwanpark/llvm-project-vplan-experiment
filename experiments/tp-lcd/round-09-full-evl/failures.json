@@ -1,0 +1,12 @@
+[
+  {
+    "kernel": "s1111",
+    "mode": "expanded",
+    "error": "assembly exit 1"
+  },
+  {
+    "kernel": "gesummv-l00",
+    "mode": "expanded",
+    "error": "assembly exit 1"
+  }
+]

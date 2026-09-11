@@ -1,0 +1,68 @@
+{
+  "kernel": "gemver-l00",
+  "mode": 4,
+  "vf": 4,
+  "scalable": true,
+  "shape": {
+    "body_sha256": "d240fbf751a6e326b9706f8a804625df3ff48a87c812d722b26a2ca45645cd3f",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vl2re32.v": 3,
+          "vfmadd.vf": 2,
+          "add": 3,
+          "vs2r.v": 1,
+          "bne": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvl2re32.v\tv8, (a3)\n\tvl2re32.v\tv10, (a2)\n\tvl2re32.v\tv12, (a1)\n\tvfmadd.vf\tv10, fa5, v8\n\tadd\ta1, a1, a0\n\tadd\ta2, a2, a0\n\tvfmadd.vf\tv12, fa4, v10\n\tvs2r.v\tv12, (a3)\n\tadd\ta3, a3, a0\n\tbne\ta1, a4, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m2"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "same_full_assembly_as_pristine": true,
+  "same_selected_body_as_pristine": true,
+  "historical_binary_measured": false,
+  "diagnostics": [
+    {
+      "compute_recipes": 4,
+      "compute_tp": 4,
+      "cpu": "xiangshan-kunminghu",
+      "dominant_recurrence": "vp<%3>",
+      "eligible": true,
+      "exclusion_reason": "",
+      "fallback_reason": "",
+      "final_score": 0.75,
+      "fma_pairs": 2,
+      "fma_savings_tp": 4,
+      "full_evl_savings_tp": 0,
+      "full_width_iterations": true,
+      "function": "selected_kernel",
+      "kind": "candidate",
+      "lcd": 1,
+      "legacy_cost": 14,
+      "loop": "for.body",
+      "memory_recipes": 4,
+      "memory_tp": 4,
+      "ordinary_pressure_excluded": false,
+      "other_recipes": 11,
+      "other_tp": 2,
+      "recurrence_distance": 1,
+      "runtime_vf": 8,
+      "scalable": true,
+      "scalar_address_register_recipes": 0,
+      "target": "riscv64-unknown-unknown-elf",
+      "tp": 6,
+      "vf": 4,
+      "zero_cost_recipes": 13
+    }
+  ],
+  "workaround_applied": 0,
+  "scheduled_extractions_moved": 0,
+  "allocation_dump_present": true,
+  "register_allocation_frame_lines": []
+}

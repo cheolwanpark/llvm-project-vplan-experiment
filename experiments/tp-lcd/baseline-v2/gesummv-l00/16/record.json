@@ -1,0 +1,54 @@
+{
+  "kernel": "gesummv-l00",
+  "mode": 16,
+  "actual_vf": 16,
+  "scalable": true,
+  "source_sha256": "3f64e3fdfb2a1c5a3350dc6b52c9d5483585749c0a88e6261d1ae1aa854f9a14",
+  "assembly_sha256": "2061665b12e16f072cfd0b2b51fa76336e9d3464e195383b75dcb7ab7fbbfb15",
+  "shape": {
+    "body_sha256": "82fa766bc720a16b5981cb3ca4b80bb7200001fb2c320119a69375cb139b404b",
+    "vector_loops": [
+      {
+        "label": ".LBB2_1",
+        "opcodes": {
+          "vsetvli": 2,
+          "sh2add": 3,
+          "vle32.v": 3,
+          "csrr": 2,
+          "sh3add": 2,
+          "addi": 4,
+          "vs8r.v": 2,
+          "vl8r.v": 2,
+          "vfmacc.vv": 2,
+          "sub": 1,
+          "add": 1,
+          "bnez": 1
+        },
+        "text": ".LBB2_1:                                # %vector.body\n                                        # =>This Inner Loop Header: Depth=1\n\tvsetvli\ta5, a1, e8, m2, ta, ma\n\tsh2add\ta2, a0, a6\n\tvle32.v\tv24, (a2)\n\tcsrr\ta2, vlenb\n\tsh3add\ta2, a2, sp\n\taddi\ta2, a2, 16\n\tvs8r.v\tv24, (a2)                       # vscale x 64-byte Folded Spill\n\tsh2add\ta2, a0, a3\n\tvle32.v\tv24, (a2)\n\tsh2add\ta2, a0, a4\n\tvle32.v\tv0, (a2)\n\taddi\ta2, sp, 16\n\tvs8r.v\tv0, (a2)                        # vscale x 64-byte Folded Spill\n\tcsrr\ta2, vlenb\n\tsh3add\ta2, a2, sp\n\taddi\ta2, a2, 16\n\tvl8r.v\tv0, (a2)                        # vscale x 64-byte Folded Reload\n\tvsetvli\tzero, zero, e32, m8, tu, ma\n\tvfmacc.vv\tv16, v24, v0\n\tsub\ta1, a1, a5\n\taddi\ta2, sp, 16\n\tvl8r.v\tv0, (a2)                        # vscale x 64-byte Folded Reload\n\tvfmacc.vv\tv8, v0, v24\n\tadd\ta0, a0, a5\n\tbnez\ta1, .LBB2_1\n"
+      }
+    ],
+    "e32_lmuls": [
+      "m8"
+    ],
+    "vector_stack_accesses": [],
+    "spill_audit": "stack-base vector accesses are a diagnostic, not a complete spill proof"
+  },
+  "workaround_applied": 2,
+  "scheduled_extractions_moved": 2,
+  "register_allocation_frame_lines": [
+    "  fi#0: id=2 size=64, align=8, at location [SP]",
+    "  fi#1: id=2 size=64, align=8, at location [SP]",
+    "408B\t  VS8R_V killed renamable $v24m8, %stack.0 :: (store (<vscale x 1 x s512>) into %stack.0, align 8)",
+    "500B\t  VS8R_V killed renamable $v0m8, %stack.1 :: (store (<vscale x 1 x s512>) into %stack.1, align 8)",
+    "504B\t  renamable $v0m8 = VL8RE8_V %stack.0 :: (load (<vscale x 1 x s512>) from %stack.0, align 8)",
+    "584B\t  renamable $v0m8 = VL8RE8_V %stack.1 :: (load (<vscale x 1 x s512>) from %stack.1, align 8)",
+    "  fi#0: id=2 size=64, align=8, at location [SP]",
+    "  fi#1: id=2 size=64, align=8, at location [SP]",
+    "432B\t  VS8R_V killed renamable $v24m8, %stack.0 :: (store (<vscale x 1 x s512>) into %stack.0, align 8)",
+    "544B\t  VS8R_V killed renamable $v0m8, %stack.1 :: (store (<vscale x 1 x s512>) into %stack.1, align 8)",
+    "560B\t  renamable $v0m8 = VL8RE8_V %stack.0 :: (load (<vscale x 1 x s512>) from %stack.0, align 8)",
+    "672B\t  renamable $v0m8 = VL8RE8_V %stack.1 :: (load (<vscale x 1 x s512>) from %stack.1, align 8)"
+  ],
+  "register_allocation_observed": true,
+  "visited": []
+}

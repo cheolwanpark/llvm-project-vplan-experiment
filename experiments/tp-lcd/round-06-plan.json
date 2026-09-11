@@ -1,0 +1,14 @@
+{
+  "round":6,
+  "status":"planned before parameter changes",
+  "validation_informed":true,
+  "parent":"round-05-slide-best-full",
+  "retained_slide_grid_result":{"startup":8,"quadratic_cost":3,"core_relative_gm":1.2007239093155728,"core_relative_p90":1.33144018724387,"core_non_tie_accuracy":0.9487179487179487,"forced_regret_gm":1.0151122480048456,"forced_regret_worst":1.0931166540392083,"actual_regret_worst":1.161080002841178},
+  "residual":"s311 VF16/VF2 remains .59375 vs historical .39514. This is an accumulator recurrence; the initial startup of 3 was a generic assumption. FMA recurrence latency also affects GESUMMV/BiCG and must be jointly re-evaluated.",
+  "hypothesis":"Adjust the existing shared latency startup, without new fields or throughput changes. This tests the contribution of LCD separately from slide/memory throughput.",
+  "search":{"latency_startup":[3,4,5,6]},
+  "fixed":{"memory_beat_bits":256,"fp_beat_bits":128,"slide_startup":8,"slide_quadratic_cost":3,"fma_accounting":true},
+  "new_numeric_parameters":0,
+  "selection_policy":"Minimize core relative GM subject to preserving forced ranking/selection targets; report actual automatic miss separately. Additional group is evaluated separately, with exposure acknowledged.",
+  "evaluation":"Full suite compiler diagnostics/assembly at each point, then full IR/allocator/workaround/object collection for retained point. No new measurements."
+}
